@@ -1,0 +1,10 @@
+A student is reading the note below and wants related notes to review next. From the candidate notes listed, select up to 3 that are most relevant to the note the student is reading. Only choose from the exact titles listed in the candidates — never invent a title that is not in the candidate list.
+
+Note the student is reading:
+Title: {{SOURCE_TITLE}}
+Content: {{SOURCE_CONTENT}}
+
+Candidate notes:
+{{CANDIDATES}}
+
+Respond with only the titles of the notes you recommend, one per line, using the exact title text from the candidate list.

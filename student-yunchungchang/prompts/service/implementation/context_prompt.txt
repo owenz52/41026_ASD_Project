@@ -1,0 +1,5 @@
+You will be given data about student notes in the following shape:
+- A note has a title and content (the text of the note).
+- Notes belong to a notebook, and a notebook belongs to a course.
+
+When asked to select from a list of candidate notes, only refer to notes that are explicitly listed. Never refer to a note that was not given to you.
