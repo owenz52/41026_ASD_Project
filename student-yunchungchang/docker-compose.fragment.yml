@@ -1,0 +1,45 @@
+# Draft only — do NOT paste this file's `services:` key directly into the shared
+# root docker-compose.yml without first merging it under that file's own top-level
+# `services:` key. When a teammate pastes this in, these two services also need to
+# join whatever network the team's compose file defines (e.g. add
+# `networks: [asd-network]` to each service block below) so they can reach the
+# other students' services and be reached in turn — omitted here since that
+# network isn't defined yet in the (currently empty) root file.
+#
+# Verified locally: both images build standalone, and both containers run
+# together on a shared docker network with these exact env vars, with the
+# backend reaching the database over the container hostname and TZ correctly
+# applied inside both containers.
+services:
+  notebook-backend:
+    build:
+      context: ./student-yunchungchang
+      dockerfile: backend/Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - BACKEND_PORT=5003
+      - DATABASE_SERVICE_URL=http://notebook-database:5004
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:0.5b
+      - SUMMARY_SKIP_THRESHOLD_CHARS=200
+      - SUMMARY_CHUNK_THRESHOLD_CHARS=4000
+      - RECOMMEND_CANDIDATE_LIMIT=8
+      - RECOMMEND_CONTEXT_CHARS=200
+      - RECOMMEND_KEYWORD_LIMIT=5
+      - TZ=Australia/Sydney
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - notebook-database
+
+  notebook-database:
+    build:
+      context: ./student-yunchungchang/database
+    ports:
+      - "5004:5004"
+    environment:
+      - DATABASE_PORT=5004
+      - TZ=Australia/Sydney
+
+# notebook-frontend (8081:80) is appended here in Phase 2, once frontend/ exists.

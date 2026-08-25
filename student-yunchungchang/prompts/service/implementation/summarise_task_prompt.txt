@@ -1,0 +1,5 @@
+Summarise the following note in 2-4 sentences. Focus on the main ideas and key terms a student would want to remember. Do not repeat the note verbatim, and do not add information that is not in the note.
+
+Note title: {{NOTE_TITLE}}
+Note content:
+{{NOTE_CONTENT}}
