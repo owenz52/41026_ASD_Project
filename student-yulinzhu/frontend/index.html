@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Enrolment</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body>
+
+<div class="page-container">
+    <header class="page-header">
+        <div class="logo-icon">🎓</div>
+        <div>
+            <h1>Student Enrolment</h1>
+            <p>
+                Manage your course enrolments and get assistance from our AI course advisor.
+            </p>
+        </div>
+    </header>
+
+    <section class="panel">
+        <div class="section-header">
+            <h2>📖 Available Courses</h2>
+            <p>Check out the courses available for enrolment.</p>
+        </div>
+
+        <div id="courses-list" class="course-grid"> Loading courses...</div>
+    </section>
+
+    <section class="panel">
+        <div class="section-header">
+            <h2>📝 My Enrolment</h2>
+            <p>Manage your course enrolments here.</p>
+        </div>
+
+        <div id="enrolments-list" class="enrolment-list"> Loading enrolments...</div>
+    </section>
+
+    <section class="panel ai-panel">
+        <div class="section-header">
+            <h2>🤖 AI Course Assistant</h2>
+            <p>Get assistance from our AI course advisor.</p>
+        </div>
+
+        <div class="ai-input-row">
+            <input
+                id="ai-input"
+                type="text"
+                placeholder="e.g. I want to study art"
+            >
+            <button class="primary-button" onclick="askAI()">Ask AI</button>
+        </div>
+
+        <div id="ai-response" class="ai-response"></div>
+    </section>
+</div>
+<script src="js/app.js"></script>
+</body>
+</html>

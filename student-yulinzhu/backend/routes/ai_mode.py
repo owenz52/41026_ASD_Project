@@ -29,22 +29,33 @@ def ask_ai():
             course_code = course_code_match.group()
             course_data = get_course_by_code(course_code)
         else:
-            keywords = [
-                "art",
-                "database",
-                "japanese",
-                "philosophy",
-                "environmental",
-                "marketing",
-                "cybersecurity",
-                "data science",
-                "programming",
-                "software",
-            ]
+            keywords_map = {
+                "art": "art",
+                "database": "database",
+                "data storage": "database",
+                "japanese": "japanese",
+                "language": "japanese",
+                "philosophy": "philosophy",
+                "environmental": "environmental",
+                "environment": "environmental",
+                "marketing": "marketing",
+                "economy": "marketing",
+                "cybersecurity": "cybersecurity",
+                "cyber security": "cybersecurity",
+                "security": "cybersecurity",
+                "data science": "data science",
+                "datascience": "data science",
+                "programming": "programming",
+                "code": "programming",
+                "oop": "programming",
+                "software": "software",
+                "software developing": "software",
+                "ai": "software"
+            }
             matched_keywords = None
-            for keyword in keywords:
-                if keyword.lower() in question.lower():
-                    matched_keywords = keyword
+            for user_keyword, course_keyword in keywords_map.items():
+                if user_keyword.lower() in question.lower():
+                    matched_keywords = course_keyword
                     break
             if matched_keywords:
                 course_data = search_courses(matched_keywords)
