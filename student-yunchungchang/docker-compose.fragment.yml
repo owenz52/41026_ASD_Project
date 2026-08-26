@@ -1,15 +1,15 @@
-# Draft only — do NOT paste this file's `services:` key directly into the shared
-# root docker-compose.yml without first merging it under that file's own top-level
-# `services:` key. When a teammate pastes this in, these two services also need to
-# join whatever network the team's compose file defines (e.g. add
-# `networks: [asd-network]` to each service block below) so they can reach the
-# other students' services and be reached in turn — omitted here since that
-# network isn't defined yet in the (currently empty) root file.
+# Compose file for the notebook services. Build contexts are relative to this
+# file's own directory, so it runs standalone from student-yunchungchang/:
+#     docker compose -f docker-compose.fragment.yml build
 #
+# When these services are merged into the team's shared root docker-compose.yml
+# in Phase 2, the contexts must be rewritten as ./student-yunchungchang and
+# ./student-yunchungchang/database, and both services need to join whatever
+# network that file defines (e.g. networks: [asd-network]).
 services:
   notebook-backend:
     build:
-      context: ./student-yunchungchang
+      context: .
       dockerfile: backend/Dockerfile
     ports:
       - "5003:5003"
@@ -25,7 +25,7 @@ services:
 
   notebook-database:
     build:
-      context: ./student-yunchungchang/database
+      context: ./database
     ports:
       - "5004:5004"
     environment:
