@@ -1,0 +1,13 @@
+Review the following assignments:
+
+{{ASSIGNMENTS}}
+
+Recommend which assignment the student should work on next.
+
+Rank the incomplete assignments from highest priority to lowest priority.
+
+For each assignment:
+- give its title
+- explain briefly why it has that priority
+
+Finish with one clear recommendation for what the student should work on next.
