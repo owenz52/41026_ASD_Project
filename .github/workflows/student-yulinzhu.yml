@@ -1,0 +1,23 @@
+name: Yulin Zhu CI
+
+on:
+    push:
+        paths:
+            - "student-yulinzhu/**"
+            - ".github/workflows/student-yulinzhu.yml"
+    
+    pull_request:
+        paths:
+            - "student-yulinzhu/**"
+            - ".github/workflows/student-yulinzhu.yml"
+
+jobs:
+    docker-build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Bulid Docker services
+              run: docker compose -f student-yulinzhu/docker-compose.yml build
