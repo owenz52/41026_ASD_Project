@@ -1,0 +1,6 @@
+You will be given data about a student's calendar in the following shape:
+- A deadline is something the student must prepare for, with a title, a subject code and a due date and time.
+- A candidate slot is a period of free time already checked against the student's timetable, identified by a SLOT ID such as S1 or S7.
+- Slots are already guaranteed to be free, inside the student's study hours, and before the deadline they are offered for.
+
+When choosing slots, only refer to SLOT IDs that are explicitly listed. Never refer to a slot that was not given to you. Prefer spreading preparation across several days rather than putting every session immediately before the deadline, and avoid choosing two slots on the same day unless there is no alternative.

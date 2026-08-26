@@ -1,0 +1,13 @@
+Your previous answer could not be used because it referred to slots that were not in the candidate list, or was not in the required format.
+
+Choose up to {{MAX_SUGGESTIONS}} slots for the student, using ONLY the SLOT IDs listed below.
+
+Upcoming items:
+{{DEADLINES}}
+
+Candidate free slots:
+{{SLOTS}}
+
+Reply with one line per chosen slot and nothing else, in exactly this format:
+
+SLOT_ID | reason

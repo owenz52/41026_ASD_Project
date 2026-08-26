@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calendar — Student Portal</title>
+  <link rel="stylesheet" href="css/calendar.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand__mark"></span>
+        <div>
+          <div class="brand__name">STUDENT PORTAL</div>
+          <div class="brand__sub">41026 ASD</div>
+        </div>
+      </div>
+      <nav class="nav">
+        <a class="nav__item" href="#">COURSES</a>
+        <a class="nav__item" href="#">ENROLMENT</a>
+        <a class="nav__item" href="#">NOTES</a>
+        <a class="nav__item nav__item--active" href="#">CALENDAR</a>
+      </nav>
+      <div class="panel">
+        <div class="panel__label">DRAG TO RESCHEDULE</div>
+        <p class="panel__text">
+          Drag any event onto another day to move it. The time of day and
+          duration stay the same; clashes are flagged after the move.
+        </p>
+      </div>
+
+      <div class="agent">
+        <div class="agent__label">STUDY AGENT</div>
+        <p class="agent__text" id="agent-text">
+          Looks at your upcoming deadlines and free time, then suggests
+          revision sessions. Nothing is added until you accept it.
+        </p>
+        <div id="agent-suggestions" class="agent__list"></div>
+        <button id="agent-suggest" class="btn btn--primary btn--block">
+          SUGGEST SESSIONS
+        </button>
+        <button id="agent-apply" class="btn btn--block" hidden>
+          ADD THESE TO MY CALENDAR
+        </button>
+        <button id="agent-dismiss" class="btn btn--ghost btn--block" hidden>
+          Dismiss
+        </button>
+        <details id="agent-trace-wrap" class="agent__trace" hidden>
+          <summary>How it decided</summary>
+          <pre id="agent-trace"></pre>
+        </details>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <h1 id="month-label" class="header__title">September 2026</h1>
+        <div class="header__controls">
+          <button id="add-event-btn" class="btn btn--primary">+ ADD EVENT</button>
+          <button id="prev-month" class="btn btn--icon" aria-label="Previous month">&larr;</button>
+          <button id="next-month" class="btn btn--icon" aria-label="Next month">&rarr;</button>
+        </div>
+      </header>
+
+      <div class="weekdays">
+        <div>MON</div><div>TUE</div><div>WED</div><div>THU</div>
+        <div>FRI</div><div>SAT</div><div>SUN</div>
+      </div>
+      <div id="calendar-grid" class="grid"></div>
+    </main>
+  </div>
+
+  <div id="event-modal" class="modal" hidden>
+    <div class="modal__box">
+      <h2 class="modal__title">Add event</h2>
+      <form id="event-form" class="form">
+        <div id="form-error" class="form__error" hidden></div>
+
+        <label class="field">
+          <span>Title</span>
+          <input id="event-title" name="title" type="text" required>
+        </label>
+
+        <label class="field">
+          <span>Course</span>
+          <select id="event-course" name="course_id">
+            <option value="">No course (personal)</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Type</span>
+          <select name="event_type" required>
+            <option value="lecture">Lecture</option>
+            <option value="lab">Lab / Tutorial</option>
+            <option value="seminar">Seminar</option>
+            <option value="deadline">Deadline</option>
+            <option value="exam">Exam</option>
+            <option value="revision">Revision</option>
+            <option value="office_hours">Office hours</option>
+            <option value="other">Other</option>
+          </select>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Starts</span>
+            <input name="start_time" type="datetime-local" required>
+          </label>
+          <label class="field">
+            <span>Ends</span>
+            <input name="end_time" type="datetime-local" required>
+          </label>
+        </div>
+
+        <label class="field">
+          <span>Location</span>
+          <input name="location" type="text">
+        </label>
+
+        <div class="form__actions">
+          <button type="button" id="cancel-event" class="btn">Cancel</button>
+          <button type="submit" class="btn btn--primary">Add event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // Same-origin by default, so this works both under run_local.py (one
+    // port) and behind the nginx proxy in Docker. Override only if the API is
+    // genuinely on another host.
+    window.CALENDAR_API = "/calendar";
+    window.STUDENT_ID = 1001;
+  </script>
+  <script src="js/calendar.js"></script>
+</body>
+</html>

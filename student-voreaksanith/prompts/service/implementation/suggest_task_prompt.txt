@@ -1,0 +1,16 @@
+A student has {{DEADLINE_COUNT}} upcoming item(s) to prepare for and some free time in their calendar. Choose up to {{MAX_SUGGESTIONS}} study slots that would best help them prepare.
+
+Upcoming items:
+{{DEADLINES}}
+
+Candidate free slots:
+{{SLOTS}}
+
+Respond with one line per slot you choose, in exactly this format:
+
+SLOT_ID | reason
+
+For example:
+S3 | Gives two clear days before the quiz to review the harder topics.
+
+Use only SLOT IDs from the candidate list above. Do not add any other text, headings or numbering.

@@ -1,0 +1,35 @@
+
+services:
+  calendar-backend:
+    build:
+      context: ./calendar
+      dockerfile: backend/Dockerfile
+    ports:
+      - "5005:5005"
+    environment:
+      - BACKEND_PORT=5005
+      - DATABASE_SERVICE_URL=http://calendar-database:5006
+      - ENROLMENT_SERVICE_URL=http://enrolment-database:5002
+      # The study agent calls Ollama running on the host machine.
+      - OLLAMA_BASE_URL=http://host.docker.internal:11434
+      - OLLAMA_MODEL=qwen2.5:0.5b
+      - TZ=Australia/Sydney
+    depends_on:
+      - calendar-database
+
+  calendar-database:
+    build:
+      context: ./calendar/database
+    ports:
+      - "5006:5006"
+    environment:
+      - DATABASE_PORT=5006
+      - TZ=Australia/Sydney
+
+  calendar-frontend:
+    build:
+      context: ./calendar/frontend
+    ports:
+      - "8082:80"
+    depends_on:
+      - calendar-backend
