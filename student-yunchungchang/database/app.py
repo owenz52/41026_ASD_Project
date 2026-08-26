@@ -4,7 +4,6 @@ from pathlib import Path
 
 from flask import Flask, jsonify, request
 
-from config import DATABASE_PORT
 
 DATABASE_NAME = Path(__file__).resolve().parent / "data" / "notebook.db"
 
@@ -281,4 +280,4 @@ def search_notes():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=DATABASE_PORT, debug=True)
+    app.run(host="0.0.0.0", port=5004, debug=True)

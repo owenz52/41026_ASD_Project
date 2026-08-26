@@ -1,5 +1,0 @@
-Your previous attempt to summarise this note returned nothing. Produce a summary this time, no matter how short. Write exactly 1-2 sentences capturing the single most important idea in the note below. Do not return an empty response.
-
-Note title: {{NOTE_TITLE}}
-Note content:
-{{NOTE_CONTENT}}

@@ -1,8 +1,0 @@
-backend/tests/
-backend/.venv/
-backend/Dockerfile
-backend/requirements-dev.txt
-**/.env
-**/__pycache__/
-**/*.pyc
-database/data/*.db
