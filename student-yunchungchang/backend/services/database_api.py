@@ -1,6 +1,9 @@
+import os
+
 import requests
 
-from config import DATABASE_SERVICE_URL
+
+DATABASE_SERVICE_URL = os.getenv("DATABASE_SERVICE_URL", "http://notebook-database:5004")
 
 
 def _request(method, path, **kwargs):

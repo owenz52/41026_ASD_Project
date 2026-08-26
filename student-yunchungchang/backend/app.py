@@ -8,7 +8,6 @@ BASE_DIR = Path(__file__).resolve().parent
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
-from config import BACKEND_PORT
 from routes.ai_mode import ai_mode_bp
 from routes.normal_ui import normal_ui_bp
 
@@ -26,4 +25,4 @@ def create_app():
 app = create_app()
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=BACKEND_PORT, debug=True)
+    app.run(host="0.0.0.0", port=5003, debug=True)
