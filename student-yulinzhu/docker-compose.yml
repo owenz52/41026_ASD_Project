@@ -1,0 +1,52 @@
+services:
+    frontend-service:
+        build:
+            context: ./frontend
+        container_name: yulin-enrolment-frontend-container
+        ports:
+            - "8080:80"
+        depends_on:
+            - enrolment-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    enrolment-service:
+        build:
+            context: .
+            dockerfile: backend/Dockerfile
+        container_name: yulin-enrolment-backend-container
+        ports:
+            - "5001:5001"
+        environment:
+            DATABASE_SERVICE_URL: http://database-service:5002
+            OLLAMA_BASE_URL: http://host.docker.internal:11434
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - database-service
+        networks:
+            - enrolment-network
+        restart: unless-stopped
+
+    database-service:
+        build:
+            context: ./database
+        container_name: yulin-enrolment-db-container
+        ports:
+            - "5002:5002"
+        volumes:
+            - database_data:/app/data
+        networks:
+            enrolment-network:
+                aliases:
+                    - database-service
+        restart: unless-stopped
+
+volumes:
+    database_data:
+
+networks:
+    enrolment-network:
+        driver: bridge
