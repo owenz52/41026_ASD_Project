@@ -6,9 +6,11 @@ COPY requirements.txt .
 
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend/ .
-COPY prompts/ /prompts/
+COPY app.py .
+COPY init_db.py .
 
-EXPOSE 5001
+RUN python init_db.py
+
+EXPOSE 5002
 
 CMD ["python", "app.py"]
