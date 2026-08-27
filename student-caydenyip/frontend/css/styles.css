@@ -1,0 +1,365 @@
+:root {
+    --bg-0: #0b1020;
+    --bg-1: #111a31;
+    --bg-2: #1a2645;
+    --surface: #0f172b;
+    --surface-alt: #15213d;
+    --text: #e8edf8;
+    --muted: #9eb0d3;
+    --accent: #45c9ff;
+    --accent-strong: #1eb1ee;
+    --border: #2b3a63;
+    --radius: 12px;
+    --state-on-bg: #0f6a45;
+    --state-on-fg: #d7ffee;
+    --state-off-bg: #6a2031;
+    --state-off-fg: #ffe2e8;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+    line-height: 1.5;
+    color: var(--text);
+    background:
+        radial-gradient(1100px 540px at 10% -10%, #1e3263 0%, transparent 60%),
+        radial-gradient(900px 480px at 100% 0%, #1a4e74 0%, transparent 58%),
+        linear-gradient(160deg, var(--bg-0) 0%, var(--bg-1) 46%, var(--bg-2) 100%);
+}
+
+.app-shell {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 1.25rem;
+}
+
+.app-header {
+    margin-bottom: 1rem;
+}
+
+.app-header h1 {
+    margin: 0;
+    font-size: 1.9rem;
+}
+
+.app-header p {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+}
+
+.layout-grid {
+    display: block;
+}
+
+.card {
+    background: linear-gradient(180deg, rgba(20, 31, 56, 0.95), rgba(13, 22, 41, 0.95));
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1rem;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+}
+
+h2 {
+    margin: 0 0 0.6rem;
+    font-size: 1.1rem;
+}
+
+label {
+    display: block;
+    margin-bottom: 0.3rem;
+    color: var(--muted);
+}
+
+button {
+    margin-top: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    font-weight: 600;
+    color: #06202c;
+    background: var(--accent);
+    cursor: pointer;
+}
+
+button:hover {
+    background: var(--accent-strong);
+}
+
+input,
+textarea {
+    width: 100%;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    color: var(--text);
+    background: var(--surface-alt);
+}
+
+.panel {
+    margin-top: 0.7rem;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    min-height: 2.5rem;
+}
+
+.panel-mcp {
+    border-color: #2d5b7b;
+}
+
+.feature-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.9rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: rgba(15, 23, 43, 0.65);
+}
+
+.toggle-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    margin: 0;
+    color: var(--text);
+}
+
+.toggle-switch input {
+    width: auto;
+    margin: 0;
+}
+
+.toggle-label {
+    font-weight: 600;
+    color: var(--text);
+}
+
+.feature-state {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 3.4rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+}
+
+.feature-on {
+    background: var(--state-on-bg);
+    color: var(--state-on-fg);
+}
+
+.feature-off {
+    background: var(--state-off-bg);
+    color: var(--state-off-fg);
+}
+
+.feature-actions,
+.feature-form {
+    margin-bottom: 0.7rem;
+}
+
+.stack-form {
+    display: grid;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.rag-action {
+    justify-self: start;
+    width: auto;
+}
+
+.rag-helper {
+    margin: -0.2rem 0 0;
+    font-size: 0.86rem;
+    color: var(--muted);
+}
+
+.result-box {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    border: 1px solid #d5dbe3;
+    border-radius: 8px;
+    background: #f9fbfd;
+}
+
+.tab-shell {
+    padding: 0.8rem;
+}
+
+.tab-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 0.8rem;
+}
+
+.tab-btn {
+    margin-top: 0;
+    color: var(--text);
+    background: #1a2b4f;
+    border: 1px solid var(--border);
+}
+
+.tab-btn:hover {
+    background: #223766;
+}
+
+.tab-btn.is-active {
+    color: #06202c;
+    background: var(--accent);
+    border-color: transparent;
+}
+
+.tab-btn:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.tab-content {
+    position: relative;
+}
+
+.tab-frame {
+    width: 100%;
+    min-height: 720px;
+    border: 0;
+    display: none;
+    background: transparent;
+}
+
+.tab-frame.is-active {
+    display: block;
+}
+
+.is-hidden {
+    display: none;
+}
+
+@media (max-width: 900px) {
+    .tab-frame {
+        min-height: 840px;
+    }
+}
+
+
+/* Exams table */
+
+#exams-result {
+    width: 100%;
+    overflow-x: auto;
+}
+
+#exams-result table,
+#exam-result table,
+#course-result table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: auto;
+}
+
+#exams-result th,
+#exams-result td,
+#exam-result th,
+#exam-result td,
+#course-result th,
+#course-result td {
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid #000a34cb;
+}
+
+#exams-result th,
+#exam-result th,
+#course-result th {
+    background-color: #000a34c9;
+    font-weight: 600;
+}
+
+#exams-result tr:hover,
+#exam-result tr:hover,
+#course-result tr:hover {
+    background-color: #05003a93;
+}
+
+
+
+.actions {
+    display: flex;
+    gap: 8px;
+    white-space: nowrap;
+}
+
+.edit-btn,
+.delete-btn {
+    border: none;
+    padding: 7px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: white;
+}
+
+.edit-btn {
+    background-color: #3498db;
+}
+
+.edit-btn:hover {
+    background-color: #2980b9;
+}
+
+.delete-btn {
+    background-color: #e74c3c;
+}
+
+.delete-btn:hover {
+    background-color: #c0392b;
+}
+
+
+/* Edit form */
+
+#edit-form {
+    display: none;
+    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+#edit-form input,
+#edit-form select {
+    margin-bottom: 10px;
+}
+
+
+#edit_status {
+    width: 200px;
+    padding: 10px 12px;
+    border: 1px solid #1e3a5f;
+    border-radius: 6px;
+    background-color: #0d2a4a;
+    color: white;
+    font-size: 16px;
+    cursor: pointer;
+    outline: none;
+}
+
+#edit_status:focus {
+    border-color: #3b6b9c;
+    box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.3);
+}
+
+#edit_status option {
+    background-color: #0d2a4a;
+    color: white;
+}
