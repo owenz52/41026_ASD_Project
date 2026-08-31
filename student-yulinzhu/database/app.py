@@ -57,6 +57,7 @@ def get_enrolment(enrolment_id):
 @app.route("/enrolments", methods=["POST"])
 def create_enrolment():
     data = request.get_json()
+
     student_id = data.get("student_id")
     course_id = data.get("course_id")
     enrolment_status = data.get("enrolment_status")
@@ -74,13 +75,36 @@ def create_enrolment():
     if course is None:
         conn.close()
         return jsonify({"error": "Course not found"}), 404
+    existing_enrolment = conn.execute(
+        """
+        SELECT * FROM enrolments
+        WHERE student_id = ? AND course_id = ?
+        """,
+        (student_id, course_id)
+    ).fetchone()
+
+    if existing_enrolment is not None:
+        conn.close()
+        return jsonify({
+            "error": "You are already enrolled in this course"
+        }), 409
 
     cursor = conn.execute(
         """
-        INSERT INTO enrolments (student_id, course_id, enrolment_status, enrolment_date)
+        INSERT INTO enrolments (
+            student_id,
+            course_id,
+            enrolment_status,
+            enrolment_date
+        )
         VALUES (?, ?, ?, ?)
         """,
-        (student_id, course_id, enrolment_status, enrolment_date)
+        (
+            student_id,
+            course_id,
+            enrolment_status,
+            enrolment_date
+        )
     )
     conn.commit()
     enrolment_id = cursor.lastrowid

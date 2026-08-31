@@ -1,4 +1,15 @@
 const API_URL = "http://localhost:5001";
+const params = new URLSearchParams(window.location.search);
+
+const loggedInUserId = Number(params.get("user_id"));
+const loggedInUserName = params.get("name");
+
+if (!loggedInUserId) {
+    alert("Please login first.");
+
+    window.location.href =
+        "http://localhost:8081/login.html";
+}
 
 async function askAI() {
     const question = document.getElementById("ai-input").value.trim();
@@ -87,44 +98,66 @@ async function loadCourses() {
 }
 
 async function enrolCourse(courseId) {
-    // Temporary student ID input for testing.
-    // After login integration, this will use the logged-in student's ID.
-    const studentId = prompt("Enter your Student ID:");
-
-    if (!studentId) {
-        return;
-    }
-
-    const today = new Date().toISOString().split("T")[0];
 
     try {
-        const response = await fetch(`${API_URL}/enrolments`, {
-            method: "POST",
+        const checkResponse = await fetch(`${API_URL}/enrolments`);
 
-            headers: {
-                "Content-Type": "application/json"
-            },
+        if (!checkResponse.ok) {
+            throw new Error("Failed to check enrolments");
+        }
 
-            body: JSON.stringify({
-                student_id: Number(studentId),
-                course_id: courseId,
-                enrolment_status: "enrolled",
-                enrolment_date: today
-            })
-        });
+        const enrolments = await checkResponse.json();
+
+        const alreadyEnrolled = enrolments.some(
+            enrolment =>
+                Number(enrolment.student_id) === loggedInUserId &&
+                Number(enrolment.course_id) === Number(courseId)
+        );
+
+        if (alreadyEnrolled) {
+            alert("You are already enrolled in this course.");
+            return;
+        }
+
+        const today =
+            new Date().toISOString().split("T")[0];
+
+        const response = await fetch(
+            `${API_URL}/enrolments`,
+            {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                    student_id: loggedInUserId,
+                    course_id: courseId,
+                    enrolment_status: "enrolled",
+                    enrolment_date: today
+                })
+            }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-            alert(data.error || "Failed to create enrolment.");
+            alert(
+                data.error ||
+                "Failed to create enrolment."
+            );
             return;
         }
 
         alert("Enrolment created successfully.");
+
+        loadCourses();
         loadEnrolments();
 
     } catch (error) {
-        console.error("Failed to create enrolment:", error);
+        console.error(
+            "Failed to create enrolment:",
+            error
+        );
 
         alert("Failed to create enrolment.");
     }
@@ -141,8 +174,16 @@ async function loadEnrolments() {
             throw new Error("Failed to load enrolment data");
         }
 
-        const enrolments = await enrolmentResponse.json();
-        const courses = await courseResponse.json();
+        const allEnrolments =
+        await enrolmentResponse.json();
+
+        const courses =
+        await courseResponse.json();
+
+        const enrolments = allEnrolments.filter(
+            enrolment =>
+                Number(enrolment.student_id) === loggedInUserId
+        );
 
         const courseMap = {};
 
@@ -167,7 +208,7 @@ async function loadEnrolments() {
                 <tbody>
         `;
 
-        enrolments.forEach(enrolment => {
+        enrolments.forEach((enrolment, index) => {
             const course = courseMap[enrolment.course_id];
 
             const courseDisplay = course
@@ -176,7 +217,7 @@ async function loadEnrolments() {
 
             html += `
                 <tr>
-                    <td>${enrolment.enrolment_id}</td>
+                    <td>${index+1}</td>
                     <td>${enrolment.student_id}</td>
                     <td>${courseDisplay}</td>
 
