@@ -16,7 +16,7 @@ normal_ui_bp = Blueprint("normal_ui", __name__)
 @normal_ui_bp.get("/")
 def health():
     return jsonify({
-        "service": "enrolment-service",
+        "service": "exam-backend",
         "status": "running"
     }), 200
 

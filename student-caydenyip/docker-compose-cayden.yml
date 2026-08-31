@@ -1,17 +1,17 @@
 services:
-    frontend-service:
+    exam-frontend:
         build:
             context: ./frontend
         container_name: frontend-cayden
         ports:
             - "8080:80"
         depends_on:
-            - enrolment-service
+            - exam-backend
         networks:
             - enrolment-network
         restart: unless-stopped
 
-    enrolment-service:
+    exam-backend:
         build:
             context: .
             dockerfile: backend/Dockerfile
@@ -19,21 +19,21 @@ services:
         ports:
             - "5001:5001"
         environment:
-            DATABASE_SERVICE_URL: http://database-cayden:5002
+            DATABASE_SERVICE_URL: http://exam-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
-            - database-cayden
+            - exam-database
         networks:
             - enrolment-network
         restart: unless-stopped
 
-    database-cayden:
+    exam-database:
         build:
             context: ./database
-        container_name: database-cayden
+        container_name: exam-database
         ports:
             - "5002:5002"
         volumes:
@@ -41,7 +41,7 @@ services:
         networks:
             enrolment-network:
                 aliases:
-                    - database-cayden 
+                    - exam-database 
         restart: unless-stopped
 
 volumes:
