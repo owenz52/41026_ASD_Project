@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assessments — Student Portal</title>
+    <link rel="stylesheet" href="css/asd-shell.css">
+    <link rel="stylesheet" href="css/assessments.css">
+</head>
+<body>
+
+<div class="layout">
+    <aside class="sidebar">
+        <div class="brand">
+            <span class="brand__mark"></span>
+            <div>
+                <div class="brand__name">STUDENT PORTAL</div>
+                <div class="brand__sub">41026 ASD</div>
+            </div>
+        </div>
+
+        <nav class="nav">
+            <a class="nav__item" href="http://localhost:8080">COURSES</a>
+            <a class="nav__item" href="http://localhost:8080">ENROLMENT</a>
+            <a class="nav__item" href="http://localhost:8081">NOTES</a>
+            <a class="nav__item" href="http://localhost:8082">CALENDAR</a>
+            <a class="nav__item nav__item--active" href="/">ASSESSMENTS</a>
+        </nav>
+
+        <div class="side-note">
+            <div class="side-note__label">FILTER</div>
+            <div class="filter-list">
+                <button class="filter-item filter-item--active" data-status="">All</button>
+                <button class="filter-item" data-status="not_started">Not started</button>
+                <button class="filter-item" data-status="in_progress">In progress</button>
+                <button class="filter-item" data-status="completed">Completed</button>
+            </div>
+        </div>
+
+        <div class="agent">
+            <div class="agent__label">PRIORITY AGENT</div>
+            <p class="agent__text">
+                Ranks your incomplete assessments by what to work on first,
+                weighing due dates against how much each is worth.
+            </p>
+            <div id="agent-output" class="agent__output"></div>
+            <button id="prioritise-btn" class="btn btn--primary btn--block">
+                PRIORITISE FOR ME
+            </button>
+        </div>
+    </aside>
+
+    <main class="main">
+        <header class="page-header">
+            <div>
+                <h1 class="page-title">Assessments</h1>
+                <p class="page-subtitle" id="page-subtitle">Track what is due and what is done</p>
+            </div>
+            <div>
+                <button id="new-btn" class="btn btn--primary">+ NEW ASSESSMENT</button>
+            </div>
+        </header>
+
+        <div class="stat-row">
+            <div class="stat"><span class="stat__num" id="stat-total">—</span><span class="stat__label">Total</span></div>
+            <div class="stat"><span class="stat__num" id="stat-open">—</span><span class="stat__label">Outstanding</span></div>
+            <div class="stat"><span class="stat__num" id="stat-done">—</span><span class="stat__label">Completed</span></div>
+            <div class="stat"><span class="stat__num" id="stat-weight">—</span><span class="stat__label">Weighting outstanding</span></div>
+        </div>
+
+        <section class="section">
+            <div class="section__head">
+                <h2 class="section__title" id="list-heading">All assessments</h2>
+                <span class="section__hint" id="list-count"></span>
+            </div>
+            <div id="assignments-list" class="assignments-list">
+                <p class="empty">Loading assessments...</p>
+            </div>
+        </section>
+    </main>
+</div>
+
+<div id="form-modal" class="modal" hidden>
+    <div class="modal__box">
+        <button class="modal__close" id="form-close" aria-label="Close">&times;</button>
+        <h2 class="modal__title" id="form-title">New assessment</h2>
+        <form id="assignment-form" class="form">
+            <div id="form-error" class="form__error" hidden></div>
+            <input type="hidden" name="assignment_id">
+
+            <label class="field">
+                <span>Title</span>
+                <input name="title" type="text" required>
+            </label>
+
+            <label class="field">
+                <span>Description</span>
+                <textarea name="description" rows="3"></textarea>
+            </label>
+
+            <div class="field-row">
+                <label class="field">
+                    <span>Course ID</span>
+                    <input name="course_id" type="number" required>
+                </label>
+                <label class="field">
+                    <span>Weighting %</span>
+                    <input name="weighting" type="number" step="1" min="0" max="100">
+                </label>
+            </div>
+
+            <div class="field-row">
+                <label class="field">
+                    <span>Due date</span>
+                    <input name="due_date" type="date" required>
+                </label>
+                <label class="field">
+                    <span>Status</span>
+                    <select name="status">
+                        <option value="not_started">Not started</option>
+                        <option value="in_progress">In progress</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="form__actions">
+                <button type="button" id="form-cancel" class="btn">CANCEL</button>
+                <button type="submit" class="btn btn--primary" id="form-submit">CREATE</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script>
+  // Same-origin: nginx proxies /api to the assessments backend.
+  window.ASSESS_API = "/api";
+  window.STUDENT_ID = 1;
+</script>
+<script src="js/assessments.js"></script>
+</body>
+</html>

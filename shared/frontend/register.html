@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+    <title>Register | ASD Student Portal</title>
+    <link
+        rel="stylesheet"
+        href="css/asd-shell.css"
+    >
+    <link
+        rel="stylesheet"
+        href="css/style.css"
+    >
+</head>
+
+
+<body class="auth-page">
+    <main class="auth-layout">
+        <section class="auth-panel">
+            <div class="auth-brand">
+                <div class="brand__mark"></div>
+                <div>
+                    <div class="brand__name">
+                        ASD STUDENT PORTAL
+                    </div>
+
+                    <div class="brand__sub">
+                        41026
+                    </div>
+                </div>
+            </div>
+
+            <div class="auth-heading">
+
+                <div class="auth-label">
+                    CREATE ACCOUNT
+                </div>
+                <h1>
+                    Join the portal.
+                </h1>
+                <p>
+                    Create your account to access student services.
+                </p>
+
+            </div>
+
+            <form
+                id="register-form"
+                class="auth-form"
+            >
+                <div class="field">
+
+                    <label for="name">
+                        Name
+                    </label>
+
+                    <input
+                        id="name"
+                        type="text"
+                        placeholder="Your full name"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="email">
+                        Email
+                    </label>
+
+                    <input
+                        id="email"
+                        type="email"
+                        placeholder="student@example.com"
+                        required
+                    >
+                </div>
+
+                <div class="field">
+                    <label for="password">
+                        Password
+                    </label>
+
+                    <input
+                        id="password"
+                        type="password"
+                        placeholder="Create a password"
+                        required
+                    >
+                </div>
+                <p
+                    id="message"
+                    class="auth-message"
+                ></p>
+
+                <button
+                    type="submit"
+                    class="btn btn--primary btn--block"
+                >
+                    CREATE ACCOUNT
+                </button>
+            </form>
+
+            <div class="auth-footer">
+                <span>
+                    Already have an account?
+                </span>
+
+                <a href="login.html">
+                    SIGN IN
+                </a>
+            </div>
+        </section>
+
+        <aside class="auth-info">
+            <div class="auth-info__content">
+                <div class="auth-info__label">
+                    ASD STUDENT PORTAL
+                </div>
+
+                <h2>
+                    Start your
+                    <br>
+                    study journey.
+                </h2>
+
+                <p>
+                    Create one account to access course
+                    enrolment and the integrated student
+                    services provided by the ASD platform.
+                </p>
+            </div>
+        </aside>
+    </main>
+    <script src="auth.js"></script>
+</body>
+</html>

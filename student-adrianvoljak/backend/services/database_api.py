@@ -1,7 +1,11 @@
+import os
 import requests
 
 
-DATABASE_BASE_URL = "http://localhost:5001"
+DATABASE_BASE_URL = os.getenv(
+    "DATABASE_SERVICE_URL",
+    "http://localhost:5001"
+)
 
 
 def get_assignments(params=None):

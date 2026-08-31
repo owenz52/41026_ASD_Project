@@ -1,61 +1,302 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Enrolment</title>
-    <link rel="stylesheet" href="css/styles.css">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Course Enrolment | ASD Student Portal</title>
+    <link
+        rel="stylesheet"
+        href="css/asd-shell.css"
+    >
+
+    <link
+        rel="stylesheet"
+        href="css/styles.css"
+    >
 </head>
+
 
 <body>
 
-<div class="page-container">
-    <header class="page-header">
-        <div class="logo-icon">🎓</div>
-        <div>
-            <h1>Student Enrolment</h1>
-            <p>
-                Manage your course enrolments and get assistance from our AI course advisor.
-            </p>
-        </div>
-    </header>
+<div class="layout">
+    <aside class="sidebar">
 
-    <section class="panel">
-        <div class="section-header">
-            <h2>📖 Available Courses</h2>
-            <p>Check out the courses available for enrolment.</p>
-        </div>
+        <div class="brand">
 
-        <div id="courses-list" class="course-grid"> Loading courses...</div>
-    </section>
+            <div class="brand__mark"></div>
 
-    <section class="panel">
-        <div class="section-header">
-            <h2>📝 My Enrolment</h2>
-            <p>Manage your course enrolments here.</p>
+            <div>
+                <div class="brand__name">
+                    ASD STUDENT PORTAL
+                </div>
+
+                <div class="brand__sub">
+                    41026
+                </div>
+            </div>
+
         </div>
 
-        <div id="enrolments-list" class="enrolment-list"> Loading enrolments...</div>
-    </section>
+        <nav class="nav">
 
-    <section class="panel ai-panel">
-        <div class="section-header">
-            <h2>🤖 AI Course Assistant</h2>
-            <p>Get assistance from our AI course advisor.</p>
-        </div>
-
-        <div class="ai-input-row">
-            <input
-                id="ai-input"
-                type="text"
-                placeholder="e.g. I want to study art"
+            <!-- HOME -->
+            <a
+                href="http://localhost:8081/index.html"
+                class="nav__item"
             >
-            <button class="primary-button" onclick="askAI()">Ask AI</button>
+                HOME
+            </a>
+
+            <!-- ENROLMENT -->
+            <a
+                href="#"
+                class="nav__item nav__item--active"
+                onclick="return false;"
+            >
+                ENROLMENT
+            </a>
+
+            <!-- CALENDAR -->
+            <a
+                href="#"
+                class="nav__item"
+                onclick="openCalendar(); return false;"
+            >
+                CALENDAR
+            </a>
+
+            <!-- ASSIGNMENTS -->
+            <a
+                href="#"
+                class="nav__item nav__item--soon"
+                onclick="return false;"
+            >
+                ASSIGNMENTS
+            </a>
+
+            <!-- NOTEBOOK -->
+            <a
+                href="#"
+                class="nav__item"
+                onclick="openNotebook(); return false;"
+            >
+                NOTEBOOK
+            </a>
+
+        </nav>
+
+        <div class="side-note">
+
+            <div class="side-note__label">
+                COURSE ENROLMENT
+            </div>
+
+            <div class="side-note__text">
+                Browse available courses, manage your enrolments
+                and receive AI-assisted course recommendations.
+            </div>
+
         </div>
 
-        <div id="ai-response" class="ai-response"></div>
-    </section>
+    </aside>
+
+    <main class="main">
+        <header class="page-header">
+
+            <div>
+
+                <h1 class="page-title">
+                    Course Enrolment
+                </h1>
+
+                <p class="page-subtitle">
+                    Browse courses and manage your current enrolments.
+                </p>
+
+            </div>
+
+            <a
+                href="http://localhost:8081/index.html"
+                class="btn"
+            >
+                BACK TO HOME
+            </a>
+
+        </header>
+        <section class="section">
+
+            <div class="section__head">
+
+                <div class="section__title">
+                    Course Catalogue
+                </div>
+
+                <div class="section__hint">
+                    Select an available course to enrol
+                </div>
+
+            </div>
+
+
+            <div class="section__body">
+                <div
+                    id="courses-list"
+                    class="card-grid"
+                >
+
+                    <div class="empty">
+                        Loading courses...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section__head">
+
+                <div class="section__title">
+                    My Enrolments
+                </div>
+
+                <div class="section__hint">
+                    View, edit or withdraw from your courses
+                </div>
+
+            </div>
+
+
+            <div class="section__body">
+                <div
+                    id="enrolments-list"
+                    class="enrolment-list"
+                >
+
+                    <div class="empty">
+                        Loading enrolments...
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+        <section class="section">
+
+            <div class="section__head">
+
+                <div class="section__title">
+                    AI Enrolment Assistant
+                </div>
+
+                <div class="section__hint">
+                    Agentic AI course support
+                </div>
+
+            </div>
+
+
+            <div class="ai-block">
+
+                <div class="ai-block__label">
+                    AI COURSE ASSISTANT
+                </div>
+
+
+                <div class="ai-block__text">
+
+                    Ask for course recommendations or help choosing
+                    a course based on your interests.
+
+                </div>
+
+
+                <div
+                    class="ai-input-row"
+                    style="margin-top: 14px;"
+                >
+
+                    <input
+                        id="ai-input"
+                        class="input"
+                        type="text"
+                        placeholder="e.g. I am interested in software development"
+                    >
+
+                    <button
+                        class="btn btn--primary"
+                        onclick="askAI()"
+                    >
+                        ASK AI
+                    </button>
+
+                </div>
+
+
+                <div
+                    id="ai-response"
+                    class="ai-response"
+                ></div>
+
+            </div>
+
+        </section>
+
+
+    </main>
+
 </div>
+
+<script>
+    function openCalendar() {
+        const params =
+            new URLSearchParams(window.location.search);
+
+        const userId =
+            params.get("user_id");
+
+        const name =
+            params.get("name");
+
+        window.location.href =
+            "http://localhost:8082/" +
+            "?user_id=" +
+            encodeURIComponent(userId) +
+            "&name=" +
+            encodeURIComponent(name || "");
+    }
+
+
+    function openNotebook() {
+        const params =
+            new URLSearchParams(window.location.search);
+
+        const userId =
+            params.get("user_id");
+
+        const name =
+            params.get("name");
+
+        window.location.href =
+            "http://localhost:8083/" +
+            "?user_id=" +
+            encodeURIComponent(userId) +
+            "&name=" +
+            encodeURIComponent(name || "");
+    }
+</script>
+
 <script src="js/app.js"></script>
 </body>
+
 </html>

@@ -1,0 +1,164 @@
+services:
+  # Adrian Voljak - Assessment Tracker
+
+  priority-database:
+    build:
+      context: ./student-adrianvoljak/database
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_PORT: 5008
+    ports:
+      - "5008:5008"
+
+  priority-backend:
+    build:
+      context: ./student-adrianvoljak
+      dockerfile: backend/Dockerfile
+    environment:
+      BACKEND_PORT: 5007
+      DATABASE_SERVICE_URL: http://priority-database:5008
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - priority-database
+    ports:
+      - "5007:5007"
+
+  priority-frontend:
+    build:
+      context: ./student-adrianvoljak/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - priority-backend
+    ports:
+      - "8081:80"
+
+  # Voreak Sanith - Calendar
+
+  calendar-backend:
+    build:
+      context: ./student-voreaksanith
+      dockerfile: backend/Dockerfile
+    environment:
+      BACKEND_PORT: 5005
+      DATABASE_SERVICE_URL: http://calendar-database:5006
+      ENROLMENT_SERVICE_URL: http://enrolment-database:5002
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+      TZ: Australia/Sydney
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - calendar-database
+      - enrolment-database
+    ports:
+      - "5005:5005"
+
+  calendar-database:
+    build:
+      context: ./student-voreaksanith/database
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_PORT: 5006
+      TZ: Australia/Sydney
+    ports:
+      - "5006:5006"
+
+  calendar-frontend:
+    build:
+      context: ./student-voreaksanith/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - calendar-backend
+    ports:
+      - "8082:80"
+
+  # Yulin Zhu - Enrolment
+
+  enrolment-frontend:
+    build:
+      context: ./student-yulinzhu/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - enrolment-backend
+    ports:
+      - "8080:80"
+    restart: unless-stopped
+
+  enrolment-backend:
+    build:
+      context: ./student-yulinzhu
+      dockerfile: backend/Dockerfile
+    environment:
+      DATABASE_SERVICE_URL: http://enrolment-database:5002
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - enrolment-database
+    ports:
+      - "5001:5001"
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - enrolment-service
+
+  enrolment-database:
+    build:
+      context: ./student-yulinzhu/database
+      dockerfile: Dockerfile
+    volumes:
+      - enrolment_database_data:/app/data
+    ports:
+      - "5002:5002"
+    restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - database-service
+
+  # Yunchung Chang - Notebook
+
+  notebook-backend:
+    build:
+      context: ./student-yunchungchang
+      dockerfile: backend/Dockerfile
+    environment:
+      BACKEND_PORT: 5003
+      DATABASE_SERVICE_URL: http://notebook-database:5004
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      - notebook-database
+    ports:
+      - "5003:5003"
+
+  notebook-database:
+    build:
+      context: ./student-yunchungchang/database
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_PORT: 5004
+    volumes:
+      - notebook_data:/app/data
+    ports:
+      - "5004:5004"
+
+  notebook-frontend:
+    build:
+      context: ./student-yunchungchang/frontend
+      dockerfile: Dockerfile
+    depends_on:
+      - notebook-backend
+    ports:
+      - "8083:80"
+
+volumes:
+  enrolment_database_data:
+  notebook_data:

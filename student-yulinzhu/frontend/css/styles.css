@@ -1,300 +1,167 @@
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: Arial, Helvetica, sans-serif;
-    background: #f5f7fb;
-    color: #1e293b;
-}
-
-.page-container {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 40px 30px;
-}
-
-.page-header {
-    display: flex;
-    align-items: center;
-    gap: 18px;
-    margin-bottom: 30px;
-}
-
-.logo-icon {
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #eaf2ff;
-    border-radius: 14px;
-    font-size: 32px;
-}
-
-.page-header h1 {
-    margin: 0;
-    font-size: 34px;
-    color: #172033;
-}
-
-.page-header p {
-    margin: 7px 0 0;
-    color: #64748b;
-}
-
-.panel {
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 25px;
-    margin-bottom: 25px;
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
-
-.section-header {
-    margin-bottom: 22px;
-}
-
-.section-header h2 {
-    margin: 0;
-    font-size: 22px;
-    color: #1e293b;
-}
-
-.section-header p {
-    margin: 7px 0 0;
-    color: #64748b;
-    font-size: 14px;
-}
-
-.course-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 18px;
-}
-
 .course-card {
-    display: flex;
-    flex-direction: column;
-    min-height: 270px;
-    padding: 20px;
-    background: white;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--ink);
+  background: var(--panel);
+  padding: 14px;
 }
 
-.course-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-}
+.course-card:hover { background: var(--panel-alt); }
 
 .course-top {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 8px;
 }
 
 .course-code {
-    padding: 5px 9px;
-    background: #eaf2ff;
-    color: #1769e0;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 700;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: var(--red);
 }
 
-.availability {
-    padding: 5px 9px;
-    background: #eaf8ef;
-    color: #168447;
-    border: 1px solid #a7dfbc;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
-}
-
-.not-available {
-    background: #fff0f0;
-    color: #dc2626;
-    border-color: #fecaca;
-}
-
-.course-card h3 {
-    margin: 0 0 12px;
-    font-size: 18px;
-    color: #1e293b;
+.course-card h3,
+.course-name {
+  font-size: 15px;
+  font-weight: 700;
+  margin-bottom: 6px;
 }
 
 .course-description {
-    flex-grow: 1;
-    margin: 0;
-    color: #64748b;
-    font-size: 14px;
-    line-height: 1.6;
+  font-size: 12.5px;
+  color: #555;
+  margin-bottom: 12px;
 }
 
-.primary-button,
-.enrol-button {
-    border: none;
-    border-radius: 7px;
-    padding: 11px 16px;
-    background: #1769e0;
-    color: white;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background 0.2s ease;
+.availability {
+  display: inline-block;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #E4F0E9;
+  color: var(--green);
+  white-space: nowrap;
 }
 
-.primary-button:hover,
-.enrol-button:hover {
-    background: #1058bd;
-}
+.availability.not-available { background: #FDEBE7; color: var(--red); }
 
 .enrol-button {
-    width: 100%;
-    margin-top: 18px;
+  padding: 8px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  border: 1px solid var(--red);
+  background: var(--red);
+  color: #fff;
+  cursor: pointer;
+  font-family: inherit;
 }
+
+.enrol-button:hover { background: var(--red-dark); }
 
 .enrol-button:disabled {
-    background: #94a3b8;
-    cursor: not-allowed;
+  background: var(--panel);
+  border-color: var(--line);
+  color: var(--muted-light);
+  cursor: not-allowed;
 }
 
-.enrolment-list {
-    width: 100%;
-    overflow-x: auto;
-}
+.enrolment-list { overflow-x: auto; }
 
 .enrolment-table {
-    width: 100%;
-    border-collapse: collapse;
-    font-size: 14px;
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
 }
 
 .enrolment-table th {
-    padding: 13px 15px;
-    background: #f8fafc;
-    color: #475569;
-    text-align: left;
-    border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  padding: 11px 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
 }
 
 .enrolment-table td {
-    padding: 14px 15px;
-    border-bottom: 1px solid #e2e8f0;
+  padding: 11px 14px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: middle;
 }
 
-.enrolment-table tbody tr:hover {
-    background: #f8fafc;
-}
+.enrolment-table tr:last-child td { border-bottom: none; }
+.enrolment-table tbody tr:hover { background: var(--panel-alt); }
 
 .status-badge {
-    display: inline-block;
-    padding: 5px 10px;
-    background: #eaf8ef;
-    color: #168447;
-    border-radius: 20px;
-    font-size: 12px;
-    font-weight: 600;
+  display: inline-block;
+  padding: 3px 7px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: #E4F0E9;
+  color: var(--green);
 }
 
-.action-buttons {
-    display: flex;
-    gap: 8px;
-}
+.action-buttons { white-space: nowrap; }
+.action-buttons button + button { margin-left: 6px; }
 
-.edit-button {
-    padding: 7px 12px;
-    border: 1px solid #2563eb;
-    border-radius: 6px;
-    background: #eff6ff;
-    color: #2563eb;
-    cursor: pointer;
-}
-
-.edit-button:hover {
-    background: #dbeafe;
-}
-
+.edit-button,
 .delete-button {
-    padding: 7px 12px;
-    border: 1px solid #ef4444;
-    border-radius: 6px;
-    background: #fff5f5;
-    color: #dc2626;
-    cursor: pointer;
+  padding: 6px 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--ink);
+  cursor: pointer;
+  font-family: inherit;
 }
 
-.delete-button:hover {
-    background: #fee2e2;
+.edit-button:hover { background: #F6F6F4; }
+
+.delete-button { border-color: var(--red); color: var(--red); }
+.delete-button:hover { background: #FDEBE7; }
+
+.enrolment-table select,
+.enrolment-table input {
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  font-family: inherit;
+  font-size: 12px;
+  background: #fff;
 }
 
-.ai-panel {
-    background: linear-gradient(135deg, #f5f9ff, #ffffff);
-    border-color: #cfe0ff;
+.enrolment-table select:focus,
+.enrolment-table input:focus {
+  outline: 2px solid var(--red);
+  outline-offset: -1px;
 }
 
-.ai-input-row {
-    display: flex;
-    gap: 10px;
-}
-
-.ai-input-row input {
-    flex: 1;
-    padding: 13px 14px;
-    border: 1px solid #cbd5e1;
-    border-radius: 7px;
-    outline: none;
-    font-size: 15px;
-}
-
-.ai-input-row input:focus {
-    border-color: #1769e0;
-    box-shadow: 0 0 0 3px rgba(23, 105, 224, 0.1);
-}
+.ai-input-row { display: flex; gap: 8px; }
+.ai-input-row input { flex: 1; }
 
 .ai-response {
-    margin-top: 15px;
-    padding: 16px;
-    background: white;
-    border: 1px solid #dbe6f5;
-    border-radius: 8px;
-    line-height: 1.6;
-    white-space: pre-wrap;
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: #E4E4E4;
+  white-space: pre-wrap;
 }
 
-.ai-response:empty {
-    display: none;
-}
-
-@media (max-width: 700px) {
-    .page-container {
-        padding: 20px 15px;
-    }
-
-    .page-header h1 {
-        font-size: 27px;
-    }
-
-    .course-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .ai-input-row {
-        flex-direction: column;
-    }
-
-    .primary-button {
-        width: 100%;
-    }
-
-    .action-buttons {
-        flex-direction: column;
-    }
+.ai-response:empty { display: none; }
+@media (max-width: 900px) {
+  .course-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+  .enrolment-table th,
+  .enrolment-table td { padding: 8px 6px; }
+  .action-buttons button { display: block; width: 100%; }
+  .action-buttons button + button { margin-left: 0; margin-top: 4px; }
 }
