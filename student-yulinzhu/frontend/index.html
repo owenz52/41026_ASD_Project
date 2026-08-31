@@ -89,6 +89,14 @@
                 NOTEBOOK
             </a>
 
+            <!-- EXAM -->
+            <a
+                hred="#"
+                class="nav__item"
+                onclick="openExam(); return false;"
+            >
+                EXAMS
+            </a>
         </nav>
 
         <div class="side-note">
@@ -308,6 +316,24 @@
             "http://localhost:8083/" +
             "?user_id=" +
             encodeURIComponent(userId) +
+            "&name=" +
+            encodeURIComponent(name || "");
+    }
+
+    function openExam() {
+        const params =
+            new URLSearchParams(window.location.search);
+
+        const userId =
+            params.get("user_id");
+
+        const name =
+            params.get("name");
+
+        window.location.href =
+            "http://localhost:8084/" +
+            "?user_id=" +
+            encodeURIComponent(userId || "") +
             "&name=" +
             encodeURIComponent(name || "");
     }
