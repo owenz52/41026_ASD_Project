@@ -27,8 +27,8 @@ def create_database():
     existing_count = cursor.execute(
         "SELECT COUNT(*) FROM assignments"
     ).fetchone()[0]
-    
-    #Creates sample data to test
+
+    # Creates sample data to test
     if existing_count == 0:
         cursor.executemany("""
             INSERT INTO assignments (
@@ -77,11 +77,66 @@ def create_database():
                 "2026-08-30",
                 10,
                 "completed"
+            ),
+            (
+                1,
+                31271,
+                "SQL Practice Tasks",
+                "Complete the SQL query practice exercises.",
+                "2026-09-03",
+                10,
+                "in_progress"
+            ),
+            (
+                1,
+                48024,
+                "Frontend Prototype",
+                "Build the initial interface prototype.",
+                "2026-09-07",
+                15,
+                "completed"
+            ),
+            (
+                1,
+                41026,
+                "DevOps Reflection",
+                "Write a short reflection on the CI/CD workflow.",
+                "2026-09-10",
+                10,
+                "not_started"
+            ),
+            (
+                1,
+                31271,
+                "ER Diagram",
+                "Create the entity relationship diagram for the database.",
+                "2026-09-14",
+                20,
+                "in_progress"
+            ),
+            (
+                1,
+                48024,
+                "API Integration Task",
+                "Connect the frontend to the backend REST API.",
+                "2026-09-16",
+                20,
+                "not_started"
+            ),
+            (
+                1,
+                41026,
+                "Release 0 Demo Preparation",
+                "Prepare screenshots and demo material for Release 0.",
+                "2026-09-20",
+                15,
+                "not_started"
             )
         ])
 
     connection.commit()
     connection.close()
+
 
 if __name__ == "__main__":
     create_database()

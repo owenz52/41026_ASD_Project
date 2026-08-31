@@ -1,4 +1,5 @@
 import sqlite3
+from os import getenv
 from datetime import date
 from pathlib import Path
 
@@ -412,6 +413,8 @@ def update_assignment_status(assignment_id):
 
 if __name__ == "__main__":
     app.run(
-        port=5001,
-        debug=True
+        host="0.0.0.0",
+        port=int(getenv("DATABASE_PORT", 5008)),
+        debug=True,
+        use_reloader=False
     )
