@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Notebook — Student Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="layout">
+    <aside class="sidebar">
+      <div class="brand">
+        <span class="brand__mark"></span>
+        <div>
+          <div class="brand__name">STUDENT PORTAL</div>
+          <div class="brand__sub">41026 ASD</div>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav__item" href="#">COURSES</a>
+        <a class="nav__item" href="#">ENROLMENT</a>
+        <a class="nav__item nav__item--active" href="#">NOTES</a>
+        <a class="nav__item" href="#">CALENDAR</a>
+      </nav>
+
+      <div class="panel">
+        <div class="panel__label">OPEN A NOTEBOOK</div>
+        <p class="panel__text">
+          Notebooks group notes by course. Open one to list, add and edit the
+          notes inside it. Search runs across every notebook.
+        </p>
+      </div>
+
+      <div class="agent" id="agent">
+        <div class="agent__label">STUDY ASSISTANT</div>
+        <p class="agent__text">
+          Summarise condenses a note into its key points. Recommend finds
+          related notes to revise next. Neither changes what you wrote.
+        </p>
+        <div class="agent__output" id="ai-response"></div>
+      </div>
+    </aside>
+
+    <main class="main">
+      <header class="header">
+        <div>
+          <h1 class="header__title">Study Notebook</h1>
+          <div class="header__sub" id="selected-notebook">NO NOTEBOOK OPEN</div>
+        </div>
+        <div class="header__controls">
+          <button id="new-notebook-btn" class="btn btn--primary">+ NEW NOTEBOOK</button>
+        </div>
+      </header>
+
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">My notebooks</h2>
+            <p class="section__hint">Create and manage your study notebooks.</p>
+          </div>
+        </div>
+        <div id="notebooks-list" class="cards"></div>
+      </section>
+
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">Notes</h2>
+            <p class="section__hint">Notes inside the notebook you currently have open.</p>
+          </div>
+          <button id="new-note-btn" class="btn">+ NEW NOTE</button>
+        </div>
+        <div id="notes-list"></div>
+      </section>
+
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">Search notes</h2>
+            <p class="section__hint">Search titles and content across every notebook.</p>
+          </div>
+        </div>
+        <div class="search">
+          <input id="search-input" type="text" placeholder="Search notes...">
+          <button id="search-btn" class="btn btn--primary">SEARCH</button>
+        </div>
+        <div id="search-results" class="results"></div>
+      </section>
+    </main>
+  </div>
+
+  <!-- notebook create / edit -->
+  <div id="notebook-modal" class="modal" hidden>
+    <div class="modal__box">
+      <h2 class="modal__title" id="notebook-modal-title">Add notebook</h2>
+      <form id="notebook-form" class="form">
+        <div id="notebook-error" class="form__error" hidden></div>
+
+        <label class="field">
+          <span>Title</span>
+          <input name="notebook_title" type="text" required>
+        </label>
+
+        <div class="field-row">
+          <label class="field">
+            <span>Student ID</span>
+            <input name="student_id" type="number" required>
+          </label>
+          <label class="field">
+            <span>Course ID</span>
+            <input name="course_id" type="number" required>
+          </label>
+        </div>
+
+        <div class="form__actions">
+          <button type="button" class="btn" data-close="notebook-modal">Cancel</button>
+          <button type="submit" class="btn btn--primary">Save notebook</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- note create / edit -->
+  <div id="note-modal" class="modal" hidden>
+    <div class="modal__box">
+      <h2 class="modal__title" id="note-modal-title">Add note</h2>
+      <form id="note-form" class="form">
+        <div id="note-error" class="form__error" hidden></div>
+
+        <label class="field">
+          <span>Title</span>
+          <input name="note_title" type="text" required>
+        </label>
+
+        <label class="field">
+          <span>Content</span>
+          <textarea name="note_content" required></textarea>
+        </label>
+
+        <div class="form__actions">
+          <button type="button" class="btn" data-close="note-modal">Cancel</button>
+          <button type="submit" class="btn btn--primary">Save note</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- delete confirmation -->
+  <div id="confirm-modal" class="modal" hidden>
+    <div class="modal__box">
+      <h2 class="modal__title" id="confirm-title">Delete</h2>
+      <p class="modal__text" id="confirm-text"></p>
+      <div class="form__actions">
+        <button type="button" class="btn" data-close="confirm-modal">Cancel</button>
+        <button type="button" id="confirm-ok" class="btn btn--primary">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast"></div>
+
+  <script>
+    // The backend is published on host port 5003 by docker-compose, so the
+    // browser reaches it directly and the request is cross-origin (the page
+    // itself is served from 8081). flask_cors on the backend allows this.
+    // Change this one line if the backend moves, or set it to "/notebooks"
+    // style same-origin paths once an nginx proxy is added.
+    window.NOTEBOOK_API = "http://localhost:5003";
+  </script>
+  <script src="js/app.js"></script>
+</body>
+</html>

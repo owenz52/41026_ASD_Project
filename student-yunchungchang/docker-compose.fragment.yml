@@ -3,9 +3,10 @@
 #     docker compose -f docker-compose.fragment.yml build
 #
 # When these services are merged into the team's shared root docker-compose.yml
-# in Phase 2, the contexts must be rewritten as ./student-yunchungchang and
-# ./student-yunchungchang/database, and both services need to join whatever
-# network that file defines (e.g. networks: [asd-network]).
+# in Phase 2, the contexts must be rewritten as ./student-yunchungchang,
+# ./student-yunchungchang/database, and ./student-yunchungchang/frontend, and
+# all three services need to join whatever network that file defines (e.g.
+# networks: [asd-network]).
 services:
   notebook-backend:
     build:
@@ -33,7 +34,13 @@ services:
     volumes:
       - notebook_data:/app/data
 
+  notebook-frontend:
+    build:
+      context: ./frontend
+    ports:
+      - "8081:80"
+    depends_on:
+      - notebook-backend
+
 volumes:
   notebook_data:
-
-# notebook-frontend (8081:80) is appended here in Phase 2, once frontend/ exists.
