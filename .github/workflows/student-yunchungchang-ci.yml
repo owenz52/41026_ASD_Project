@@ -4,11 +4,13 @@ on:
     push:
         paths:
             - "student-yunchungchang/**"
+            - "docker-compose.yml"
             - ".github/workflows/student-yunchungchang-ci.yml"
 
     pull_request:
         paths:
             - "student-yunchungchang/**"
+            - "docker-compose.yml"
             - ".github/workflows/student-yunchungchang-ci.yml"
 
 jobs:
@@ -20,4 +22,6 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Build Docker services
-              run: docker compose -f student-yunchungchang/docker-compose.fragment.yml build
+              run: >
+                  docker compose -f docker-compose.yml build
+                  notebook-backend notebook-database notebook-frontend
