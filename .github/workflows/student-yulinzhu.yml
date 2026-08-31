@@ -4,11 +4,13 @@ on:
     push:
         paths:
             - "student-yulinzhu/**"
+            - "docker-compose.yml"
             - ".github/workflows/student-yulinzhu.yml"
     
     pull_request:
         paths:
             - "student-yulinzhu/**"
+            - "docker-compose.yml"
             - ".github/workflows/student-yulinzhu.yml"
 
 jobs:
@@ -20,4 +22,5 @@ jobs:
               uses: actions/checkout@v4
 
             - name: Bulid Docker services
-              run: docker compose -f student-yulinzhu/docker-compose.yml build
+              run: docker compose -f docker-compose.yml build\
+                enrolment-database \ enrolment-backend \ enrolment-frontend
