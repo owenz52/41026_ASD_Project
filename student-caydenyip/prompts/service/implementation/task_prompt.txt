@@ -14,11 +14,5 @@ Analyze only the supplied live validation evidence. Identify ONE precise, eviden
 
 Review only existing API behavior and endpoints demonstrated by the evidence. Do not invent endpoints, fields, functionality, requirements, or expected behavior not supported by the evidence.
 
-If the evidence does not support a specific improvement, output exactly:
-No evidence-backed improvement identified.
-
-Otherwise, output exactly two bullet points:
-- Issue: [specific evidence-backed issue]
-- Recommendation: [specific actionable improvement]
 
 Maximum 60 words total. No explanations or reasoning.

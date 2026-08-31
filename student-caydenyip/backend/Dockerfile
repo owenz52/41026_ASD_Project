@@ -10,6 +10,6 @@ COPY backend ./backend
 COPY prompts/service ./prompts/service
 
 
-EXPOSE 5001
+EXPOSE 5009
 
 CMD ["python", "backend/app.py"]

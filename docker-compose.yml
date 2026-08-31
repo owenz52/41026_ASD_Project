@@ -159,6 +159,45 @@ services:
     ports:
       - "8083:80"
 
+      
+# Cayden Yip - Exam
+  exam-frontend:
+        build:
+            context: ./student-caydenyip/frontend
+        container_name: exam-frontend
+        ports:
+            - "8084:80"
+        depends_on:
+            - exam-backend
+        restart: unless-stopped
+
+  exam-backend:
+        build:
+            context: ./student-caydenyip
+            dockerfile: backend/Dockerfile
+        container_name: exam-backend
+        ports:
+            - "5009:5009"
+        environment:
+            DATABASE_SERVICE_URL: http://exam-database:5010
+            OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
+            OLLAMA_MODEL: qwen2.5:0.5b
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
+        depends_on:
+            - exam-database
+        restart: unless-stopped
+
+  exam-database:
+        build:
+            context: ./student-caydenyip/database
+        container_name: exam-database
+        ports:
+            - "5010:5010"
+        volumes:
+            - exam_data:/app/data
+        restart: unless-stopped
 volumes:
   enrolment_database_data:
   notebook_data:
+  exam_data:
