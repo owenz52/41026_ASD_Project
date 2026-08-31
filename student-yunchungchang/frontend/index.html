@@ -163,7 +163,7 @@
   <script>
     // The backend is published on host port 5003 by docker-compose, so the
     // browser reaches it directly and the request is cross-origin (the page
-    // itself is served from 8081). flask_cors on the backend allows this.
+    // itself is served from 8083). flask_cors on the backend allows this.
     // Change this one line if the backend moves, or set it to "/notebooks"
     // style same-origin paths once an nginx proxy is added.
     window.NOTEBOOK_API = "http://localhost:5003";
