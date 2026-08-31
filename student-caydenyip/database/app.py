@@ -3,7 +3,7 @@ import sqlite3
 
 app = Flask(__name__)
 
-DATABASE_NAME = "/app/data/enrolment.db"
+DATABASE_NAME = "/app/data/exam.db"
 
 
 def get_db_connection():
@@ -15,7 +15,7 @@ def get_db_connection():
 @app.get("/")
 def health():
     return jsonify({
-        "service": "database-service",
+        "service": "exam-database",
         "status": "running"
     })
 
@@ -181,6 +181,6 @@ def delete_exam(exam_id):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=5002,
+        port=5010,
         debug=True
     )

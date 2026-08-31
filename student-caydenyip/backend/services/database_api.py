@@ -4,7 +4,7 @@ import requests
 
 DATABASE_SERVICE_URL = os.getenv(
     "DATABASE_SERVICE_URL",
-    "http://database-service:5002"
+    "http://exam-database:5010"
 )
 
 

@@ -17,46 +17,6 @@
         <div id="exams-result" class="panel"></div>
 
 
-        <!-- Edit Exam Status -->
-
-        <div id="edit-form">
-
-            <h2>Edit Exam Status</h2>
-
-            <form id="exam-edit-form">
-
-                <input
-                    type="hidden"
-                    id="edit_exam_id"
-                >
-
-                <label for="edit_status">
-                    Status
-                </label>
-
-                <select id="edit_status" required>
-                    <option value="Uncompleted">Uncompleted</option>
-                    <option value="Completed">Completed</option>
-                </select>
-
-                <br>
-
-                <button type="submit">
-                    Save Changes
-                </button>
-
-                <button
-                    type="button"
-                    onclick="cancelEdit()"
-                >
-                    Cancel
-                </button>
-
-            </form>
-
-        </div>
-
-
         <h2>Find Exam by ID</h2>
 
         <form id="exam-by-id-form">
@@ -120,12 +80,6 @@ const examByIdForm =
 const examsByCourseForm =
     document.getElementById("exams-by-course-form");
 
-const editForm =
-    document.getElementById("edit-form");
-
-const examEditForm =
-    document.getElementById("exam-edit-form");
-
 
 /*
  * Display exams
@@ -147,7 +101,7 @@ async function renderIntoPanel(panelId, url) {
         if (!response.ok) {
 
             panel.innerHTML =
-                `<p>${data.error || "Request failed."}</p>`;
+                `<p>${data.error || "Request failed."}`;
 
             return;
         }
@@ -203,17 +157,22 @@ async function renderIntoPanel(panelId, url) {
 
                     <td>${exam.exam_time}</td>
 
-                    <td>${exam.status}</td>
+                    <td>
+                        <button
+                            class="status-btn ${exam.status === "Completed"
+                                ? "status-completed"
+                                : "status-uncompleted"}"
+                            onclick="toggleStatus(
+                                ${exam.exam_id},
+                                '${exam.status}'
+                            )"
+                        >
+                            ${exam.status}
+                        </button>
+                    </td>
 
                     <td>
                         <div class="actions">
-
-                            <button
-                                class="edit-btn"
-                                onclick='editExam(${JSON.stringify(exam)})'
-                            >
-                                Edit Status
-                            </button>
 
                             <button
                                 class="delete-btn"
@@ -249,56 +208,21 @@ async function renderIntoPanel(panelId, url) {
 
 
 /*
- * Edit exam status
+ * Toggle exam completion status
  */
 
-function editExam(exam) {
+async function toggleStatus(examId, currentStatus) {
 
-    document.getElementById("edit_exam_id").value =
-        exam.exam_id;
-
-    document.getElementById("edit_status").value =
-        exam.status;
-
-    editForm.style.display = "block";
-
-    editForm.scrollIntoView({
-        behavior: "smooth"
-    });
-}
-
-
-/*
- * Cancel edit
- */
-
-function cancelEdit() {
-
-    editForm.style.display = "none";
-
-    examEditForm.reset();
-}
-
-
-/*
- * Save edited exam status
- */
-
-examEditForm.addEventListener("submit", async (event) => {
-
-    event.preventDefault();
-
-    const examId =
-        document.getElementById("edit_exam_id").value;
-
-    const status =
-        document.getElementById("edit_status").value;
+    const newStatus =
+        currentStatus === "Completed"
+            ? "Uncompleted"
+            : "Completed";
 
 
     try {
 
         const response = await fetch(
-            `http://localhost:5001/exams/${examId}`,
+            `http://localhost:5009/exams/${examId}`,
             {
                 method: "PUT",
 
@@ -307,7 +231,7 @@ examEditForm.addEventListener("submit", async (event) => {
                 },
 
                 body: JSON.stringify({
-                    status: status
+                    status: newStatus
                 })
             }
         );
@@ -320,21 +244,21 @@ examEditForm.addEventListener("submit", async (event) => {
         if (!response.ok) {
 
             alert(
-                data.error || "Failed to update exam status."
+                data.error ||
+                "Failed to update exam status."
             );
 
             return;
         }
 
 
-        alert("Exam status updated successfully.");
-
-        cancelEdit();
-
+        /*
+         * Refresh the exams table
+         */
 
         renderIntoPanel(
             "exams-result",
-            "http://localhost:5001/exams"
+            "http://localhost:5009/exams"
         );
 
     } catch (error) {
@@ -342,8 +266,7 @@ examEditForm.addEventListener("submit", async (event) => {
         alert("Request failed.");
 
     }
-
-});
+}
 
 
 /*
@@ -365,7 +288,7 @@ async function deleteExam(examId) {
     try {
 
         const response = await fetch(
-            `http://localhost:5001/exams/${examId}`,
+            `http://localhost:5009/exams/${examId}`,
             {
                 method: "DELETE"
             }
@@ -379,7 +302,8 @@ async function deleteExam(examId) {
         if (!response.ok) {
 
             alert(
-                data.error || "Failed to delete exam."
+                data.error ||
+                "Failed to delete exam."
             );
 
             return;
@@ -391,7 +315,7 @@ async function deleteExam(examId) {
 
         renderIntoPanel(
             "exams-result",
-            "http://localhost:5001/exams"
+            "http://localhost:5009/exams"
         );
 
     } catch (error) {
@@ -420,20 +344,24 @@ examByIdForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            `http://localhost:5001/exams/by-id?exam_id=${examId}`
+            `http://localhost:5009/exams/by-id?exam_id=${examId}`
         );
 
-        const exam = await response.json();
+        const exam =
+            await response.json();
+
 
         if (!response.ok) {
 
             panel.innerHTML =
-                `<p>${exam.error || "Exam not found."}`;
+                `<p>${exam.error || "Exam not found."}</p>`;
 
             return;
         }
 
+
         panel.innerHTML = `
+
             <table>
 
                 <thead>
@@ -466,13 +394,28 @@ examByIdForm.addEventListener("submit", async (event) => {
 
                         <td>${exam.exam_time}</td>
 
-                        <td>${exam.status}</td>
+                        <td>
+                            <button
+                                class="status-btn ${
+                                    exam.status === "Completed"
+                                        ? "status-completed"
+                                        : "status-uncompleted"
+                                }"
+                                onclick="toggleStatus(
+                                    ${exam.exam_id},
+                                    '${exam.status}'
+                                )"
+                            >
+                                ${exam.status}
+                            </button>
+                        </td>
 
                     </tr>
 
                 </tbody>
 
             </table>
+
         `;
 
     } catch (error) {
@@ -505,10 +448,12 @@ examsByCourseForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            `http://localhost:5001/exams/by-course?${query}`
+            `http://localhost:5009/exams/by-course?${query}`
         );
 
-        const exams = await response.json();
+        const exams =
+            await response.json();
+
 
         if (!response.ok) {
 
@@ -517,6 +462,7 @@ examsByCourseForm.addEventListener("submit", async (event) => {
 
             return;
         }
+
 
         if (exams.length === 0) {
 
@@ -528,6 +474,7 @@ examsByCourseForm.addEventListener("submit", async (event) => {
 
 
         let table = `
+
             <table>
 
                 <thead>
@@ -545,12 +492,14 @@ examsByCourseForm.addEventListener("submit", async (event) => {
                 </thead>
 
                 <tbody>
+
         `;
 
 
         exams.forEach(exam => {
 
             table += `
+
                 <tr>
 
                     <td>${exam.exam_id}</td>
@@ -565,17 +514,37 @@ examsByCourseForm.addEventListener("submit", async (event) => {
 
                     <td>${exam.exam_time}</td>
 
-                    <td>${exam.status}</td>
+                    <td>
+
+                        <button
+                            class="status-btn ${
+                                exam.status === "Completed"
+                                    ? "status-completed"
+                                    : "status-uncompleted"
+                            }"
+                            onclick="toggleStatus(
+                                ${exam.exam_id},
+                                '${exam.status}'
+                            )"
+                        >
+                            ${exam.status}
+                        </button>
+
+                    </td>
 
                 </tr>
+
             `;
 
         });
 
 
         table += `
+
                 </tbody>
+
             </table>
+
         `;
 
 
@@ -592,12 +561,12 @@ examsByCourseForm.addEventListener("submit", async (event) => {
 
 
 /*
- * Load all exams
+ * Load all exams when page opens
  */
 
 renderIntoPanel(
     "exams-result",
-    "http://localhost:5001/exams"
+    "http://localhost:5009/exams"
 );
 
 </script>
