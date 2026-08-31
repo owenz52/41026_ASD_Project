@@ -74,8 +74,8 @@
             <!-- ASSIGNMENTS -->
             <a
                 href="#"
-                class="nav__item nav__item--soon"
-                onclick="return false;"
+                class="nav__item"
+                onclick="openAssignment();return false;"
             >
                 ASSIGNMENTS
             </a>
@@ -276,6 +276,23 @@
             encodeURIComponent(name || "");
     }
 
+    function openAssignment() {
+    const params =
+        new URLSearchParams(window.location.search);
+
+    const userId =
+        params.get("user_id");
+
+    const name =
+        params.get("name");
+
+    window.location.href =
+        "http://localhost:8081/" +
+        "?user_id=" +
+        encodeURIComponent(userId || "") +
+        "&name=" +
+        encodeURIComponent(name || "");
+}
 
     function openNotebook() {
         const params =
