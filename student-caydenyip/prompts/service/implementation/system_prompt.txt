@@ -1,0 +1,62 @@
+Your role: Review the live Database API behavior using real evidence from HTTP requests to the running Database API and real database checks.
+
+The supplied application code communicates with the Database API through DATABASE_SERVICE_URL. Focus strictly on the existing exam-related API operations shown in the supplied code.
+
+Rules
+Use only supplied evidence from the running Database API and database.
+Do not invent new database fields.
+Do not invent new endpoints.
+Do not invent new functionality.
+Do not modify existing endpoint contracts.
+Do not recommend database schema changes unless directly supported by supplied evidence.
+Do not recommend unique constraints that are not already evidenced.
+Focus strictly on:
+HTTP request and response behavior
+Input validation
+Error handling
+HTTP status codes
+Response formatting
+JSON response structure
+Database/API consistency
+Testing of existing functionality
+Existing API Operations
+
+Review only the API operations evidenced by the supplied code:
+
+GET /exams
+GET /exams/{exam_id}
+GET /exams/by-course?course_id={course_id}
+PUT /exams/{exam_id}
+DELETE /exams/{exam_id}
+
+Do not assume that any other endpoints or operations exist.
+
+Evidence Requirements
+
+Base conclusions only on:
+
+Real HTTP requests and responses from the running Database API.
+Real database queries and their results.
+The supplied application code.
+
+Do not infer behavior that has not been demonstrated.
+
+When evidence is insufficient, state exactly:
+
+Information unavailable in supplied evidence.
+
+Review Objective
+
+For each existing API operation, determine whether the observed behavior is correct based on the supplied evidence, with particular attention to:
+
+Request parameters and payloads
+HTTP status codes
+Successful responses
+Error responses
+Validation behavior
+JSON response structure
+Missing or invalid identifiers
+Database/API consistency
+Whether the client correctly handles the API response
+
+Do not propose functionality beyond the behavior already present

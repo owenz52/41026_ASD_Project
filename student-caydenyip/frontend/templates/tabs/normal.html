@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Exams</title>
+    <link rel="stylesheet" href="/css/styles.css">
+</head>
+
+<body>
+
+<main class="app-shell">
+
+    <section class="card">
+
+        <h2>Exams</h2>
+
+        <div id="exams-result" class="panel"></div>
+
+
+        <!-- Edit Exam Status -->
+
+        <div id="edit-form">
+
+            <h2>Edit Exam Status</h2>
+
+            <form id="exam-edit-form">
+
+                <input
+                    type="hidden"
+                    id="edit_exam_id"
+                >
+
+                <label for="edit_status">
+                    Status
+                </label>
+
+                <select id="edit_status" required>
+                    <option value="Uncompleted">Uncompleted</option>
+                    <option value="Completed">Completed</option>
+                </select>
+
+                <br>
+
+                <button type="submit">
+                    Save Changes
+                </button>
+
+                <button
+                    type="button"
+                    onclick="cancelEdit()"
+                >
+                    Cancel
+                </button>
+
+            </form>
+
+        </div>
+
+
+        <h2>Find Exam by ID</h2>
+
+        <form id="exam-by-id-form">
+
+            <label for="exam_id">
+                Exam ID
+            </label>
+
+            <input
+                id="exam_id"
+                name="exam_id"
+                type="text"
+                min="1"
+                placeholder="Enter exam ID"
+                required
+            >
+
+            <button type="submit">
+                Get Exam
+            </button>
+
+        </form>
+
+        <div id="exam-result" class="panel"></div>
+
+
+        <h2>Find Exams by Course ID</h2>
+
+        <form id="exams-by-course-form">
+
+            <label for="course_id">
+                Course ID
+            </label>
+
+            <input
+                id="course_id"
+                name="course_id"
+                type="text"
+                placeholder="Example: 101"
+                required
+            >
+
+            <button type="submit">
+                Find Exams
+            </button>
+
+        </form>
+
+        <div id="course-result" class="panel"></div>
+
+    </section>
+
+</main>
+
+
+<script>
+
+const examByIdForm =
+    document.getElementById("exam-by-id-form");
+
+const examsByCourseForm =
+    document.getElementById("exams-by-course-form");
+
+const editForm =
+    document.getElementById("edit-form");
+
+const examEditForm =
+    document.getElementById("exam-edit-form");
+
+
+/*
+ * Display exams
+ */
+
+async function renderIntoPanel(panelId, url) {
+
+    const panel =
+        document.getElementById(panelId);
+
+    try {
+
+        const response =
+            await fetch(url);
+
+        const data =
+            await response.json();
+
+        if (!response.ok) {
+
+            panel.innerHTML =
+                `<p>${data.error || "Request failed."}</p>`;
+
+            return;
+        }
+
+        const exams =
+            Array.isArray(data) ? data : [data];
+
+        if (exams.length === 0) {
+
+            panel.innerHTML =
+                "<p>No exams found.</p>";
+
+            return;
+        }
+
+
+        let table = `
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Exam ID</th>
+                        <th>Course ID</th>
+                        <th>Student ID</th>
+                        <th>Exam Name</th>
+                        <th>Exam Date</th>
+                        <th>Exam Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+        `;
+
+
+        exams.forEach(exam => {
+
+            table += `
+                <tr>
+
+                    <td>${exam.exam_id}</td>
+
+                    <td>${exam.course_id}</td>
+
+                    <td>${exam.student_id}</td>
+
+                    <td>${exam.exam_name}</td>
+
+                    <td>${exam.exam_date}</td>
+
+                    <td>${exam.exam_time}</td>
+
+                    <td>${exam.status}</td>
+
+                    <td>
+                        <div class="actions">
+
+                            <button
+                                class="edit-btn"
+                                onclick='editExam(${JSON.stringify(exam)})'
+                            >
+                                Edit Status
+                            </button>
+
+                            <button
+                                class="delete-btn"
+                                onclick="deleteExam(${exam.exam_id})"
+                            >
+                                Delete
+                            </button>
+
+                        </div>
+                    </td>
+
+                </tr>
+            `;
+
+        });
+
+
+        table += `
+                </tbody>
+
+            </table>
+        `;
+
+        panel.innerHTML = table;
+
+    } catch (error) {
+
+        panel.innerHTML =
+            `<p>Request failed.</p><pre>${error}</pre>`;
+
+    }
+}
+
+
+/*
+ * Edit exam status
+ */
+
+function editExam(exam) {
+
+    document.getElementById("edit_exam_id").value =
+        exam.exam_id;
+
+    document.getElementById("edit_status").value =
+        exam.status;
+
+    editForm.style.display = "block";
+
+    editForm.scrollIntoView({
+        behavior: "smooth"
+    });
+}
+
+
+/*
+ * Cancel edit
+ */
+
+function cancelEdit() {
+
+    editForm.style.display = "none";
+
+    examEditForm.reset();
+}
+
+
+/*
+ * Save edited exam status
+ */
+
+examEditForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const examId =
+        document.getElementById("edit_exam_id").value;
+
+    const status =
+        document.getElementById("edit_status").value;
+
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5001/exams/${examId}`,
+            {
+                method: "PUT",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    status: status
+                })
+            }
+        );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            alert(
+                data.error || "Failed to update exam status."
+            );
+
+            return;
+        }
+
+
+        alert("Exam status updated successfully.");
+
+        cancelEdit();
+
+
+        renderIntoPanel(
+            "exams-result",
+            "http://localhost:5001/exams"
+        );
+
+    } catch (error) {
+
+        alert("Request failed.");
+
+    }
+
+});
+
+
+/*
+ * Delete exam
+ */
+
+async function deleteExam(examId) {
+
+    const confirmed =
+        confirm(
+            `Are you sure you want to delete exam ${examId}?`
+        );
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5001/exams/${examId}`,
+            {
+                method: "DELETE"
+            }
+        );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            alert(
+                data.error || "Failed to delete exam."
+            );
+
+            return;
+        }
+
+
+        alert("Exam deleted successfully.");
+
+
+        renderIntoPanel(
+            "exams-result",
+            "http://localhost:5001/exams"
+        );
+
+    } catch (error) {
+
+        alert("Request failed.");
+
+    }
+
+}
+
+
+/*
+ * Find Exam by ID
+ */
+
+examByIdForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const examId =
+        document.getElementById("exam_id").value;
+
+    const panel =
+        document.getElementById("exam-result");
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5001/exams/by-id?exam_id=${examId}`
+        );
+
+        const exam = await response.json();
+
+        if (!response.ok) {
+
+            panel.innerHTML =
+                `<p>${exam.error || "Exam not found."}`;
+
+            return;
+        }
+
+        panel.innerHTML = `
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Exam ID</th>
+                        <th>Course ID</th>
+                        <th>Student ID</th>
+                        <th>Exam Name</th>
+                        <th>Exam Date</th>
+                        <th>Exam Time</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+
+                    <tr>
+
+                        <td>${exam.exam_id}</td>
+
+                        <td>${exam.course_id}</td>
+
+                        <td>${exam.student_id}</td>
+
+                        <td>${exam.exam_name}</td>
+
+                        <td>${exam.exam_date}</td>
+
+                        <td>${exam.exam_time}</td>
+
+                        <td>${exam.status}</td>
+
+                    </tr>
+
+                </tbody>
+
+            </table>
+        `;
+
+    } catch (error) {
+
+        panel.innerHTML =
+            `<p>Request failed.</p><pre>${error}</pre>`;
+
+    }
+
+});
+
+
+/*
+ * Find Exams by Course ID
+ */
+
+examsByCourseForm.addEventListener("submit", async (event) => {
+
+    event.preventDefault();
+
+    const formData =
+        new FormData(examsByCourseForm);
+
+    const query =
+        new URLSearchParams(formData).toString();
+
+    const panel =
+        document.getElementById("course-result");
+
+    try {
+
+        const response = await fetch(
+            `http://localhost:5001/exams/by-course?${query}`
+        );
+
+        const exams = await response.json();
+
+        if (!response.ok) {
+
+            panel.innerHTML =
+                `<p>${exams.error || "No exams found."}`;
+
+            return;
+        }
+
+        if (exams.length === 0) {
+
+            panel.innerHTML =
+                "<p>No exams found.</p>";
+
+            return;
+        }
+
+
+        let table = `
+            <table>
+
+                <thead>
+
+                    <tr>
+                        <th>Exam ID</th>
+                        <th>Course ID</th>
+                        <th>Student ID</th>
+                        <th>Exam Name</th>
+                        <th>Exam Date</th>
+                        <th>Exam Time</th>
+                        <th>Status</th>
+                    </tr>
+
+                </thead>
+
+                <tbody>
+        `;
+
+
+        exams.forEach(exam => {
+
+            table += `
+                <tr>
+
+                    <td>${exam.exam_id}</td>
+
+                    <td>${exam.course_id}</td>
+
+                    <td>${exam.student_id}</td>
+
+                    <td>${exam.exam_name}</td>
+
+                    <td>${exam.exam_date}</td>
+
+                    <td>${exam.exam_time}</td>
+
+                    <td>${exam.status}</td>
+
+                </tr>
+            `;
+
+        });
+
+
+        table += `
+                </tbody>
+            </table>
+        `;
+
+
+        panel.innerHTML = table;
+
+    } catch (error) {
+
+        panel.innerHTML =
+            `<p>Request failed.</p><pre>${error}</pre>`;
+
+    }
+
+});
+
+
+/*
+ * Load all exams
+ */
+
+renderIntoPanel(
+    "exams-result",
+    "http://localhost:5001/exams"
+);
+
+</script>
+
+</body>
+</html>
