@@ -1,5 +1,5 @@
 from flask import Blueprint, request
-
+import requests, json
 from services.llm_client import OLLAMA_MODEL, call_architecture_agent, create_chat_completion
 from services.prompt_loader import load_prompt
 
@@ -7,37 +7,14 @@ from services.prompt_loader import load_prompt
 ai_mode_bp = Blueprint("ai_mode", __name__)
 
 
-@ai_mode_bp.post("/ask")
-def ask_local_agent():
-    question = request.form.get("question", "").strip()
+from services.database_api import (
+    get_exam_by_id_response,
+    get_exams,
+    get_exams_by_course_response,
+    update_exam_response,
+    delete_exam_response,
+)
 
-    if not question:
-        return "<p>Question is required.</p>", 400
-
-    try:
-        answer = create_chat_completion(
-            [
-                {
-                    "role": "system",
-                    "content": (
-                        "You are a concise software engineering assistant. "
-                        "Answer in one short paragraph unless asked otherwise."
-                    ),
-                },
-                {"role": "user", "content": question},
-            ],
-            max_tokens=200,
-            temperature=0.2,
-            model=OLLAMA_MODEL,
-        )
-        return f"<p>{answer}</p>", 200
-    except Exception as exc:
-        return (
-            "<p>Local AI agent request failed. "
-            "Check that Ollama is running and that qwen2.5:0.5b is installed.</p>"
-            f"<pre>{exc}</pre>",
-            503,
-        )
 
 
 @ai_mode_bp.post("/ask-with-context")
@@ -48,14 +25,33 @@ def ask_with_context():
         return "<p>Question is required.</p>", 400
 
     try:
-        system_prompt = load_prompt("service/implementation/system_prompt.txt")
-        task_prompt = load_prompt("service/implementation/task_prompt.txt")
-        context_prompt = load_prompt("service/implementation/context_prompt.txt")
+        system_prompt = load_prompt(
+            "service/implementation/system_prompt.txt"
+        )
+        task_prompt = load_prompt(
+            "service/implementation/task_prompt.txt"
+        )
+        context_prompt = load_prompt(
+            "service/implementation/context_prompt.txt"
+        )
+
+        # Call the existing GET /exams API
+        exams_data = get_exams()
+        validation_evidence = (
+            "GET /exams\n"
+            "HTTP 200\n"
+            "JSON response:\n"
+            f"{json.dumps(exams_data, indent=2)}"
+            )
+
 
         final_prompt = f"""
 {task_prompt}
 
 {context_prompt}
+
+Live Validation Evidence:
+{validation_evidence}
 
 User Question:
 
@@ -71,14 +67,18 @@ User Question:
             temperature=0.2,
             model=OLLAMA_MODEL,
         )
+
         return f"<p>{answer}</p>", 200
+
+    except requests.RequestException:
+        return "<p>Unable to verify live behavior.</p>", 503
+
     except Exception as exc:
         return (
             "<p>Context-aware request failed.</p>"
             f"<pre>{exc}</pre>",
             503,
         )
-
 
 @ai_mode_bp.post("/pattern-selection")
 def pattern_selection():
