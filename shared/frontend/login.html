@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Login | ASD Student Portal</title>
+    <link rel="stylesheet" href="css/asd-shell.css">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+
+<body class="auth-page">
+
+    <div class="auth-layout">
+        <main class="auth-panel">
+            <div class="auth-brand">
+
+                <div class="brand__mark"></div>
+
+                <div>
+                    <div class="brand__name">
+                        ASD STUDENT PORTAL
+                    </div>
+
+                    <div class="brand__sub">
+                        41026
+                    </div>
+                </div>
+
+            </div>
+            <div class="auth-content">
+
+                <div class="auth-label">
+                    STUDENT ACCESS
+                </div>
+
+                <h1 class="auth-title">
+                    Welcome back.
+                </h1>
+
+                <p class="auth-subtitle">
+                    Sign in to access your student services.
+                </p>
+                <form id="login-form" class="auth-form">
+                    <div class="field">
+
+                        <label for="email">
+                            EMAIL
+                        </label>
+
+                        <input
+                            id="email"
+                            type="email"
+                            placeholder="student@example.com"
+                            required
+                        >
+
+                    </div>
+
+                    <div class="field">
+
+                        <label for="password">
+                            PASSWORD
+                        </label>
+
+                        <input
+                            id="password"
+                            type="password"
+                            placeholder="Enter your password"
+                            required
+                        >
+
+                    </div>
+
+                    <p
+                        id="message"
+                        class="auth-message"
+                    ></p>
+
+                    <button
+                        type="submit"
+                        class="btn btn--primary auth-button"
+                    >
+                        SIGN IN
+                    </button>
+
+                </form>
+
+                <div class="auth-footer">
+
+                    <span>
+                        Don't have an account?
+                    </span>
+
+                    <a href="register.html">
+                        CREATE ACCOUNT
+                    </a>
+
+                </div>
+
+            </div>
+
+        </main>
+
+        <aside class="auth-info">
+
+            <div class="auth-accent"></div>
+
+            <div class="auth-info__content">
+
+                <div class="auth-info__label">
+                    41026 ASD
+                </div>
+
+                <h2>
+                    Student services,
+                    <br>
+                    in one place.
+                </h2>
+
+                <p>
+                    Access course enrolment and
+                    AI-assisted student services through
+                    the ASD Student Portal.
+                </p>
+
+            </div>
+
+        </aside>
+
+    </div>
+    <script src="auth.js"></script>
+
+</body>
+
+</html>
