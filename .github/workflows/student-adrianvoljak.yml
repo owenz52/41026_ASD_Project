@@ -1,0 +1,67 @@
+name: Adrian Microservices CI
+
+on:
+  push:
+    paths:
+      - "student-adrianvoljak/**"
+      - ".github/workflows/student-adrianvoljak.yml"
+  pull_request:
+    paths:
+      - "student-adrianvoljak/**"
+      - ".github/workflows/student-adrianvoljak.yml"
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          pip install -r student-adrianvoljak/backend/requirements.txt
+
+      - name: Install database dependencies
+        run: |
+          pip install -r student-adrianvoljak/database/requirements.txt
+
+      - name: Initialise assessment database
+        run: |
+          python student-adrianvoljak/database/init_db.py
+
+      - name: Validate backend Python
+        run: |
+          python -m py_compile student-adrianvoljak/backend/app.py
+          python -m py_compile student-adrianvoljak/backend/routes/normal_ui.py
+          python -m py_compile student-adrianvoljak/backend/routes/ai_mode.py
+          python -m py_compile student-adrianvoljak/backend/services/database_api.py
+          python -m py_compile student-adrianvoljak/backend/services/llm_client.py
+
+      - name: Validate database Python
+        run: |
+          python -m py_compile student-adrianvoljak/database/app.py
+          python -m py_compile student-adrianvoljak/database/init_db.py
+
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            -f student-adrianvoljak/backend/Dockerfile \
+            student-adrianvoljak
+
+      - name: Build database Docker image
+        run: |
+          docker build \
+            -f student-adrianvoljak/database/Dockerfile \
+            student-adrianvoljak/database
+
+      - name: Build frontend Docker image
+        run: |
+          docker build \
+            -f student-adrianvoljak/frontend/Dockerfile \
+            student-adrianvoljak/frontend

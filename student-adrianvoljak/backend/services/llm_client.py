@@ -1,8 +1,16 @@
+import os
 import requests
 
 
-OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5:0.5b"
+OLLAMA_BASE_URL = os.getenv(
+    "OLLAMA_BASE_URL",
+    "http://localhost:11434"
+)
+
+OLLAMA_MODEL = os.getenv(
+    "OLLAMA_MODEL",
+    "qwen2.5:0.5b"
+)
 
 
 def ask_llm(system_prompt, user_prompt):

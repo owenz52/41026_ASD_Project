@@ -1,5 +1,54 @@
+# Python virtual environments
 .venv/
+venv/
+env/
+
+# Python cache / compiled files
 __pycache__/
 *.pyc
-.DS_Store
+*.pyo
+*.pyd
+
+# Environment / secrets
 .env
+.env.*
+!.env.example
+
+# SQLite / local databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Test / tooling cache
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Logs
+*.log
+
+# Build artefacts
+build/
+dist/
+*.egg-info/
+
+# Frontend dependencies if introduced
+node_modules/
+
+# IDE / editor
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Temporary / backup files
+*.tmp
+*.temp
+*.bak
+*~
+
+# Docker local override files
+docker-compose.override.yml
