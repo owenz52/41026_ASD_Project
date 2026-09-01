@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:5004";
+const API_URL = "http://localhost:5011";
 const registerForm =
     document.getElementById("register-form");
 
@@ -146,7 +146,7 @@ if (loginForm) {
                 message.textContent =
                     "Login successful.";
                 window.location.href =
-                    "index.html";
+                    "home.html";
 
             } catch (error) {
 

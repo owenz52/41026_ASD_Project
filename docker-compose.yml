@@ -1,6 +1,27 @@
 services:
-  # Shared - Portal homepage, login and register
+  # Shared - login and register
+  user-database:
+    build:
+      context: ./shared/database
+      dockerfile: Dockerfile
+    volumes:
+      - user_database_data:/app/data
+    restart: unless-stopped
 
+  #Shared - Authentication Backend
+  auth-backend:
+    build:
+      context: ./shared/backend
+      dockerfile: Dockerfile
+    environment:
+      DATABASE_SERVICE_URL: http://user-database:5003
+    depends_on:
+      - user-database
+    ports:
+      - "5011:5000"
+    restart: unless-stopped
+
+  #Shared - Portal homepage
   portal-frontend:
     build:
       context: ./shared/frontend
@@ -8,6 +29,8 @@ services:
     container_name: portal-frontend
     ports:
       - "8000:80"
+    depends_on:
+      - auth-backend
     restart: unless-stopped
 
   # Adrian Voljak - Assessment Tracker
@@ -212,3 +235,4 @@ volumes:
   enrolment_database_data:
   notebook_data:
   exam_data:
+  user_database_data:
