@@ -113,8 +113,39 @@ async function checkServices() {
         `${up} of ${SERVICES.length} running`;
 }
 
+function updateFeatureLinks() {
+    const user = readUser();
+    if (!user) {
+        return;
+    }
+    const userId = user.user_id || user.id;
+    const name = user.name || "";
+
+    if (!userId) {
+        return;
+    }
+
+    const serviceUrls = SERVICES.map(service => service.url);
+    document.querySelectorAll("a").forEach(link => {
+        const href = link.getAttribute("href");
+        if (!href) {
+            return;
+        }
+        const matchedService = serviceUrls.find(url => 
+            href.startsWith(url)
+        );
+        if (!matchedService) {
+            return;
+        }
+        const target = new URL(matchedService);
+        target.searchParams.set("user_id", userId);
+        target.searchParams.set("name", name);
+        link.href = target.toString();
+    });
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     renderUser();
+    updateFeatureLinks();
     checkServices();
 });
