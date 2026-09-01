@@ -1,4 +1,15 @@
 services:
+  # Shared - Portal homepage, login and register
+
+  portal-frontend:
+    build:
+      context: ./shared/frontend
+      dockerfile: Dockerfile
+    container_name: portal-frontend
+    ports:
+      - "8000:80"
+    restart: unless-stopped
+
   # Adrian Voljak - Assessment Tracker
 
   priority-database:
