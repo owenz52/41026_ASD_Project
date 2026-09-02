@@ -58,10 +58,12 @@ def delete_note(note_id):
     return _request("DELETE", f"/notes/{note_id}")
 
 
-def search_notes(q=None, course_id=None):
+def search_notes(q=None, course_id=None, student_id=None):
     params = {}
     if q is not None:
         params["q"] = q
     if course_id is not None:
         params["course_id"] = course_id
+    if student_id is not None:
+        params["student_id"] = student_id
     return _request("GET", "/notes/search", params=params)
