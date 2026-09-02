@@ -1,5 +1,16 @@
-const API_BASE = window.CALENDAR_API || "/calendar";
-const STUDENT_ID = window.STUDENT_ID || 1001;
+const API_BASE = window.CALENDAR_API || "/calendar-api";
+
+let currentUser = null;
+let STUDENT_ID = null;
+
+function readUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 const MONTHS = [
   "January", "February", "March", "April", "May", "June",
@@ -404,6 +415,21 @@ function closeModal() {
 /* ------------------------------------------------------------------ init */
 
 document.addEventListener("DOMContentLoaded", () => {
+  currentUser = readUser();
+
+  if (!currentUser) {
+    window.location.href = "/login.html";
+    return;
+  }
+
+  STUDENT_ID = Number(currentUser.user_id || currentUser.id);
+
+  if (!STUDENT_ID) {
+    localStorage.removeItem("user");
+    window.location.href = "/login.html";
+    return;
+  }
+
   document.getElementById("prev-month").addEventListener("click", () => {
     state.cursor.setMonth(state.cursor.getMonth() - 1);
     loadEvents();

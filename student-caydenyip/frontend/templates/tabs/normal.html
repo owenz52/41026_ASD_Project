@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Exams</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
 </head>
 
 <body>
@@ -73,6 +73,8 @@
 
 
 <script>
+
+const API_URL = "/exams-api";
 
 const examByIdForm =
     document.getElementById("exam-by-id-form");
@@ -222,7 +224,7 @@ async function toggleStatus(examId, currentStatus) {
     try {
 
         const response = await fetch(
-            `http://localhost:5009/exams/${examId}`,
+            `${API_URL}/exams/${examId}`,
             {
                 method: "PUT",
 
@@ -258,7 +260,7 @@ async function toggleStatus(examId, currentStatus) {
 
         renderIntoPanel(
             "exams-result",
-            "http://localhost:5009/exams"
+            `${API_URL}/exams`
         );
 
     } catch (error) {
@@ -288,7 +290,7 @@ async function deleteExam(examId) {
     try {
 
         const response = await fetch(
-            `http://localhost:5009/exams/${examId}`,
+            `${API_URL}/exams/${examId}`,
             {
                 method: "DELETE"
             }
@@ -315,7 +317,7 @@ async function deleteExam(examId) {
 
         renderIntoPanel(
             "exams-result",
-            "http://localhost:5009/exams"
+            `${API_URL}/exams`
         );
 
     } catch (error) {
@@ -344,7 +346,7 @@ examByIdForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            `http://localhost:5009/exams/by-id?exam_id=${examId}`
+            `${API_URL}/exams/by-id?exam_id=${examId}`
         );
 
         const exam =
@@ -448,7 +450,7 @@ examsByCourseForm.addEventListener("submit", async (event) => {
     try {
 
         const response = await fetch(
-            `http://localhost:5009/exams/by-course?${query}`
+            `${API_URL}/exams/by-course?${query}`
         );
 
         const exams =
@@ -566,7 +568,7 @@ examsByCourseForm.addEventListener("submit", async (event) => {
 
 renderIntoPanel(
     "exams-result",
-    "http://localhost:5009/exams"
+    `${API_URL}/exams`
 );
 
 </script>

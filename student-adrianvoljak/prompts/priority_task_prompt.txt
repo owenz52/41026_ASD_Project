@@ -1,13 +1,24 @@
-Review the following assignments:
+Review the following incomplete assessments:
 
 {{ASSIGNMENTS}}
 
-Recommend which assignment the student should work on next.
+Rank the assessments from highest priority to lowest priority.
 
-Rank the incomplete assignments from highest priority to lowest priority.
+Use the following factors:
+- due date
+- assignment weighting
+- current completion status
 
-For each assignment:
-- give its title
-- explain briefly why it has that priority
+For each assessment:
+- give the assessment title
+- give a short reason for its position in the ranking
 
-Finish with one clear recommendation for what the student should work on next.
+Return the result as a numbered list.
+
+Finish with:
+
+NEXT ACTION:
+State the single assessment the student should work on next and give one short reason.
+
+Do not include any assessment that was not provided.
+Do not invent missing information.

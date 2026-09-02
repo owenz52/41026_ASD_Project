@@ -47,7 +47,7 @@
 
             <!-- HOME -->
             <a
-                href="http://localhost:8000/home.html"
+                href="/home.html"
                 class="nav__item"
             >
                 HOME
@@ -55,43 +55,43 @@
 
             <!-- ENROLMENT -->
             <a
-                href="#"
+                href="/enrolment/"
                 class="nav__item nav__item--active"
                 onclick="return false;"
             >
                 ENROLMENT
             </a>
 
-            <!-- CALENDAR -->
+            <!-- ASSIGNMENTS -->
             <a
-                href="#"
+                href="/assessments/"
                 class="nav__item"
                 onclick="openCalendar(); return false;"
+            >
+                ASSESSMENTS
+            </a>
+
+            <!-- CALENDAR -->
+            <a
+                href="/calendar/"
+                class="nav__item"
+                onclick="openAssignment();return false;"
             >
                 CALENDAR
             </a>
 
-            <!-- ASSIGNMENTS -->
+            <!-- NOTES -->
             <a
-                href="#"
-                class="nav__item"
-                onclick="openAssignment();return false;"
-            >
-                ASSIGNMENTS
-            </a>
-
-            <!-- NOTEBOOK -->
-            <a
-                href="#"
+                href="/notes/"
                 class="nav__item"
                 onclick="openNotebook(); return false;"
             >
-                NOTEBOOK
+                NOTES
             </a>
 
             <!-- EXAM -->
             <a
-                hred="#"
+                href="/exams/"
                 class="nav__item"
                 onclick="openExam(); return false;"
             >
@@ -130,7 +130,7 @@
             </div>
 
             <a
-                href="http://localhost:8000/home.html"
+                href="/home.html"
                 class="btn"
             >
                 BACK TO HOME
@@ -264,80 +264,6 @@
     </main>
 
 </div>
-
-<script>
-    function openCalendar() {
-        const params =
-            new URLSearchParams(window.location.search);
-
-        const userId =
-            params.get("user_id");
-
-        const name =
-            params.get("name");
-
-        window.location.href =
-            "http://localhost:8082/" +
-            "?user_id=" +
-            encodeURIComponent(userId) +
-            "&name=" +
-            encodeURIComponent(name || "");
-    }
-
-    function openAssignment() {
-    const params =
-        new URLSearchParams(window.location.search);
-
-    const userId =
-        params.get("user_id");
-
-    const name =
-        params.get("name");
-
-    window.location.href =
-        "http://localhost:8081/" +
-        "?user_id=" +
-        encodeURIComponent(userId || "") +
-        "&name=" +
-        encodeURIComponent(name || "");
-}
-
-    function openNotebook() {
-        const params =
-            new URLSearchParams(window.location.search);
-
-        const userId =
-            params.get("user_id");
-
-        const name =
-            params.get("name");
-
-        window.location.href =
-            "http://localhost:8083/" +
-            "?user_id=" +
-            encodeURIComponent(userId) +
-            "&name=" +
-            encodeURIComponent(name || "");
-    }
-
-    function openExam() {
-        const params =
-            new URLSearchParams(window.location.search);
-
-        const userId =
-            params.get("user_id");
-
-        const name =
-            params.get("name");
-
-        window.location.href =
-            "http://localhost:8084/" +
-            "?user_id=" +
-            encodeURIComponent(userId || "") +
-            "&name=" +
-            encodeURIComponent(name || "");
-    }
-</script>
 
 <script src="js/app.js"></script>
 </body>

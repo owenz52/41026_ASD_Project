@@ -31,6 +31,11 @@ services:
       - "8000:80"
     depends_on:
       - auth-backend
+      - enrolment-frontend
+      - priority-frontend
+      - calendar-frontend
+      - notebook-frontend
+      - exam-frontend
     restart: unless-stopped
 
   # Adrian Voljak - Assessment Tracker
@@ -66,8 +71,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - priority-backend
-    ports:
-      - "8081:80"
+    expose:
+      - "80"
 
   # Voreak Sanith - Calendar
 
@@ -106,8 +111,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - calendar-backend
-    ports:
-      - "8082:80"
+    expose:
+      - "80"
 
   # Yulin Zhu - Enrolment
 
@@ -117,8 +122,8 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - enrolment-backend
-    ports:
-      - "8080:80"
+    expose:
+      - "80"
     restart: unless-stopped
 
   enrolment-backend:
@@ -190,20 +195,20 @@ services:
       dockerfile: Dockerfile
     depends_on:
       - notebook-backend
-    ports:
-      - "8083:80"
+    expose:
+      - "80"
 
       
 # Cayden Yip - Exam
   exam-frontend:
-        build:
-            context: ./student-caydenyip/frontend
-        container_name: exam-frontend
-        ports:
-            - "8084:80"
-        depends_on:
-            - exam-backend
-        restart: unless-stopped
+    build:
+      context: ./student-caydenyip/frontend
+    container_name: exam-frontend
+    expose:
+      - "80"
+    depends_on:
+      - exam-backend
+    restart: unless-stopped
 
   exam-backend:
         build:
