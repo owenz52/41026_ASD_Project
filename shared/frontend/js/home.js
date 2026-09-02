@@ -1,9 +1,9 @@
 const SERVICES = [
-    { key: "enrolment", label: "Enrolment", url: "http://localhost:8080" },
-    { key: "assessments", label: "Assessments", url: "http://localhost:8081" },
-    { key: "calendar", label: "Calendar", url: "http://localhost:8082" },
-    { key: "notes", label: "Notes", url: "http://localhost:8083" },
-    { key: "exams", label: "Exams", url: "http://localhost:8084" },
+    { key: "enrolment", label: "Enrolment", url: "/enrolment/" },
+    { key: "assessments", label: "Assessments", url: "/assessments/" },
+    { key: "calendar", label: "Calendar", url: "/calendar/" },
+    { key: "notes", label: "Notes", url: "/notes/" },
+    { key: "exams", label: "Exams", url: "/exams/" },
 ];
 
 
@@ -31,39 +31,41 @@ function greetingFor(date) {
 
 function renderUser() {
     const user = readUser();
+
+    if (!user) {
+        window.location.href = "/login.html";
+        return;
+    }
+
     const nameEl = document.getElementById("user-name");
     const emailEl = document.getElementById("user-email");
     const button = document.getElementById("auth-action");
     const greeting = document.getElementById("greeting");
 
     const now = new Date();
-    document.getElementById("today-line").textContent = now.toLocaleDateString(
-        undefined,
-        { weekday: "long", day: "numeric", month: "long", year: "numeric" }
-    );
 
-    if (user) {
-        nameEl.textContent = user.name || "Student";
-        emailEl.textContent = user.email || "";
-        greeting.textContent = `${greetingFor(now)}, ${firstName(user)}`;
+    document.getElementById("today-line").textContent =
+        now.toLocaleDateString(
+            undefined,
+            {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric"
+            }
+        );
 
-        button.textContent = "SIGN OUT";
-        button.classList.remove("btn--primary");
-        button.addEventListener("click", () => {
-            localStorage.removeItem("user");
-            window.location.reload();
-        });
-    } else {
-        nameEl.textContent = "Not signed in";
-        emailEl.textContent = "";
-        greeting.textContent = "Student Portal";
+    nameEl.textContent = user.name || "Student";
+    emailEl.textContent = user.email || "";
+    greeting.textContent = `${greetingFor(now)}, ${firstName(user)}`;
 
-        button.textContent = "SIGN IN";
-        button.classList.add("btn--primary");
-        button.addEventListener("click", () => {
-            window.location.href = "login.html";
-        });
-    }
+    button.textContent = "SIGN OUT";
+    button.classList.remove("btn--primary");
+
+    button.addEventListener("click", () => {
+        localStorage.removeItem("user");
+        window.location.href = "/login.html";
+    });
 }
 
 async function isUp(url, timeoutMs = 3000) {
@@ -113,39 +115,7 @@ async function checkServices() {
         `${up} of ${SERVICES.length} running`;
 }
 
-function updateFeatureLinks() {
-    const user = readUser();
-    if (!user) {
-        return;
-    }
-    const userId = user.user_id || user.id;
-    const name = user.name || "";
-
-    if (!userId) {
-        return;
-    }
-
-    const serviceUrls = SERVICES.map(service => service.url);
-    document.querySelectorAll("a").forEach(link => {
-        const href = link.getAttribute("href");
-        if (!href) {
-            return;
-        }
-        const matchedService = serviceUrls.find(url => 
-            href.startsWith(url)
-        );
-        if (!matchedService) {
-            return;
-        }
-        const target = new URL(matchedService);
-        target.searchParams.set("user_id", userId);
-        target.searchParams.set("name", name);
-        link.href = target.toString();
-    });
-}
-
 document.addEventListener("DOMContentLoaded", () => {
     renderUser();
-    updateFeatureLinks();
     checkServices();
 });

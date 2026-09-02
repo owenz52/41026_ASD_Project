@@ -9,19 +9,21 @@
 <body>
   <div class="layout">
     <aside class="sidebar">
-      <div class="brand">
+      <a class="brand" href="/home.html" title="Go to the portal homepage">
         <span class="brand__mark"></span>
         <div>
           <div class="brand__name">STUDENT PORTAL</div>
           <div class="brand__sub">41026 ASD</div>
         </div>
-      </div>
+      </a>
 
       <nav class="nav">
-        <a class="nav__item" href="#">COURSES</a>
-        <a class="nav__item" href="#">ENROLMENT</a>
-        <a class="nav__item nav__item--active" href="#">NOTES</a>
-        <a class="nav__item" href="#">CALENDAR</a>
+        <a class="nav__item" href="/home.html">HOME</a>
+        <a class="nav__item" href="/enrolment/">ENROLMENT</a>
+        <a class="nav__item" href="/assessments/">ASSESSMENTS</a>
+        <a class="nav__item" href="/calendar/">CALENDAR</a>
+        <a class="nav__item nav__item--active" href="/notes/">NOTES</a>
+        <a class="nav__item" href="/exams/">EXAMS</a>
       </nav>
 
       <div class="panel">
@@ -161,12 +163,7 @@
   <div id="toast" class="toast"></div>
 
   <script>
-    // The backend is published on host port 5003 by docker-compose, so the
-    // browser reaches it directly and the request is cross-origin (the page
-    // itself is served from 8083). flask_cors on the backend allows this.
-    // Change this one line if the backend moves, or set it to "/notebooks"
-    // style same-origin paths once an nginx proxy is added.
-    window.NOTEBOOK_API = "http://localhost:5003";
+    window.NOTEBOOK_API = "/notes-api";
   </script>
   <script src="js/app.js"></script>
 </body>

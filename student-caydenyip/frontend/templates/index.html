@@ -20,12 +20,12 @@
         </div>
 
         <nav class="nav">
-            <a class="nav__item" href="http://localhost:8000">HOME</a>
-            <a class="nav__item" href="http://localhost:8080">ENROLMENT</a>
-            <a class="nav__item" href="http://localhost:8081">ASSESSMENTS</a>
-            <a class="nav__item" href="http://localhost:8082">CALENDAR</a>
-            <a class="nav__item" href="http://localhost:8083">NOTES</a>
-            <a class="nav__item nav__item--active" href="http://localhost:8084">EXAMS</a>
+            <a class="nav__item" href="/home.html">HOME</a>
+            <a class="nav__item" href="/enrolment/">ENROLMENT</a>
+            <a class="nav__item" href="/assessments/">ASSESSMENTS</a>
+            <a class="nav__item" href="/calendar/">CALENDAR</a>
+            <a class="nav__item" href="/notes/">NOTES</a>
+            <a class="nav__item nav__item--active" href="/exams/">EXAMS</a>
         </nav>
     </aside>
 
@@ -76,6 +76,65 @@
 </div>  
 
 <script src = "./js/index.js"></script>
+<script>
+function readUser() {
+    try {
+        const raw = localStorage.getItem("user");
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        return null;
+    }
+}
+
+const currentUser = readUser();
+
+if (!currentUser) {
+    window.location.href = "/login.html";
+}
+
+const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
+
+const tabFrames = {
+    normal: document.getElementById("tab-frame-normal"),
+    "ai-mode": document.getElementById("tab-frame-ai-mode"),
+};
+
+function activateTab(tabName) {
+    tabButtons.forEach((button) => {
+        button.classList.toggle(
+            "is-active",
+            button.dataset.tab === tabName
+        );
+    });
+
+    Object.entries(tabFrames).forEach(([name, frame]) => {
+        frame.classList.toggle(
+            "is-active",
+            name === tabName
+        );
+    });
+
+    window.location.hash = tabName;
+}
+
+tabButtons.forEach((button) => {
+    if (button.disabled) {
+        return;
+    }
+
+    button.addEventListener("click", () => {
+        activateTab(button.dataset.tab);
+    });
+});
+
+const hashTab = window.location.hash.replace("#", "");
+
+if (hashTab && tabFrames[hashTab]) {
+    activateTab(hashTab);
+} else {
+    activateTab("normal");
+}
+</script>
 
 </body>
 </html>

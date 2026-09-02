@@ -1,14 +1,14 @@
-const API_URL = "http://localhost:5001";
-const params = new URLSearchParams(window.location.search);
+const API_URL = "/enrolment-api";
+let loggedInUserId = null;
+let loggedInUserName = null;
 
-const loggedInUserId = Number(params.get("user_id"));
-const loggedInUserName = params.get("name");
-
-if (!loggedInUserId) {
-    alert("Please login first.");
-
-    window.location.href =
-        "http://localhost:8081/login.html";
+function readUser() {
+    try {
+        const raw = localStorage.getItem("user");
+        return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+        return null;
+    }
 }
 
 async function askAI() {
@@ -379,5 +379,23 @@ async function deleteEnrolment(enrolmentId) {
     }
 }
 
-loadCourses();
-loadEnrolments();
+document.addEventListener("DOMContentLoaded", async () => {
+    const user = readUser();
+
+    if (!user) {
+        window.location.href = "/login.html";
+        return;
+    }
+
+    loggedInUserId = Number(user.user_id || user.id);
+    loggedInUserName = user.name || "";
+
+    if (!loggedInUserId) {
+        localStorage.removeItem("user");
+        window.location.href = "/login.html";
+        return;
+    }
+
+    loadCourses();
+    loadEnrolments();
+});
