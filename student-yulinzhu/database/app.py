@@ -203,35 +203,5 @@ def search_courses():
 
     return jsonify([dict(course) for course in cursor])
 
-
-#================================
-#New API for exams
-#=====================================
-
-@app.route("/enrolments/by-student/<int:student_id>", methods=["GET"])
-def get_enrolments_by_student(student_id):
-
-    conn = get_db_connection()
-
-    enrolments = conn.execute(
-        """
-        SELECT *
-        FROM enrolments
-        WHERE student_id = ?
-        """,
-        (student_id,)
-    ).fetchall()
-
-    conn.close()
-
-    return jsonify([
-        dict(enrolment)
-        for enrolment in enrolments
-    ])
-
-
-
-
-
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5002, debug=True)
