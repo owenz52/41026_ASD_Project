@@ -112,6 +112,15 @@ body {
   overflow-y: auto;
 }
 
+.agent__stage {
+  margin-top: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  color: #fff;
+}
+
+.agent__detail { color: #C9C9C9; }
+
 .agent__output:empty { display: none; }
 .agent.is-busy { opacity: 0.65; }
 
