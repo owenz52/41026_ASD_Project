@@ -73,52 +73,9 @@
 
     </main>
 
-</div>
+</div>  
 
-<script>
-const tabButtons = Array.from(document.querySelectorAll(".tab-btn"));
-
-const tabFrames = {
-    normal: document.getElementById("tab-frame-normal"),
-    "ai-mode": document.getElementById("tab-frame-ai-mode"),
-};
-
-function activateTab(tabName) {
-    tabButtons.forEach((button) => {
-        button.classList.toggle(
-            "is-active",
-            button.dataset.tab === tabName
-        );
-    });
-
-    Object.entries(tabFrames).forEach(([name, frame]) => {
-        frame.classList.toggle(
-            "is-active",
-            name === tabName
-        );
-    });
-
-    window.location.hash = tabName;
-}
-
-tabButtons.forEach((button) => {
-    if (button.disabled) {
-        return;
-    }
-
-    button.addEventListener("click", () => {
-        activateTab(button.dataset.tab);
-    });
-});
-
-const hashTab = window.location.hash.replace("#", "");
-
-if (hashTab && tabFrames[hashTab]) {
-    activateTab(hashTab);
-} else {
-    activateTab("normal");
-}
-</script>
+<script src = "./js/index.js"></script>
 
 </body>
 </html>
