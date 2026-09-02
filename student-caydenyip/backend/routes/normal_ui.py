@@ -38,31 +38,85 @@ def get_exams_route():
         ""
     ).strip()
 
-
     if not student_id:
-
         return jsonify({
             "error": "Student ID is required."
         }), 400
 
+    # ==================================================
+    # 1. Get student's current enrolments
+    # ==================================================
 
     try:
 
-        return jsonify(
-            get_exams(student_id)
-        ), 200
-
+        enrolments = get_student_enrolments(
+            student_id
+        )
 
     except requests.RequestException as exc:
 
         return jsonify({
+            "error": "Failed to contact enrolment service.",
+            "details": str(exc)
+        }), 503
 
-            "error":
-                "Failed to retrieve exams from database-service.",
+    # ==================================================
+    # 2. Extract course IDs
+    # ==================================================
 
-            "details":
-                str(exc)
+    try:
 
+        course_ids = [
+            enrolment["course_id"]
+            for enrolment in enrolments
+        ]
+
+    except (KeyError, TypeError) as exc:
+
+        return jsonify({
+            "error": "Invalid enrolment data.",
+            "details": str(exc)
+        }), 500
+
+    # ==================================================
+    # 3. Synchronize exams
+    # ==================================================
+
+    try:
+
+        sync_response = sync_exams_response(
+            student_id,
+            course_ids
+        )
+
+        sync_response.raise_for_status()
+
+    except requests.RequestException as exc:
+
+        return jsonify({
+            "error": "Failed to synchronize exams.",
+            "details": str(exc)
+        }), 503
+
+    # ==================================================
+    # 4. Get the now-synchronized exams
+    # ==================================================
+
+    try:
+
+        exams = get_exams(
+            student_id
+        )
+
+        return jsonify(
+            exams
+        ), 200
+
+    except requests.RequestException as exc:
+
+        return jsonify({
+            "error": "Failed to retrieve exams from database-service.",
+            "details": str(exc)
         }), 503
 
 
