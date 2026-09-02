@@ -391,6 +391,18 @@ async function runAi(path, noteId, busyText, heading, field) {
       body: JSON.stringify({ note_id: noteId }),
     });
     box.textContent = `${heading} "${title}":\n\n${data[field]}`;
+
+    (data.agent_steps || []).forEach((step) => {
+      const stage = document.createElement("div");
+      stage.className = "agent__stage";
+      stage.textContent = step.stage;
+
+      const detail = document.createElement("div");
+      detail.className = "agent__detail";
+      detail.textContent = step.detail;
+
+      box.append(stage, detail);
+    });
   } catch (error) {
     console.error(`${path} failed:`, error);
     box.textContent = error.message;
