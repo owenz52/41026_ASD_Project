@@ -1,4 +1,16 @@
-const API_URL = window.NOTEBOOK_API || "http://localhost:5003";
+const API_URL = window.NOTEBOOK_API || "/notes-api";
+
+let currentUser = null;
+let STUDENT_ID = null;
+
+function readUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 const state = {
   selectedNotebookId: null,
@@ -67,9 +79,10 @@ async function loadNotebooks() {
   const list = $("notebooks-list");
 
   try {
-    // Temporary: lists every notebook. After login integration, this will
-    // filter by the logged-in student's ID.
-    state.notebooks = await api("/notebooks");
+    const notebooks = await api("/notebooks");
+    state.notebooks = notebooks.filter(
+      (notebook) => Number(notebook.student_id) === STUDENT_ID
+    );
   } catch (error) {
     console.error("Failed to load notebooks:", error);
     list.className = "empty";
@@ -108,15 +121,12 @@ function openNotebookForm(notebook) {
   $("notebook-modal-title").textContent = notebook ? "Edit notebook" : "Add notebook";
 
   const studentField = form.elements.student_id.closest(".field");
+  studentField.hidden = true;
+  form.elements.student_id.required = false;
+
   if (notebook) {
     form.elements.notebook_title.value = notebook.notebook_title;
     form.elements.course_id.value = notebook.course_id;
-    // student_id is fixed once the notebook exists.
-    form.elements.student_id.required = false;
-    studentField.hidden = true;
-  } else {
-    form.elements.student_id.required = true;
-    studentField.hidden = false;
   }
 
   openModal("notebook-modal");
@@ -152,7 +162,7 @@ async function submitNotebook(event) {
       await api("/notebooks", {
         method: "POST",
         body: JSON.stringify({
-          student_id: Number(form.elements.student_id.value),
+          student_id: STUDENT_ID,
           course_id: courseId,
           notebook_title: title,
         }),
@@ -477,6 +487,23 @@ $("confirm-ok").addEventListener("click", () => {
   confirmAction = null;
 });
 
-renderSelectedNotebook();
-loadNotebooks();
-loadNotes();
+document.addEventListener("DOMContentLoaded", () => {
+  currentUser = readUser();
+
+  if (!currentUser) {
+    window.location.href = "/login.html";
+    return;
+  }
+
+  STUDENT_ID = Number(currentUser.user_id || currentUser.id);
+
+  if (!STUDENT_ID) {
+    localStorage.removeItem("user");
+    window.location.href = "/login.html";
+    return;
+  }
+
+  renderSelectedNotebook();
+  loadNotebooks();
+  loadNotes();
+});

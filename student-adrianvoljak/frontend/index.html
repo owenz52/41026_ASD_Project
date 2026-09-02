@@ -20,11 +20,12 @@
         </div>
 
         <nav class="nav">
-            <a class="nav__item" href="http://localhost:8080">COURSES</a>
-            <a class="nav__item" href="http://localhost:8080">ENROLMENT</a>
-            <a class="nav__item" href="http://localhost:8081">NOTES</a>
-            <a class="nav__item" href="http://localhost:8082">CALENDAR</a>
-            <a class="nav__item nav__item--active" href="/">ASSESSMENTS</a>
+            <a class="nav__item" href="/home.html">HOME</a>
+            <a class="nav__item" href="/enrolment/">ENROLMENT</a>
+            <a class="nav__item nav__item--active" href="/assessments/">ASSESSMENTS</a>
+            <a class="nav__item" href="/calendar/">CALENDAR</a>
+            <a class="nav__item" href="/notes/">NOTES</a>
+            <a class="nav__item" href="/exams/">EXAMS</a>
         </nav>
 
         <div class="side-note">
@@ -135,10 +136,6 @@
 <div id="toast" class="toast"></div>
 
 <script>
-  // Same-origin: nginx proxies /api to the assessments backend.
-  window.ASSESS_API = "/api";
-  window.STUDENT_ID = 1;
+    window.ASSESS_API = "/assessments-api";
 </script>
 <script src="js/assessments.js"></script>
-</body>
-</html>

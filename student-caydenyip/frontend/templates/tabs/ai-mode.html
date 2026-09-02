@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>AI Mode</title>
-    <link rel="stylesheet" href="/css/styles.css">
+    <link rel="stylesheet" href="../css/styles.css">
     <style>
         body { margin: 0; min-height: auto; background: transparent; }
         
@@ -31,7 +31,7 @@
 </main>
 
 <script>
-
+const API_URL = "/exams-api";
 const askWithContextForm = document.getElementById("ask-with-context-form");
 
 async function renderIntoPanel(panelId, url, options = {}) {
@@ -52,7 +52,7 @@ async function renderIntoPanel(panelId, url, options = {}) {
 askWithContextForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const formData = new URLSearchParams(new FormData(askWithContextForm));
-    renderIntoPanel("context-result", "http://localhost:5009/ask-with-context", {
+    renderIntoPanel("context-result", `${API_URL}/ask-with-context`, {
         method: "POST",
         headers: { "Content-Type": "application/x-www-form-urlencoded" },
         body: formData,

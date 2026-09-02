@@ -17,10 +17,12 @@
         </div>
       </div>
       <nav class="nav">
-        <a class="nav__item" href="#">COURSES</a>
-        <a class="nav__item" href="#">ENROLMENT</a>
-        <a class="nav__item" href="#">NOTES</a>
-        <a class="nav__item nav__item--active" href="#">CALENDAR</a>
+        <a class="nav__item" href="/home.html">HOME</a>
+        <a class="nav__item" href="/enrolment/">ENROLMENT</a>
+        <a class="nav__item" href="/assessments/">ASSESSMENTS</a>
+        <a class="nav__item nav__item--active" href="/calendar/">CALENDAR</a>
+        <a class="nav__item" href="/notes/">NOTES</a>
+        <a class="nav__item" href="/exams/">EXAMS</a>
       </nav>
       <div class="panel">
         <div class="panel__label">DRAG TO RESCHEDULE</div>
@@ -133,8 +135,7 @@
     // Same-origin by default, so this works both under run_local.py (one
     // port) and behind the nginx proxy in Docker. Override only if the API is
     // genuinely on another host.
-    window.CALENDAR_API = "/calendar";
-    window.STUDENT_ID = 1001;
+    window.CALENDAR_API = "/calendar-api";
   </script>
   <script src="js/calendar.js"></script>
 </body>

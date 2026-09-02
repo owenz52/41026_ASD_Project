@@ -1,12 +1,16 @@
-/**
- * Assessments frontend.
- *
- * Talks to the assessment tracker backend. In Docker, nginx proxies /api to
- * priority-backend:5007, so requests are same-origin.
- */
+const API = window.ASSESS_API || "/assessments-api";
 
-const API = window.ASSESS_API || "/api";
-const STUDENT_ID = window.STUDENT_ID || 1;
+let currentUser = null;
+let STUDENT_ID = null;
+
+function readUser() {
+  try {
+    const raw = localStorage.getItem("user");
+    return raw ? JSON.parse(raw) : null;
+  } catch (error) {
+    return null;
+  }
+}
 
 const STATUS_LABELS = {
   not_started: "Not started",
@@ -19,7 +23,6 @@ const state = {
   filter: "",
 };
 
-/* ---------------------------------------------------------------- helpers */
 
 function escapeHtml(value) {
   return String(value ?? "").replace(/[&<>"']/g, (c) => ({
@@ -51,7 +54,6 @@ function daysUntil(dueDate) {
   return Math.ceil((due - new Date()) / 86400000);
 }
 
-/* ------------------------------------------------------------------ load */
 
 async function loadAssignments() {
   const list = document.getElementById("assignments-list");
@@ -70,7 +72,7 @@ function render() {
     ? state.assignments.filter((a) => a.status === state.filter)
     : state.assignments;
 
-  // Summary figures are computed from the full set, not the filtered view.
+
   const open = state.assignments.filter((a) => a.status !== "completed");
   const done = state.assignments.filter((a) => a.status === "completed");
   const weight = open.reduce((sum, a) => sum + (Number(a.weighting) || 0), 0);
@@ -147,8 +149,6 @@ function render() {
     btn.addEventListener("click", () => remove(Number(btn.dataset.id)));
   });
 }
-
-/* --------------------------------------------------------------- actions */
 
 async function changeStatus(id, status) {
   try {
@@ -235,18 +235,37 @@ async function submitForm(form) {
   }
 }
 
-/* ------------------------------------------------------------ AI agent */
-
 async function prioritise() {
   const output = document.getElementById("agent-output");
   const button = document.getElementById("prioritise-btn");
 
   button.disabled = true;
-  output.textContent = "Working out what to do first...";
+  output.textContent = "Running agent workflow...";
 
   try {
-    const data = await api("/ai/prioritise", { method: "POST" });
-    output.textContent = data.recommendation || data.message || "No recommendation returned.";
+    const data = await api("/ai/prioritise", {
+  method: "POST",
+  body: JSON.stringify({
+    student_id: STUDENT_ID
+  })
+});
+
+    const steps = Array.isArray(data.agent_steps)
+      ? data.agent_steps
+      : [];
+
+    const workflowText = steps
+      .map((step) => `${step.stage}\n${step.detail}`)
+      .join("\n\n");
+
+    const recommendation =
+      data.recommendation ||
+      data.message ||
+      "No recommendation returned.";
+
+    output.textContent =
+      `${workflowText}\n\nFINAL RECOMMENDATION\n${recommendation}`;
+
   } catch (error) {
     output.textContent = `Could not prioritise: ${error.message}`;
   } finally {
@@ -254,18 +273,22 @@ async function prioritise() {
   }
 }
 
-/* ------------------------------------------------------------------ init */
 
 document.addEventListener("DOMContentLoaded", () => {
-  document.querySelectorAll(".filter-item").forEach((btn) => {
-    btn.addEventListener("click", () => {
-      state.filter = btn.dataset.status;
-      document.querySelectorAll(".filter-item").forEach((b) =>
-        b.classList.toggle("filter-item--active", b === btn)
-      );
-      render();
-    });
-  });
+  currentUser = readUser();
+
+  if (!currentUser) {
+    window.location.href = "/login.html";
+    return;
+  }
+
+  STUDENT_ID = Number(currentUser.user_id || currentUser.id);
+
+  if (!STUDENT_ID) {
+    localStorage.removeItem("user");
+    window.location.href = "/login.html";
+    return;
+  }
 
   document.getElementById("new-btn").addEventListener("click", () => openForm());
   document.getElementById("form-close").addEventListener("click", () => {
