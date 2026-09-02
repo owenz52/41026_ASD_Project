@@ -106,7 +106,8 @@ def search_notes_route():
     try:
         q = request.args.get("q")
         course_id = request.args.get("course_id")
-        status_code, body = database_api.search_notes(q, course_id)
+        student_id = request.args.get("student_id")
+        status_code, body = database_api.search_notes(q, course_id, student_id)
         return jsonify(body), status_code
     except Exception as error:
         return jsonify({"error": str(error)}), 500
