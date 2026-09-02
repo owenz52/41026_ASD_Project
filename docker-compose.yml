@@ -219,14 +219,12 @@ services:
             - "5009:5009"
         environment:
             DATABASE_SERVICE_URL: http://exam-database:5010
-            ENROLMENT_DATABASE_URL: http://enrolment-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
             - exam-database
-            - enrolment-database
         restart: unless-stopped
 
   exam-database:
