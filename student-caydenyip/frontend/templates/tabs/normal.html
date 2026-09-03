@@ -7,222 +7,327 @@
 
     <title>Exams</title>
 
-    <link rel="stylesheet" href="/css/styles.css">
-
     <link rel="stylesheet" href="../css/styles.css">
+
 </head>
 
 
 <body>
 
 
-    <main class="app-shell">
+<main class="app-shell">
 
-        <section class="card">
+    <section class="card">
 
 
-            <!-- ==========================================
+        <!-- ==========================================
              EXAMS
         =========================================== -->
 
-            <h2>Exams</h2>
+        <h2>Exams</h2>
 
-            <div id="exams-result" class="panel">
-            </div>
+        <div id="exams-result" class="panel">
+        </div>
 
 
-            <!-- ==========================================
+        <!-- ==========================================
              RESET EXAMS
         =========================================== -->
 
-            <h2>Reset My Exams</h2>
+        <h2>Reset My Exams</h2>
 
-            <button id="reset-exams-btn" type="button">
-                Reset My Exams
-            </button>
+        <button
+            id="reset-exams-btn"
+            type="button"
+        >
+            Reset My Exams
+        </button>
 
-            <div id="reset-exams-result" class="panel">
-            </div>
+        <div
+            id="reset-exams-result"
+            class="panel"
+        >
+        </div>
 
 
-            <!-- ==========================================
+        <!-- ==========================================
              FIND EXAM BY ID
         =========================================== -->
 
-            <h2>Find Exam by ID</h2>
+        <h2>Find Exam by ID</h2>
+
+        <form id="exam-by-id-form">
+
+            <label for="exam_id">
+                Exam ID
+            </label>
+
+            <input
+                id="exam_id"
+                name="exam_id"
+                type="text"
+                min="1"
+                placeholder="Enter exam ID"
+                required
+            >
+
+            <button type="submit">
+                Get Exam
+            </button>
+
+        </form>
+
+        <div
+            id="exam-result"
+            class="panel"
+        >
+        </div>
 
 
-            <form id="exam-by-id-form">
+        <!-- ==========================================
+             FIND EXAMS BY COURSE ID
+        =========================================== -->
+
+        <h2>Find Exams by Course ID</h2>
+
+        <form id="exams-by-course-form">
+
+            <label for="course_id">
+                Course ID
+            </label>
+
+            <input
+                id="course_id"
+                name="course_id"
+                type="text"
+                placeholder="Example: 101"
+                required
+            >
+
+            <button type="submit">
+                Find Exams
+            </button>
+
+        </form>
+
+        <div
+            id="course-result"
+            class="panel"
+        >
+        </div>
 
 
-                <label for="exam_id">
-                    Exam ID
-                </label>
+    </section>
+
+</main>
 
 
-                <input id="exam_id" name="exam_id" type="text" min="1" placeholder="Enter exam ID" required>
+
+<script>
 
 
-                <button type="submit">
-                    Get Exam
-                </button>
-
-
-            </form>
+/*
+==================================================
+API
+==================================================
+*/
 
 const API_URL = "/exams-api";
 
+
+/*
+==================================================
+GET CURRENT USER FROM LOCAL STORAGE
+==================================================
+
+The main Exams page stores the logged-in user as:
+
+localStorage.setItem("user", ...)
+
+So we read the same value here.
+
+*/
+
+function readUser() {
+
+    try {
+
+        const raw =
+            localStorage.getItem("user");
+
+        return raw
+            ? JSON.parse(raw)
+            : null;
+
+    } catch (error) {
+
+        console.error(
+            "Could not read user from localStorage:",
+            error
+        );
+
+        return null;
+
+    }
+
+}
+
+
+const currentUser =
+    readUser();
+
+
+/*
+==================================================
+GET USER ID
+==================================================
+
+Supports either:
+
+{
+    "id": 5
+}
+
+or:
+
+{
+    "user_id": 5
+}
+
+*/
+
+const userId =
+    currentUser
+        ? (
+            currentUser.user_id ??
+            currentUser.id
+        )
+        : null;
+
+
+/*
+==================================================
+CHECK LOGIN
+==================================================
+*/
+
+if (!currentUser || userId == null) {
+
+    window.location.href =
+        "/login.html";
+
+}
+
+
+/*
+==================================================
+FORM ELEMENTS
+==================================================
+*/
+
 const examByIdForm =
-    document.getElementById("exam-by-id-form");
-
-            <div id="exam-result" class="panel">
-            </div>
-
-
-            <!-- ==========================================
-             FIND EXAMS BY COURSE
-        =========================================== -->
-
-            <h2>Find Exams by Course ID</h2>
+    document.getElementById(
+        "exam-by-id-form"
+    );
 
 
-            <form id="exams-by-course-form">
+const examsByCourseForm =
+    document.getElementById(
+        "exams-by-course-form"
+    );
 
 
-                <label for="course_id">
-                    Course ID
-                </label>
+/*
+==================================================
+RESET ELEMENTS
+==================================================
+*/
+
+const resetExamsButton =
+    document.getElementById(
+        "reset-exams-btn"
+    );
 
 
-                <input id="course_id" name="course_id" type="text" placeholder="Example: 101" required>
+const resetExamsResult =
+    document.getElementById(
+        "reset-exams-result"
+    );
 
 
-                <button type="submit">
-                    Find Exams
-                </button>
+/*
+==================================================
+CURRENT USER'S EXAMS URL
+==================================================
+*/
+
+function getUserExamsUrl() {
+
+    return `${API_URL}/exams?student_id=${encodeURIComponent(
+        userId
+    )}`;
+
+}
 
 
-            </form>
+/*
+==================================================
+DISPLAY EXAMS
+==================================================
+*/
+
+async function renderIntoPanel(
+    panelId,
+    url
+) {
+
+    const panel =
+        document.getElementById(
+            panelId
+        );
 
 
-            <div id="course-result" class="panel">
-            </div>
+    panel.innerHTML =
+        "<p>Loading...</p>";
 
 
-        </section>
+    try {
+
+        const response =
+            await fetch(url);
 
 
-    </main>
+        const data =
+            await response.json();
 
 
+        if (!response.ok) {
 
-    <script>
+            panel.innerHTML =
+                `<p>${data.error ||
+                "Request failed."
+                }</p>`;
 
-
-        /*
-        ==================================================
-        GET USER ID FROM URL
-        ==================================================
-        
-        Example:
-        
-        http://localhost:8084/tabs/normal.html?user_id=5&name=John
-        
-        */
-
-        function getUserIdFromUrl() {
-
-            const params =
-                new URLSearchParams(
-                    window.location.search
-                );
-
-            return params.get("user_id");
+            return;
         }
 
 
-        /*
-        ==================================================
-        CURRENT USER
-        ==================================================
-        */
-
-        const userId =
-            getUserIdFromUrl();
+        const exams =
+            Array.isArray(data)
+                ? data
+                : [data];
 
 
-        /*
-        ==================================================
-        FORMS
-        ==================================================
-        */
+        if (exams.length === 0) {
 
-        const examByIdForm =
-            document.getElementById(
-                "exam-by-id-form"
-            );
+            panel.innerHTML =
+                "<p>No exams found.</p>";
+
+            return;
+        }
 
 
-        const examsByCourseForm =
-            document.getElementById(
-                "exams-by-course-form"
-            );
-
-
-        /*
-        ==================================================
-        DISPLAY EXAMS
-        ==================================================
-        */
-
-        async function renderIntoPanel(
-            panelId,
-            url
-        ) {
-
-            const panel =
-                document.getElementById(
-                    panelId
-                );
-
-
-            try {
-
-                const response =
-                    await fetch(url);
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    panel.innerHTML =
-                        `<p>${data.error ||
-                        "Request failed."
-                        }</p>`;
-
-                    return;
-                }
-
-
-                const exams =
-                    Array.isArray(data)
-                        ? data
-                        : [data];
-
-
-                if (exams.length === 0) {
-
-                    panel.innerHTML =
-                        "<p>No exams found.</p>";
-
-                    return;
-                }
-
-
-                let table = `
+        let table = `
 
             <table>
 
@@ -250,16 +355,21 @@ const examByIdForm =
 
                 </thead>
 
-
                 <tbody>
 
         `;
 
 
-                exams.forEach(
-                    exam => {
+        exams.forEach(
+            exam => {
 
-                        table += `
+                const statusClass =
+                    exam.status === "Completed"
+                        ? "status-completed"
+                        : "status-uncompleted";
+
+
+                table += `
 
                     <tr>
 
@@ -291,13 +401,7 @@ const examByIdForm =
 
                             <button
 
-                                class="status-btn ${exam.status ===
-                                "Completed"
-
-                                ? "status-completed"
-
-                                : "status-uncompleted"
-                            }"
+                                class="status-btn ${statusClass}"
 
                                 onclick="
                                     toggleStatus(
@@ -313,7 +417,6 @@ const examByIdForm =
                             </button>
 
                         </td>
-
 
                         <td>
 
@@ -343,11 +446,11 @@ const examByIdForm =
 
                 `;
 
-                    }
-                );
+            }
+        );
 
 
-                table += `
+        table += `
 
                 </tbody>
 
@@ -356,298 +459,291 @@ const examByIdForm =
         `;
 
 
-                panel.innerHTML =
-                    table;
+        panel.innerHTML =
+            table;
 
 
-            } catch (error) {
+    } catch (error) {
 
-                console.error(error);
+        console.error(error);
 
 
-                panel.innerHTML =
-                    `<p>
+        panel.innerHTML =
+            `
+            <p>
                 Request failed.
             </p>
 
             <pre>
                 ${error}
-            </pre>`;
+            </pre>
+            `;
 
-            }
+    }
 
-        }
-
-        const response = await fetch(
-            `${API_URL}/exams/${examId}`,
-            {
-                method: "PUT",
-
-        /*
-        ==================================================
-        TOGGLE EXAM STATUS
-        ==================================================
-        */
-
-        async function toggleStatus(
-            examId,
-            currentStatus
-        ) {
+}
 
 
-            const newStatus =
-                currentStatus === "Completed"
-                    ? "Uncompleted"
-                    : "Completed";
+/*
+==================================================
+REFRESH USER EXAMS
+==================================================
+*/
+
+function refreshUserExams() {
+
+    renderIntoPanel(
+        "exams-result",
+        getUserExamsUrl()
+    );
+
+}
 
 
-            try {
+/*
+==================================================
+TOGGLE EXAM STATUS
+==================================================
+*/
 
-                const response =
-                    await fetch(
+async function toggleStatus(
+    examId,
+    currentStatus
+) {
 
-                        `http://localhost:5009/exams/${examId}`,
-
-                        {
-
-                            method: "PUT",
-
-                            headers: {
-
-                                "Content-Type":
-                                    "application/json"
-
-                            },
-
-                            body:
-                                JSON.stringify({
-
-                                    status:
-                                        newStatus
-
-                                })
-
-                        }
-
-                    );
+    const newStatus =
+        currentStatus === "Completed"
+            ? "Uncompleted"
+            : "Completed";
 
 
-                const data =
-                    await response.json();
+    try {
 
+        const response =
+            await fetch(
 
-                if (!response.ok) {
+                `${API_URL}/exams/${encodeURIComponent(
+                    examId
+                )}`,
 
-                    alert(
-                        data.error ||
-                        "Failed to update exam status."
-                    );
+                {
 
-                    return;
+                    method: "PUT",
+
+                    headers: {
+
+                        "Content-Type":
+                            "application/json"
+
+                    },
+
+                    body:
+                        JSON.stringify({
+
+                            status:
+                                newStatus
+
+                        })
+
                 }
 
-
-                /*
-                 * Refresh current user's exams
-                 */
-
-                renderIntoPanel(
-
-                    "exams-result",
-
-                    `http://localhost:5009/exams?student_id=${encodeURIComponent(userId)
-                    }`
-
-                );
+            );
 
 
-            } catch (error) {
+        const data =
+            await response.json();
 
-                alert(
-                    "Request failed."
-                );
 
-            }
+        if (!response.ok) {
 
+            alert(
+                data.error ||
+                "Failed to update exam status."
+            );
+
+            return;
         }
 
 
-        /*
-        ==================================================
-        DELETE EXAM
-        ==================================================
-        */
+        refreshUserExams();
 
-        async function deleteExam(
-            examId
-        ) {
-        renderIntoPanel(
-            "exams-result",
-            `${API_URL}/exams`
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Request failed."
+        );
+
+    }
+
+}
+
+
+/*
+==================================================
+DELETE EXAM
+==================================================
+*/
+
+async function deleteExam(
+    examId
+) {
+
+    const confirmed =
+        confirm(
+            `Are you sure you want to delete exam ${examId}?`
         );
 
 
-            const confirmed =
-                confirm(
-                    `Are you sure you want to delete exam ${examId}?`
+    if (!confirmed) {
+
+        return;
+
+    }
+
+
+    try {
+
+        const response =
+            await fetch(
+
+                `${API_URL}/exams/${encodeURIComponent(
+                    examId
+                )}`,
+
+                {
+
+                    method: "DELETE"
+
+                }
+
+            );
+
+
+        const data =
+            await response.json();
+
+
+        if (!response.ok) {
+
+            alert(
+                data.error ||
+                "Failed to delete exam."
+            );
+
+            return;
+        }
+
+
+        alert(
+            "Exam deleted successfully."
+        );
+
+
+        refreshUserExams();
+
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert(
+            "Request failed."
+        );
+
+    }
+
+}
+
+
+/*
+==================================================
+FIND EXAM BY ID
+==================================================
+*/
+
+examByIdForm.addEventListener(
+
+    "submit",
+
+    async event => {
+
+        event.preventDefault();
+
+
+        const examId =
+            document.getElementById(
+                "exam_id"
+            ).value.trim();
+
+
+        const panel =
+            document.getElementById(
+                "exam-result"
+            );
+
+
+        panel.innerHTML =
+            "<p>Loading...</p>";
+
+
+        try {
+
+            const response =
+                await fetch(
+
+                    `${API_URL}/exams/by-id?exam_id=${encodeURIComponent(
+                        examId
+                    )}`
+
                 );
 
 
-            if (!confirmed) {
+            const exam =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                panel.innerHTML =
+                    `<p>${exam.error ||
+                    "Exam not found."
+                    }</p>`;
 
                 return;
 
             }
 
 
-            try {
+            /*
+             * Make sure the exam belongs
+             * to the logged-in user.
+             */
 
-                const response =
-                    await fetch(
+            if (
 
-                        `http://localhost:5009/exams/${examId}`,
+                String(exam.student_id) !==
+                String(userId)
 
-                        {
-        const response = await fetch(
-            `${API_URL}/exams/${examId}`,
-            {
-                method: "DELETE"
-            }
-        );
+            ) {
 
-                            method: "DELETE"
+                panel.innerHTML =
+                    "<p>Exam not found for this user.</p>";
 
-                        }
-
-                    );
-
-
-                const data =
-                    await response.json();
-
-
-                if (!response.ok) {
-
-                    alert(
-                        data.error ||
-                        "Failed to delete exam."
-                    );
-
-                    return;
-                }
-
-
-                alert(
-                    "Exam deleted successfully."
-                );
-
-
-                /*
-                 * Refresh current user's exams
-                 */
-
-                renderIntoPanel(
-
-                    "exams-result",
-
-                    `http://localhost:5009/exams?student_id=${encodeURIComponent(userId)
-                    }`
-
-                );
-
-
-            } catch (error) {
-
-                alert(
-                    "Request failed."
-                );
+                return;
 
             }
 
-        }
+
+            const statusClass =
+                exam.status === "Completed"
+                    ? "status-completed"
+                    : "status-uncompleted";
 
 
-        /*
-        ==================================================
-        FIND EXAM BY ID
-        ==================================================
-        */
-
-        examByIdForm.addEventListener(
-
-            "submit",
-        renderIntoPanel(
-            "exams-result",
-            `${API_URL}/exams`
-        );
-
-            async event => {
-
-                event.preventDefault();
-
-
-                const examId =
-                    document.getElementById(
-                        "exam_id"
-                    ).value;
-
-
-                const panel =
-                    document.getElementById(
-                        "exam-result"
-                    );
-
-
-                try {
-
-                    const response =
-                        await fetch(
-
-                            `http://localhost:5009/exams/by-id?exam_id=${encodeURIComponent(examId)
-                            }`
-
-                        );
-
-        const response = await fetch(
-            `${API_URL}/exams/by-id?exam_id=${examId}`
-        );
-
-                    const exam =
-                        await response.json();
-
-
-                    if (!response.ok) {
-
-                        panel.innerHTML =
-                            `<p>${exam.error ||
-                            "Exam not found."
-                            }</p>`;
-
-                        return;
-                    }
-
-
-                    /*
-                     * Only display the exam if it
-                     * belongs to the current user.
-                     */
-
-                    if (
-
-                        String(exam.student_id) !==
-                        String(userId)
-
-                    ) {
-
-                        panel.innerHTML =
-                            "<p>Exam not found for this user.</p>";
-
-                        return;
-
-                    }
-
-
-                    panel.innerHTML = `
+            panel.innerHTML = `
 
                 <table>
 
@@ -672,7 +768,6 @@ const examByIdForm =
                         </tr>
 
                     </thead>
-
 
                     <tbody>
 
@@ -706,13 +801,7 @@ const examByIdForm =
 
                                 <button
 
-                                    class="status-btn ${exam.status ===
-                            "Completed"
-
-                            ? "status-completed"
-
-                            : "status-uncompleted"
-                        }"
+                                    class="status-btn ${statusClass}"
 
                                     onclick="
                                         toggleStatus(
@@ -738,119 +827,127 @@ const examByIdForm =
             `;
 
 
-                } catch (error) {
+        } catch (error) {
 
-                    panel.innerHTML =
-                        `<p>
+            console.error(error);
+
+
+            panel.innerHTML =
+                `
+                <p>
                     Request failed.
                 </p>
 
                 <pre>
                     ${error}
-                </pre>`;
+                </pre>
+                `;
 
-                }
+        }
+
+    }
+
+);
+
+
+/*
+==================================================
+FIND EXAMS BY COURSE ID
+==================================================
+*/
+
+examsByCourseForm.addEventListener(
+
+    "submit",
+
+    async event => {
+
+        event.preventDefault();
+
+
+        const courseId =
+            document.getElementById(
+                "course_id"
+            ).value.trim();
+
+
+        const panel =
+            document.getElementById(
+                "course-result"
+            );
+
+
+        panel.innerHTML =
+            "<p>Loading...</p>";
+
+
+        try {
+
+            const response =
+                await fetch(
+
+                    `${API_URL}/exams/by-course?course_id=${encodeURIComponent(
+                        courseId
+                    )}`
+
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                panel.innerHTML =
+                    `<p>${data.error ||
+                    "No exams found."
+                    }</p>`;
+
+                return;
 
             }
 
-        const response = await fetch(
-            `${API_URL}/exams/by-course?${query}`
-        );
+
+            const exams =
+                Array.isArray(data)
+                    ? data
+                    : [data];
 
 
-        /*
-        ==================================================
-        FIND EXAMS BY COURSE ID
-        ==================================================
-        */
+            /*
+             * Only show this user's exams.
+             */
 
-        examsByCourseForm.addEventListener(
+            const userExams =
+                exams.filter(
 
-            "submit",
+                    exam =>
 
-            async event => {
+                        String(
+                            exam.student_id
+                        ) ===
 
-                event.preventDefault();
+                        String(
+                            userId
+                        )
 
-
-                const formData =
-                    new FormData(
-                        examsByCourseForm
-                    );
-
-
-                const query =
-                    new URLSearchParams(
-                        formData
-                    ).toString();
+                );
 
 
-                const panel =
-                    document.getElementById(
-                        "course-result"
-                    );
+            if (
+                userExams.length === 0
+            ) {
+
+                panel.innerHTML =
+                    "<p>No exams found for this user.</p>";
+
+                return;
+
+            }
 
 
-                try {
-
-                    const response =
-                        await fetch(
-
-                            `http://localhost:5009/exams/by-course?${query}`
-
-                        );
-
-
-                    const exams =
-                        await response.json();
-
-
-                    if (!response.ok) {
-
-                        panel.innerHTML =
-                            `<p>${exams.error ||
-                            "No exams found."
-                            }</p>`;
-
-                        return;
-
-                    }
-
-
-                    /*
-                     * Only show exams belonging
-                     * to the current user.
-                     */
-
-                    const userExams =
-                        exams.filter(
-
-                            exam =>
-
-                                String(
-                                    exam.student_id
-                                ) ===
-
-                                String(
-                                    userId
-                                )
-
-                        );
-
-
-                    if (
-                        userExams.length === 0
-                    ) {
-
-                        panel.innerHTML =
-                            "<p>No exams found for this user.</p>";
-
-                        return;
-
-                    }
-
-
-                    let table = `
+            let table = `
 
                 <table>
 
@@ -876,17 +973,22 @@ const examByIdForm =
 
                     </thead>
 
-
                     <tbody>
 
             `;
 
 
-                    userExams.forEach(
+            userExams.forEach(
 
-                        exam => {
+                exam => {
 
-                            table += `
+                    const statusClass =
+                        exam.status === "Completed"
+                            ? "status-completed"
+                            : "status-uncompleted";
+
+
+                    table += `
 
                         <tr>
 
@@ -918,13 +1020,7 @@ const examByIdForm =
 
                                 <button
 
-                                    class="status-btn ${exam.status ===
-                                    "Completed"
-
-                                    ? "status-completed"
-
-                                    : "status-uncompleted"
-                                }"
+                                    class="status-btn ${statusClass}"
 
                                     onclick="
                                         toggleStatus(
@@ -945,12 +1041,12 @@ const examByIdForm =
 
                     `;
 
-                        }
+                }
 
-                    );
+            );
 
 
-                    table += `
+            table += `
 
                     </tbody>
 
@@ -959,217 +1055,140 @@ const examByIdForm =
             `;
 
 
-                    panel.innerHTML =
-                        table;
+            panel.innerHTML =
+                table;
 
 
-                } catch (error) {
+        } catch (error) {
 
-                    panel.innerHTML =
-                        `<p>
+            console.error(error);
+
+
+            panel.innerHTML =
+                `
+                <p>
                     Request failed.
                 </p>
 
                 <pre>
                     ${error}
-                </pre>`;
+                </pre>
+                `;
 
-                }
+        }
 
-            }
+    }
 
-        );
+);
 
 
-        /*
-        ==================================================
-        RESET MY EXAMS
-        ==================================================
-        
-        This removes the current user's existing exams
-        and creates fresh exams.
-        
-        ==================================================
-        */
+/*
+==================================================
+RESET MY EXAMS
+==================================================
+*/
 
-        const resetExamsButton =
-            document.getElementById(
-                "reset-exams-btn"
-            );
+resetExamsButton.addEventListener(
 
+    "click",
 
-        const resetExamsResult =
-            document.getElementById(
-                "reset-exams-result"
-            );
+    async () => {
 
 
-        resetExamsButton.addEventListener(
+        const confirmed =
+            confirm(
 
-            "click",
-
-            async () => {
-
-
-                if (!userId) {
-
-                    resetExamsResult.innerHTML =
-                        "<p>No user ID was provided in the URL.</p>";
-
-                    return;
-
-                }
-
-
-                const confirmed =
-                    confirm(
-
-                        "This will remove all your existing exams and replace them with fresh exams. Continue?"
-
-                    );
-
-
-                if (!confirmed) {
-
-                    return;
-
-                }
-
-
-                resetExamsResult.innerHTML =
-                    "<p>Resetting your exams...</p>";
-
-
-                try {
-
-
-                    /*
-                     * ==================================================
-                     * API CALL - CHANGE THIS IF NEEDED
-                     * ==================================================
-                     *
-                     * This calls your exam backend.
-                     *
-                     * The backend should:
-                     *
-                     * 1. Find the courses for this student.
-                     * 2. Delete their existing exams.
-                     * 3. Create fresh exams from the course templates.
-                     *
-                     */
-
-                    const response =
-                        await fetch(
-
-                            `http://localhost:5009/exams/reset?student_id=${encodeURIComponent(userId)
-                            }`,
-
-                            {
-
-                                method: "POST",
-
-                                headers: {
-
-                                    "Content-Type":
-                                        "application/json"
-
-                                }
-
-                            }
-
-                        );
-
-
-                    const data =
-                        await response.json();
-
-
-                    if (!response.ok) {
-
-                        resetExamsResult.innerHTML =
-                            `<p>${data.error ||
-                            "Failed to reset exams."
-                            }</p>`;
-
-                        return;
-
-                    }
-
-
-                    resetExamsResult.innerHTML =
-                        `<p>${data.message ||
-                        "Exams reset successfully."
-                        }</p>`;
-
-
-                    /*
-                     * Refresh the exam table
-                     */
-
-                    renderIntoPanel(
-
-                        "exams-result",
-
-                        `http://localhost:5009/exams?student_id=${encodeURIComponent(userId)
-                        }`
-
-                    );
-
-
-                } catch (error) {
-
-                    console.error(
-                        error
-                    );
-
-
-                    resetExamsResult.innerHTML =
-                        "<p>Failed to reset exams.</p>";
-
-                }
-
-            }
-
-        );
-
-
-        /*
-        ==================================================
-        LOAD CURRENT USER'S EXAMS
-        ==================================================
-        */
-
-        if (userId) {
-
-
-            renderIntoPanel(
-
-                "exams-result",
-
-                `http://localhost:5009/exams?student_id=${encodeURIComponent(userId)
-                }`
+                "This will remove all your existing exams and replace them with fresh exams. Continue?"
 
             );
 
 
-        } else {
+        if (!confirmed) {
 
-
-            document.getElementById(
-                "exams-result"
-            ).innerHTML =
-
-                "<p>No user ID was provided in the URL.</p>";
+            return;
 
         }
 
 
-    </script>
-renderIntoPanel(
-    "exams-result",
-    `${API_URL}/exams`
+        resetExamsResult.innerHTML =
+            "<p>Resetting your exams...</p>";
+
+
+        try {
+
+            const response =
+                await fetch(
+
+                    `${API_URL}/exams/reset?student_id=${encodeURIComponent(
+                        userId
+                    )}`,
+
+                    {
+
+                        method: "POST",
+
+                        headers: {
+
+                            "Content-Type":
+                                "application/json"
+
+                        }
+
+                    }
+
+                );
+
+
+            const data =
+                await response.json();
+
+
+            if (!response.ok) {
+
+                resetExamsResult.innerHTML =
+                    `<p>${data.error ||
+                    "Failed to reset exams."
+                    }</p>`;
+
+                return;
+
+            }
+
+
+            resetExamsResult.innerHTML =
+                `<p>${data.message ||
+                "Exams reset successfully."
+                }</p>`;
+
+
+            refreshUserExams();
+
+
+        } catch (error) {
+
+            console.error(error);
+
+
+            resetExamsResult.innerHTML =
+                "<p>Failed to reset exams.</p>";
+
+        }
+
+    }
+
 );
 
+
+/*
+==================================================
+LOAD CURRENT USER'S EXAMS
+==================================================
+*/
+
+refreshUserExams();
+
+
+</script>
 
 </body>
 
