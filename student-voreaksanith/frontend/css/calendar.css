@@ -1,80 +1,26 @@
-:root {
-  --red: #E5361F;
-  --ink: #1A1A1A;
-  --muted: #8A8A8A;
-  --line: #D8D8D8;
-  --bg: #F2F2F0;
-  --panel: #FFFFFF;
-}
+/* =========================================================================
+   Calendar — feature-specific styles
+   =========================================================================
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+   This file assumes css/asd-shell.css is already linked before it, and
+   relies on the shell for: design tokens (:root), base reset, body,
+   .layout, .sidebar, .brand*, .nav*, .main, and the base .btn / .btn--primary
+   styles.
 
-body {
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  background: var(--bg);
-  color: var(--ink);
-  font-size: 14px;
-}
+   Only calendar-page-specific rules live here: the header controls, the
+   sidebar "panel" and "study agent" blocks, the month grid, events, the
+   add-event modal/form, and the toast.
+   ========================================================================= */
 
-.layout {
-  display: grid;
-  grid-template-columns: 232px 1fr;
-  min-height: 100vh;
-}
-
-/* ------------------------------------------------------------- sidebar */
-
-.sidebar {
-  background: var(--panel);
-  border-right: 1px solid var(--line);
-  padding: 22px 0;
-}
-
-.brand {
-  display: flex;
-  gap: 10px;
-  align-items: center;
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--line);
-}
-
-.brand__mark {
-  width: 14px;
-  height: 14px;
-  background: var(--red);
-  flex-shrink: 0;
-}
-
-.brand__name { font-size: 13px; font-weight: 700; letter-spacing: 0.06em; }
-.brand__sub { font-size: 10px; color: var(--muted); letter-spacing: 0.12em; margin-top: 2px; }
-
-.nav { padding: 12px 0; border-bottom: 1px solid var(--line); }
-
-.nav__item {
-  display: block;
-  padding: 11px 20px;
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  color: var(--ink);
-  text-decoration: none;
-  border-left: 3px solid transparent;
-}
-
-.nav__item:hover { background: #FAFAFA; }
-
-.nav__item--active {
-  background: #EDEDEB;
-  border-left-color: var(--red);
-}
+/* -------------------------------------------------------- sidebar panel */
+/* Calendar page uses ".panel" (rather than the shell's ".side-note") for
+   the "drag to reschedule" note. */
 
 .panel { padding: 20px; }
 .panel__label { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; color: var(--muted); margin-bottom: 8px; }
 .panel__text { font-size: 12px; line-height: 1.55; color: #555; }
 
 /* ---------------------------------------------------------------- main */
-
-.main { padding: 26px 30px; }
 
 .header {
   display: flex;
@@ -86,21 +32,6 @@ body {
 .header__title { font-size: 38px; letter-spacing: -0.02em; }
 .header__controls { display: flex; gap: 8px; }
 
-.btn {
-  padding: 9px 14px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.07em;
-  border: 1px solid var(--line);
-  background: var(--panel);
-  color: var(--ink);
-  cursor: pointer;
-}
-
-.btn:hover { background: #F6F6F4; }
-
-.btn--primary { background: var(--red); border-color: var(--red); color: #fff; }
-.btn--primary:hover { background: #C82E1A; }
 .btn--icon { width: 38px; }
 
 .weekdays {
@@ -223,28 +154,6 @@ body {
 
 .form__error[hidden] { display: none; }
 
-.field { display: flex; flex-direction: column; gap: 5px; }
-
-.field span {
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.09em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
-.field input,
-.field select {
-  padding: 9px 10px;
-  border: 1px solid var(--line);
-  font-size: 13px;
-  font-family: inherit;
-  background: #fff;
-}
-
-.field input:focus,
-.field select:focus { outline: 2px solid var(--red); outline-offset: -1px; }
-
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; }
 
 .form__actions {
@@ -279,19 +188,6 @@ body {
 .toast--warn { background: #9A6412; }
 .toast--error { background: var(--red); }
 
-/* ---------------------------------------------------------- responsive */
-
-@media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .sidebar { display: none; }
-  .main { padding: 16px; }
-  .header { flex-direction: column; align-items: flex-start; gap: 12px; }
-  .header__title { font-size: 27px; }
-  .day { min-height: 84px; padding: 5px; }
-  .event__delete { opacity: 1; }
-  .field-row { grid-template-columns: 1fr; }
-}
-
 /* --------------------------------------------------------- study agent */
 
 .agent {
@@ -325,8 +221,6 @@ body {
 .suggestion__when { font-weight: 700; display: block; }
 .suggestion__what { color: #CFCFCF; display: block; }
 .suggestion__why { color: #9A9A9A; font-size: 10.5px; display: block; margin-top: 3px; }
-
-.btn--block { width: 100%; margin-top: 8px; }
 
 .btn--ghost {
   background: none;
@@ -371,4 +265,14 @@ body {
 .auth-brand:focus-visible {
     outline: 2px solid var(--red);
     outline-offset: 3px;
+}
+
+/* ---------------------------------------------------------- responsive */
+
+@media (max-width: 900px) {
+  .header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .header__title { font-size: 27px; }
+  .day { min-height: 84px; padding: 5px; }
+  .event__delete { opacity: 1; }
+  .field-row { grid-template-columns: 1fr; }
 }
