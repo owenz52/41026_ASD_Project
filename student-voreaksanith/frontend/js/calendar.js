@@ -1,5 +1,10 @@
 const API_BASE = window.CALENDAR_API || "/calendar-api";
 
+// The login page lives on the portal, not in this container. Redirecting to a
+// bare "/login.html" here hits nginx's try_files, which serves index.html and
+// runs this guard again — an endless reload for anyone not signed in.
+const LOGIN_URL = window.PORTAL_LOGIN_URL || "http://localhost:8000/login.html";
+
 let currentUser = null;
 let STUDENT_ID = null;
 
@@ -20,7 +25,7 @@ const MONTHS = [
 const state = {
   cursor: new Date(2026, 8, 1), // September 2026, matching the seed data
   events: [],
-  courses: [],
+
   selectedId: null,
 };
 
@@ -76,34 +81,6 @@ async function loadEvents() {
     toast(`Could not load events: ${error.message}`, "error");
   }
   render();
-}
-
-async function loadCourses() {
-  try {
-    const data = await api(`/courses?student_id=${STUDENT_ID}`);
-    state.courses = data.courses || [];
-  } catch (error) {
-    state.courses = [];
-  }
-
-  const select = document.getElementById("event-course");
-  if (!select) return;
-
-  select.innerHTML =
-    '<option value="">No course (personal)</option>' +
-    state.courses
-      .map(
-        (c) =>
-          `<option value="${c.course_id}">${escapeHtml(c.course_code)} — ${escapeHtml(c.course_name)}</option>`
-      )
-      .join("");
-
-  if (!state.courses.length) {
-    select.insertAdjacentHTML(
-      "beforeend",
-      '<option value="" disabled>No enrolled courses found</option>'
-    );
-  }
 }
 
 /* ---------------------------------------------------------------- render */
@@ -171,7 +148,7 @@ function renderEvent(event) {
   el.dataset.eventId = event.event_id;
   el.style.borderLeftColor = event.color;
 
-  const label = event.course_code ? `${event.course_code} · ` : "";
+  const label = event.subject ? `${escapeHtml(event.subject)} · ` : "";
   el.innerHTML = `
     <span class="event__title">${escapeHtml(event.title)}</span>
     <span class="event__meta">${label}${timeOf(event.start_time)}</span>
@@ -251,8 +228,8 @@ async function addEvent(form) {
     location: form.location.value.trim(),
   };
 
-  if (form.course_id.value) {
-    payload.course_id = Number(form.course_id.value);
+  if (form.subject.value.trim()) {
+    payload.subject = form.subject.value.trim();
   }
 
   try {
@@ -276,7 +253,6 @@ async function addEvent(form) {
     box.hidden = false;
   }
 }
-
 
 /* ---------------------------------------------------------- study agent */
 
@@ -353,6 +329,9 @@ async function requestSuggestions() {
       ? `${pendingSuggestions.length} session(s) suggested. The AI model was unavailable, so these were picked from your free time directly.`
       : `${pendingSuggestions.length} session(s) suggested. Review before adding.`;
 
+    const apply = document.getElementById("agent-apply");
+    apply.dataset.mode = "sessions";
+    apply.textContent = "ADD THESE TO MY CALENDAR";
     renderSuggestions(pendingSuggestions, data.trace);
   } catch (error) {
     text.textContent = `Could not get suggestions: ${error.message}`;
@@ -400,6 +379,181 @@ async function applySuggestions() {
   }
 }
 
+/* ------------------------------------------------- deadlines + briefing */
+
+let pendingDeadlines = [];
+
+async function findDeadlines() {
+  const button = document.getElementById("agent-import");
+  const text = document.getElementById("agent-text");
+
+  button.disabled = true;
+  text.textContent = "Checking your assessments and exams...";
+
+  try {
+    const data = await api("/ai/find-deadlines", {
+      method: "POST",
+      body: JSON.stringify({ student_id: STUDENT_ID }),
+    });
+
+    pendingDeadlines = data.missing || [];
+
+    // Say plainly when a source could not be reached, rather than implying
+    // the student has nothing due.
+    const down = Object.entries(data.sources || {})
+      .filter(([, s]) => !s.available)
+      .map(([name]) => name);
+
+    if (!pendingDeadlines.length) {
+      text.textContent = down.length
+        ? `No new deadlines found, but the ${down.join(" and ")} service could not be reached.`
+        : `Nothing new — all ${data.already_in_calendar} deadline(s) are already on your calendar.`;
+      document.getElementById("agent-suggestions").innerHTML = "";
+      document.getElementById("agent-apply").hidden = true;
+      return;
+    }
+
+    text.textContent =
+      `${pendingDeadlines.length} deadline(s) not on your calendar yet.` +
+      (down.length ? ` (${down.join(" and ")} unavailable)` : "");
+
+    document.getElementById("agent-suggestions").innerHTML = pendingDeadlines
+      .map((d) => `
+        <div class="suggestion">
+          <span class="suggestion__when">${escapeHtml(d.start_time.slice(0, 16))}</span>
+          <span class="suggestion__what">${escapeHtml(d.title)}</span>
+          <span class="suggestion__why">${
+            d.weighting ? `Worth ${Math.round(d.weighting)}% · ` : ""
+          }${escapeHtml(d.source)} · due in ${d.days_until_due} day(s)</span>
+        </div>`)
+      .join("");
+
+    const apply = document.getElementById("agent-apply");
+    apply.hidden = false;
+    apply.textContent = "ADD THESE TO MY CALENDAR";
+    apply.dataset.mode = "deadlines";
+    document.getElementById("agent-dismiss").hidden = false;
+  } catch (error) {
+    text.textContent = `Could not check deadlines: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function importDeadlines() {
+  if (!pendingDeadlines.length) return;
+  const button = document.getElementById("agent-apply");
+  button.disabled = true;
+
+  try {
+    const result = await api("/ai/import-deadlines", {
+      method: "POST",
+      body: JSON.stringify({ student_id: STUDENT_ID, items: pendingDeadlines }),
+    });
+
+    const first = pendingDeadlines[0].start_time;
+    const [y, m] = first.split("-");
+    state.cursor = new Date(Number(y), Number(m) - 1, 1);
+
+    pendingDeadlines = [];
+    clearSuggestions();
+    document.getElementById("agent-text").textContent =
+      `Added ${result.created_count} deadline(s) to your calendar.`;
+    await loadEvents();
+    toast(`${result.created_count} deadline(s) imported`, "success");
+  } catch (error) {
+    toast(`Import failed: ${error.message}`, "error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+async function getBriefing() {
+  const button = document.getElementById("brief-btn");
+  const text = document.getElementById("brief-text");
+  const facts = document.getElementById("brief-facts");
+
+  button.disabled = true;
+  text.textContent = "Pulling together today...";
+  facts.innerHTML = "";
+  document.getElementById("brief-note")?.remove();
+
+  try {
+    const data = await api("/ai/briefing", {
+      method: "POST",
+      body: JSON.stringify({ student_id: STUDENT_ID }),
+    });
+
+    text.textContent = data.summary || "Nothing to report.";
+
+    const f = data.facts || {};
+
+    // Rendered with the same .suggestion cards the study agent uses, so both
+    // panels read as one feature rather than two different designs.
+    const card = (when, what, why) => `
+      <div class="suggestion">
+        <span class="suggestion__when">${escapeHtml(when)}</span>
+        <span class="suggestion__what">${escapeHtml(what)}</span>
+        ${why ? `<span class="suggestion__why">${escapeHtml(why)}</span>` : ""}
+      </div>`;
+
+    const cards = [];
+
+    (f.events_today || []).forEach((e) => {
+      cards.push(card(e.time, e.title,
+        [e.type, e.location].filter(Boolean).join(" · ")));
+    });
+
+    if (!(f.events_today || []).length) {
+      cards.push(card("Today", "Nothing scheduled", "No classes or events in your calendar"));
+    }
+
+    (f.due_this_week || []).slice(0, 3).forEach((d) => {
+      const days = d.days_until_due;
+      cards.push(card(
+        `Due ${String(d.due).slice(0, 10)}`,
+        d.title,
+        [
+          days === 0 ? "due today" : `in ${days} day(s)`,
+          d.weighting ? `worth ${Math.round(d.weighting)}%` : "",
+        ].filter(Boolean).join(" · ")
+      ));
+    });
+
+    if (f.next_exam) {
+      cards.push(card(
+        `Exam ${String(f.next_exam.when).slice(0, 10)}`,
+        f.next_exam.title,
+        `in ${f.next_exam.days_until} day(s)`
+      ));
+    }
+
+    if (f.top_priorities && f.top_priorities.length) {
+      const top = f.top_priorities[0];
+      cards.push(`
+        <div class="suggestion suggestion--top">
+          <span class="suggestion__when">Start with</span>
+          <span class="suggestion__what">${escapeHtml(top.title)}</span>
+          <span class="suggestion__why">due ${escapeHtml(String(top.due).slice(0, 10))}${
+            top.weighting ? ` · worth ${Math.round(top.weighting)}%` : ""
+          }</span>
+        </div>`);
+    }
+
+    facts.innerHTML = cards.join("");
+
+    if (!data.trace?.llm_invoked) {
+      facts.insertAdjacentHTML("afterend",
+        `<p class="agent__note" id="brief-note">Summary written without the AI model, which was unavailable. The details above are still accurate.</p>`);
+    }
+
+  } catch (error) {
+    text.textContent = `Could not build a briefing: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
 /* ---------------------------------------------------------------- modal */
 
 function openModal() {
@@ -418,7 +572,7 @@ document.addEventListener("DOMContentLoaded", () => {
   currentUser = readUser();
 
   if (!currentUser) {
-    window.location.href = "/login.html";
+    window.location.href = LOGIN_URL;
     return;
   }
 
@@ -426,7 +580,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!STUDENT_ID) {
     localStorage.removeItem("user");
-    window.location.href = "/login.html";
+    window.location.href = LOGIN_URL;
     return;
   }
 
@@ -442,7 +596,12 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("add-event-btn").addEventListener("click", openModal);
 
   document.getElementById("agent-suggest").addEventListener("click", requestSuggestions);
-  document.getElementById("agent-apply").addEventListener("click", applySuggestions);
+  document.getElementById("agent-apply").addEventListener("click", (e) => {
+    if (e.currentTarget.dataset.mode === "deadlines") importDeadlines();
+    else applySuggestions();
+  });
+  document.getElementById("agent-import").addEventListener("click", findDeadlines);
+  document.getElementById("brief-btn").addEventListener("click", getBriefing);
   document.getElementById("agent-dismiss").addEventListener("click", () => {
     clearSuggestions();
     document.getElementById("agent-text").textContent =
@@ -459,6 +618,5 @@ document.addEventListener("DOMContentLoaded", () => {
     if (e.key === "Escape") closeModal();
   });
 
-  loadCourses();
   loadEvents();
 });

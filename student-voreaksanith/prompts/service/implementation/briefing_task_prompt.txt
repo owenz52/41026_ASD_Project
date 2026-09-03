@@ -1,0 +1,17 @@
+Write a short daily briefing for a university student, using only the facts below. Today is {{DATE}}.
+
+Scheduled today:
+{{EVENTS_TODAY}}
+
+Due within the next week:
+{{DUE_THIS_WEEK}}
+
+Next exam:
+{{NEXT_EXAM}}
+
+Highest priority right now (ranked by how much each is worth against how long is left):
+{{PRIORITIES}}
+
+Write three to five sentences in plain prose, addressed to the student as "you". Lead with what is happening today, then what needs attention. Name the single most pressing item and say briefly why it matters.
+
+Do not invent any deadline, subject, time or figure that is not listed above. Do not use headings, bullet points or markdown. If there is nothing scheduled and nothing due, say so plainly rather than padding.

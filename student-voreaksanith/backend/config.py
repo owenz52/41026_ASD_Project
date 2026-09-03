@@ -17,8 +17,15 @@ DATABASE_SERVICE_URL = get_cfg(
 )
 
 
-ENROLMENT_SERVICE_URL = get_cfg(
-    "ENROLMENT_SERVICE_URL", "http://enrolment-database:5002"
+# Read-only sources the calendar pulls deadlines from. Both are other teams'
+# database services; the calendar only ever performs GETs against them and
+# keeps working if either is unavailable.
+ASSESSMENT_SERVICE_URL = get_cfg(
+    "ASSESSMENT_SERVICE_URL", "http://priority-database:5008"
+)
+
+EXAM_SERVICE_URL = get_cfg(
+    "EXAM_SERVICE_URL", "http://exam-database:5010"
 )
 
 

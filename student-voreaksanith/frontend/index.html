@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Calendar — Student Portal</title>
-  <link rel="stylesheet" href="css/asd-shell.css">
   <link rel="stylesheet" href="css/calendar.css">
 </head>
 <body>
@@ -43,6 +42,9 @@
         <button id="agent-suggest" class="btn btn--primary btn--block">
           SUGGEST SESSIONS
         </button>
+        <button id="agent-import" class="btn btn--ghost btn--block">
+          IMPORT DEADLINES
+        </button>
         <button id="agent-apply" class="btn btn--block" hidden>
           ADD THESE TO MY CALENDAR
         </button>
@@ -71,6 +73,17 @@
         <div>FRI</div><div>SAT</div><div>SUN</div>
       </div>
       <div id="calendar-grid" class="grid"></div>
+
+      <section class="agent agent--brief">
+        <div class="agent__label">TODAY</div>
+        <p class="agent__text" id="brief-text">
+          A summary of today, what is due soon, and your next exam.
+        </p>
+        <div id="brief-facts" class="agent__list agent__list--wide"></div>
+        <button id="brief-btn" class="btn btn--primary btn--block">
+          BRIEF ME
+        </button>
+      </section>
     </main>
   </div>
 
@@ -86,10 +99,9 @@
         </label>
 
         <label class="field">
-          <span>Course</span>
-          <select id="event-course" name="course_id">
-            <option value="">No course (personal)</option>
-          </select>
+          <span>Subject <span class="field__hint">optional</span></span>
+          <input id="event-subject" name="subject" type="text"
+                 placeholder="e.g. 41026">
         </label>
 
         <label class="field">

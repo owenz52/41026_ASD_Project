@@ -1,11 +1,15 @@
 """Business logic for the calendar feature.
 
-Routes stay thin: they read parameters and call one function here. All course
-cross-referencing, validation and conflict checking happens in this module.
+Routes stay thin: they read parameters and call one function here.
+
+The calendar does not depend on the enrolment service. Events may carry an
+optional free-text `subject` label (for example "41026"), which is stored as
+given and never validated against another service, so the calendar runs
+standalone.
 """
 from datetime import datetime
 
-from services import database_api, enrolment_api
+from services import database_api
 
 TIME_FORMAT = "%Y-%m-%d %H:%M"
 
@@ -22,23 +26,10 @@ EVENT_TYPES = {
 }
 
 
-def _decorate(event, course_lookup=None):
-    """Attach display colour and course details to a raw database row."""
+def _decorate(event):
+    """Attach the display colour for the event's type."""
     event = dict(event)
     event["color"] = EVENT_TYPES.get(event.get("event_type"), EVENT_TYPES["other"])
-
-    course_id = event.get("course_id")
-    course = (course_lookup or {}).get(course_id)
-
-    if course:
-        event["course_code"] = course.get("course_code")
-        event["course_name"] = course.get("course_name")
-    else:
-        # Either the event has no course, or the enrolment service is
-        # unavailable. Both are non-fatal; the event still renders.
-        event["course_code"] = None
-        event["course_name"] = None
-
     return event
 
 
@@ -46,19 +37,15 @@ def _parse(value):
     return datetime.strptime(value.replace("T", " ")[:16], TIME_FORMAT)
 
 
-def list_events(student_id, course_id=None, start_date=None, end_date=None):
-    """Events for a student, enriched with course code and name."""
+def list_events(student_id, subject=None, start_date=None, end_date=None):
+    """Events for a student, optionally filtered by subject label."""
     status_code, body = database_api.list_events(
-        student_id, course_id, start_date, end_date
+        student_id, subject, start_date, end_date
     )
     if status_code != 200:
         return status_code, body
 
-    lookup = enrolment_api.build_course_lookup(
-        [event.get("course_id") for event in body]
-    )
-    events = [_decorate(event, lookup) for event in body]
-
+    events = [_decorate(event) for event in body]
     return 200, {"events": events, "count": len(events)}
 
 
@@ -66,13 +53,11 @@ def get_event(event_id):
     status_code, body = database_api.get_event(event_id)
     if status_code != 200:
         return status_code, body
-
-    lookup = enrolment_api.build_course_lookup([body.get("course_id")])
-    return 200, _decorate(body, lookup)
+    return 200, _decorate(body)
 
 
 def add_event(data):
-    """Create an event, validating its type and course link first."""
+    """Create an event after validating its type."""
     event_type = data.get("event_type")
     if event_type and event_type not in EVENT_TYPES:
         return 400, {
@@ -80,34 +65,11 @@ def add_event(data):
                      f"Valid types: {', '.join(sorted(EVENT_TYPES))}"
         }
 
-    student_id = data.get("student_id")
-    course_id = data.get("course_id")
-
-    # A course-linked event only makes sense if the student takes that course.
-    # If the enrolment service is unreachable we allow the event through rather
-    # than blocking the student, but flag it so the response is honest.
-    enrolment_unavailable = False
-    if course_id:
-        if not enrolment_api.is_enrolled(student_id, course_id):
-            if enrolment_api.list_enrolments(student_id):
-                return 400, {
-                    "error": "Student is not enrolled in the specified course"
-                }
-            enrolment_unavailable = True
-
     status_code, body = database_api.create_event(data)
     if status_code != 201:
         return status_code, body
 
-    lookup = enrolment_api.build_course_lookup([body.get("course_id")])
-    event = _decorate(body, lookup)
-
-    if enrolment_unavailable:
-        event["warning"] = (
-            "Course link could not be verified; enrolment service unavailable"
-        )
-
-    return 201, event
+    return 201, _decorate(body)
 
 
 def update_event(event_id, data):
@@ -118,9 +80,7 @@ def update_event(event_id, data):
     status_code, body = database_api.update_event(event_id, data)
     if status_code != 200:
         return status_code, body
-
-    lookup = enrolment_api.build_course_lookup([body.get("course_id")])
-    return 200, _decorate(body, lookup)
+    return 200, _decorate(body)
 
 
 def move_event(event_id, new_date=None, start_time=None, allow_conflicts=True):
@@ -150,8 +110,7 @@ def move_event(event_id, new_date=None, start_time=None, allow_conflicts=True):
         exclude_event_id=event_id,
     )
 
-    lookup = enrolment_api.build_course_lookup([moved.get("course_id")])
-    event = _decorate(moved, lookup)
+    event = _decorate(moved)
 
     if conflict_status == 200 and conflicts:
         if not allow_conflicts:
@@ -178,39 +137,3 @@ def move_event(event_id, new_date=None, start_time=None, allow_conflicts=True):
 
 def delete_event(event_id):
     return database_api.delete_event(event_id)
-
-
-def get_course_options(student_id):
-    """Courses a student can attach an event to, for the add-event dropdown."""
-    courses = enrolment_api.get_enrolled_courses(student_id)
-    return 200, {
-        "courses": [
-            {
-                "course_id": c["course_id"],
-                "course_code": c["course_code"],
-                "course_name": c["course_name"],
-            }
-            for c in courses
-        ],
-        "count": len(courses),
-        "enrolment_service_available": bool(courses)
-        or bool(enrolment_api.list_courses()),
-    }
-
-
-def get_course_schedule(student_id, course_id):
-    """Every calendar event for one course, plus that course's details."""
-    course = enrolment_api.get_course(course_id)
-    status_code, body = database_api.list_events(student_id, course_id=course_id)
-
-    if status_code != 200:
-        return status_code, body
-
-    lookup = {course["course_id"]: course} if course else {}
-    events = [_decorate(event, lookup) for event in body]
-
-    return 200, {
-        "course": course,
-        "events": events,
-        "count": len(events),
-    }

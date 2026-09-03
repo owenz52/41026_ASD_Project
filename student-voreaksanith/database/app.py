@@ -29,7 +29,7 @@ def parse_time(value):
 @app.route("/events", methods=["GET"])
 def list_events():
     student_id = request.args.get("student_id")
-    course_id = request.args.get("course_id")
+    subject = request.args.get("subject")
     start_date = request.args.get("start_date")
     end_date = request.args.get("end_date")
 
@@ -39,9 +39,9 @@ def list_events():
     sql = "SELECT * FROM events WHERE student_id = ?"
     params = [student_id]
 
-    if course_id:
-        sql += " AND course_id = ?"
-        params.append(course_id)
+    if subject:
+        sql += " AND subject = ?"
+        params.append(subject)
     if start_date:
         sql += " AND start_time >= ?"
         params.append(f"{start_date} 00:00")
@@ -92,14 +92,14 @@ def create_event():
     cursor = conn.execute(
         """
         INSERT INTO events (
-            student_id, course_id, title, event_type,
+            student_id, subject, title, event_type,
             start_time, end_time, location
         )
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
         (
             data["student_id"],
-            data.get("course_id"),
+            data.get("subject"),
             data["title"],
             data["event_type"],
             start.strftime(TIME_FORMAT),
@@ -132,7 +132,7 @@ def update_event(event_id):
 
     merged = dict(existing)
     for field in [
-        "course_id", "title", "event_type",
+        "subject", "title", "event_type",
         "start_time", "end_time", "location",
     ]:
         if field in data:
@@ -152,13 +152,13 @@ def update_event(event_id):
     conn.execute(
         """
         UPDATE events
-        SET course_id = ?, title = ?, event_type = ?,
+        SET subject = ?, title = ?, event_type = ?,
             start_time = ?, end_time = ?, location = ?,
             updated_at = datetime('now')
         WHERE event_id = ?
         """,
         (
-            merged["course_id"],
+            merged["subject"],
             merged["title"],
             merged["event_type"],
             start.strftime(TIME_FORMAT),

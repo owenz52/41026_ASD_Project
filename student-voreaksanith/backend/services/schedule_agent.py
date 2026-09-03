@@ -12,7 +12,7 @@ from config import (
     AGENT_STUDY_START_HOUR,
     OLLAMA_MODEL,
 )
-from services import calendar_service
+from services import calendar_service, deadline_sources
 from services.llm_client import ask_llm
 from services.prompt_loader import load_prompt, render_prompt
 
@@ -31,7 +31,11 @@ class LLMUnavailableError(Exception):
 
 
 def _parse(value):
-    return datetime.strptime(value.replace("T", " ")[:16], TIME_FORMAT)
+    return datetime.strptime(str(value).replace("T", " ")[:16], TIME_FORMAT)
+
+
+def _norm(title):
+    return "".join(ch for ch in str(title).lower() if ch.isalnum())
 
 
 def _call_llm(system_prompt, user_prompt):
@@ -83,9 +87,11 @@ def _build_free_slots(from_dt, until_dt, busy, session_minutes, limit):
 def _format_deadlines(targets):
     lines = []
     for target in targets:
-        subject = target.get("course_code") or "personal"
+        subject = target.get("subject") or "general"
+        weight = target.get("weighting") or 0
+        detail = f", worth {weight:.0f}%" if weight else ""
         lines.append(
-            f"- {target['title']} ({subject}), due {target['start_time']}"
+            f"- {target['title']} ({subject}), due {target['start_time']}{detail}"
         )
     return "\n".join(lines)
 
@@ -171,11 +177,52 @@ def suggest_schedule(student_id, from_date=None, horizon_days=None):
         raise RuntimeError(body.get("error", "could not load calendar"))
 
     events = body["events"]
-    targets = sorted(
-        (e for e in events
-         if e["event_type"] in TARGET_TYPES and _parse(e["start_time"]) > now),
-        key=lambda e: e["start_time"],
-    )
+
+    # Targets are deadlines/exams already on the calendar, plus anything the
+    # assessment and exam services know about that is not on it yet. Pulling
+    # both means the planner still works before a student imports deadlines.
+    targets = [
+        {**e, "weighting": 0.0, "origin": "calendar"}
+        for e in events
+        if e["event_type"] in TARGET_TYPES and _parse(e["start_time"]) > now
+    ]
+
+    external, source_status = deadline_sources.collect_deadlines(student_id)
+    known = {_norm(t["title"]) for t in targets}
+    for item in external:
+        if _norm(item["title"]) in known:
+            # Same item, already on the calendar: keep the calendar copy but
+            # take the weighting, which the calendar does not store.
+            for target in targets:
+                if _norm(target["title"]) == _norm(item["title"]):
+                    target["weighting"] = item.get("weighting", 0.0)
+            continue
+        try:
+            due = _parse(item["due"])
+        except ValueError:
+            continue
+        if due <= now:
+            continue
+        if str(item.get("status")).lower() in ("completed", "complete"):
+            continue
+        targets.append({
+            "event_id": None,
+            "title": item["title"],
+            "subject": item.get("subject"),
+            "event_type": "exam" if item["source"] == "exam" else "deadline",
+            "start_time": item["due"],
+            "end_time": item["due"],
+            "weighting": item.get("weighting", 0.0),
+            "origin": item["source"],
+        })
+
+    # Rank by weighting per day remaining, so a large assignment a week out
+    # beats a small quiz tomorrow. Ties fall back to the earlier due date.
+    for target in targets:
+        days = max((_parse(target["start_time"]) - now).total_seconds() / 86400.0, 0.25)
+        target["urgency"] = round(float(target.get("weighting") or 0) / days, 2)
+
+    targets.sort(key=lambda t: (-t["urgency"], t["start_time"]))
     busy = [(_parse(e["start_time"]), _parse(e["end_time"])) for e in events]
 
     # Build candidate slots per target, then interleave so the prompt is not
@@ -211,6 +258,13 @@ def suggest_schedule(student_id, from_date=None, horizon_days=None):
         "study_hours": f"{AGENT_STUDY_START_HOUR:02d}:00-{AGENT_STUDY_END_HOUR:02d}:00",
         "session_minutes": session_minutes,
         "candidate_slots_found": len(candidates),
+        "deadline_sources": source_status,
+        "ranked_by": "weighting per day remaining",
+        "ranking": [
+            {"title": t["title"], "weighting": t.get("weighting"),
+             "urgency": t.get("urgency"), "origin": t.get("origin")}
+            for t in targets
+        ],
         "reasoning": (
             f"Loaded {len(events)} events in the next {horizon_days} days, found "
             f"{len(targets)} deadline/exam item(s), then computed "
@@ -230,22 +284,30 @@ def suggest_schedule(student_id, from_date=None, horizon_days=None):
         return {"suggestions": [], "trace": trace}
 
     # ----------------------------------------------------------------- ACT
-    system_prompt = load_prompt(f"{PROMPT_DIR}/system_prompt.txt")
-    context_prompt = load_prompt(f"{PROMPT_DIR}/context_prompt.txt")
-    task_prompt = render_prompt(
-        f"{PROMPT_DIR}/suggest_task_prompt.txt",
-        deadline_count=len(targets),
-        max_suggestions=max_suggestions,
-        deadlines=_format_deadlines(targets),
-        slots=_format_slots(candidates),
-    )
-
+    # A missing prompt file must not take the whole request down: fall back to
+    # deterministic slot selection and say so, rather than returning a 500.
     llm_failed = None
     output = ""
+    system_prompt = context_prompt = task_prompt = None
+
     try:
-        output = _call_llm(system_prompt, f"{task_prompt}\n\n{context_prompt}")
-    except LLMUnavailableError as error:
-        llm_failed = str(error)
+        system_prompt = load_prompt(f"{PROMPT_DIR}/system_prompt.txt")
+        context_prompt = load_prompt(f"{PROMPT_DIR}/context_prompt.txt")
+        task_prompt = render_prompt(
+            f"{PROMPT_DIR}/suggest_task_prompt.txt",
+            deadline_count=len(targets),
+            max_suggestions=max_suggestions,
+            deadlines=_format_deadlines(targets),
+            slots=_format_slots(candidates),
+        )
+    except (FileNotFoundError, OSError) as error:
+        llm_failed = f"prompt file unavailable: {error}"
+
+    if llm_failed is None:
+        try:
+            output = _call_llm(system_prompt, f"{task_prompt}\n\n{context_prompt}")
+        except LLMUnavailableError as error:
+            llm_failed = str(error)
 
     trace["act"] = {
         "llm_invoked": llm_failed is None,
@@ -279,8 +341,9 @@ def suggest_schedule(student_id, from_date=None, horizon_days=None):
         chosen = _fallback_choices(candidates, targets, max_suggestions)
         adapt_action = "fallback_no_llm"
         adapt_reasoning = (
-            "Ollama was unreachable; used deterministic earliest-free-slot "
-            "selection so the student still gets a usable schedule."
+            f"AI step skipped ({llm_failed}); used deterministic "
+            "earliest-free-slot selection so the student still gets a usable "
+            "schedule."
         )
     elif not chosen or hallucinated:
         # One stricter retry before giving up on the model, mirroring the
@@ -347,17 +410,17 @@ def suggest_schedule(student_id, from_date=None, horizon_days=None):
             continue
 
         target = slot["target"]
-        subject = f"{target['course_code']} " if target.get("course_code") else ""
+        subject = f"{target['subject']} " if target.get("subject") else ""
         suggestions.append({
             "slot_id": slot["id"],
             "title": f"Revision — {subject}{target['title']}".strip(),
             "event_type": "revision",
-            "course_id": target.get("course_id"),
+            "subject": target.get("subject"),
             "start_time": slot["start"].strftime(TIME_FORMAT),
             "end_time": slot["end"].strftime(TIME_FORMAT),
             "location": "",
             "prepares_for": {
-                "event_id": target["event_id"],
+                "event_id": target.get("event_id"),
                 "title": target["title"],
                 "due": target["start_time"],
             },
@@ -383,7 +446,7 @@ def apply_suggestions(student_id, suggestions):
     for suggestion in suggestions or []:
         payload = {
             "student_id": student_id,
-            "course_id": suggestion.get("course_id"),
+            "subject": suggestion.get("subject"),
             "title": suggestion.get("title", "Revision"),
             "event_type": suggestion.get("event_type", "revision"),
             "start_time": suggestion.get("start_time"),

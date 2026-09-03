@@ -1,8 +1,27 @@
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-APP_DIR = BASE_DIR.parent
-PROMPT_DIR = APP_DIR / "prompts"
+
+
+def _find_prompt_dir():
+    """Locate the prompts folder, whichever layout the image was built with.
+
+    Normally prompts/ sits beside backend/. Searching a few plausible
+    locations instead of assuming one means a change to the Dockerfile cannot
+    silently break every AI feature at runtime.
+    """
+    candidates = [
+        BASE_DIR.parent / "prompts",   # /app/prompts   (backend at /app/backend)
+        BASE_DIR / "prompts",          # /app/prompts   (backend flattened to /app)
+        Path("/app/prompts"),
+    ]
+    for candidate in candidates:
+        if candidate.is_dir():
+            return candidate
+    return candidates[0]
+
+
+PROMPT_DIR = _find_prompt_dir()
 
 
 def load_prompt(filename):

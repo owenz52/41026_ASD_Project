@@ -10,10 +10,10 @@ def _request(method, path, **kwargs):
     return response.status_code, response.json()
 
 
-def list_events(student_id, course_id=None, start_date=None, end_date=None):
+def list_events(student_id, subject=None, start_date=None, end_date=None):
     params = {"student_id": student_id}
-    if course_id is not None:
-        params["course_id"] = course_id
+    if subject is not None:
+        params["subject"] = subject
     if start_date is not None:
         params["start_date"] = start_date
     if end_date is not None:

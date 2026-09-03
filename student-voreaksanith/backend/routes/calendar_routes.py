@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request
 
 from services import calendar_service
 
-calendar_bp = Blueprint("calendar", __name__, url_prefix="/calendar")
+calendar_bp = Blueprint("calendar", __name__)
 
 
 @calendar_bp.get("/events")
@@ -14,7 +14,7 @@ def list_events():
 
         status_code, body = calendar_service.list_events(
             student_id,
-            request.args.get("course_id"),
+            request.args.get("subject"),
             request.args.get("start_date"),
             request.args.get("end_date"),
         )
@@ -71,36 +71,6 @@ def move_event(event_id):
 def delete_event(event_id):
     try:
         status_code, body = calendar_service.delete_event(event_id)
-        return jsonify(body), status_code
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
-
-
-@calendar_bp.get("/courses")
-def course_options():
-    """Enrolled courses for the add-event course dropdown."""
-    try:
-        student_id = request.args.get("student_id")
-        if not student_id:
-            return jsonify({"error": "student_id is required"}), 400
-
-        status_code, body = calendar_service.get_course_options(student_id)
-        return jsonify(body), status_code
-    except Exception as error:
-        return jsonify({"error": str(error)}), 500
-
-
-@calendar_bp.get("/courses/<int:course_id>/schedule")
-def course_schedule(course_id):
-    """All calendar events belonging to one course."""
-    try:
-        student_id = request.args.get("student_id")
-        if not student_id:
-            return jsonify({"error": "student_id is required"}), 400
-
-        status_code, body = calendar_service.get_course_schedule(
-            student_id, course_id
-        )
         return jsonify(body), status_code
     except Exception as error:
         return jsonify({"error": str(error)}), 500

@@ -1,0 +1,102 @@
+name: Voreaksanith Calendar CI
+
+on:
+  push:
+    paths:
+      - "student-voreaksanith/**"
+      - ".github/workflows/student-voreaksanith.yml"
+  pull_request:
+    paths:
+      - "student-voreaksanith/**"
+      - ".github/workflows/student-voreaksanith.yml"
+
+jobs:
+  build-and-validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install backend dependencies
+        run: |
+          pip install -r student-voreaksanith/backend/requirements.txt
+
+      - name: Install database dependencies
+        run: |
+          pip install -r student-voreaksanith/database/requirements.txt
+
+      - name: Initialise calendar database
+        run: |
+          python student-voreaksanith/database/init_db.py
+
+      - name: Validate backend Python
+        run: |
+          python -m py_compile student-voreaksanith/backend/app.py
+          python -m py_compile student-voreaksanith/backend/config.py
+          python -m py_compile student-voreaksanith/backend/routes/calendar_routes.py
+          python -m py_compile student-voreaksanith/backend/routes/ai_mode.py
+          python -m py_compile student-voreaksanith/backend/services/calendar_service.py
+          python -m py_compile student-voreaksanith/backend/services/database_api.py
+          python -m py_compile student-voreaksanith/backend/services/deadline_sources.py
+          python -m py_compile student-voreaksanith/backend/services/deadline_service.py
+          python -m py_compile student-voreaksanith/backend/services/schedule_agent.py
+          python -m py_compile student-voreaksanith/backend/services/llm_client.py
+          python -m py_compile student-voreaksanith/backend/services/prompt_loader.py
+
+      - name: Validate database Python
+        run: |
+          python -m py_compile student-voreaksanith/database/app.py
+          python -m py_compile student-voreaksanith/database/init_db.py
+
+      - name: Check AI prompt files are present
+        run: |
+          cd student-voreaksanith
+          for f in system_prompt context_prompt suggest_task_prompt \
+                   suggest_retry_prompt briefing_task_prompt; do
+            test -f "prompts/service/implementation/$f.txt" \
+              || { echo "Missing prompt: $f.txt"; exit 1; }
+          done
+          echo "All prompt files present"
+
+      - name: Validate frontend JavaScript
+        run: |
+          node --check student-voreaksanith/frontend/js/calendar.js
+
+      - name: Run calendar test suite
+        run: |
+          python student-voreaksanith/tests/test_calendar_features.py
+
+      - name: Build backend Docker image
+        run: |
+          docker build \
+            -f student-voreaksanith/backend/Dockerfile \
+            student-voreaksanith
+
+      - name: Build database Docker image
+        run: |
+          docker build \
+            -f student-voreaksanith/database/Dockerfile \
+            student-voreaksanith/database
+
+      - name: Build frontend Docker image
+        run: |
+          docker build \
+            -f student-voreaksanith/frontend/Dockerfile \
+            student-voreaksanith/frontend
+
+      - name: Verify prompts exist inside the backend image
+        run: |
+          docker build -q -t calendar-backend-ci \
+            -f student-voreaksanith/backend/Dockerfile \
+            student-voreaksanith
+          docker run --rm calendar-backend-ci \
+            python -c "from services.prompt_loader import PROMPT_DIR, load_prompt; \
+                       print('prompts at', PROMPT_DIR); \
+                       load_prompt('service/implementation/system_prompt.txt'); \
+                       print('prompts load correctly inside the image')"
