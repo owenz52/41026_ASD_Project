@@ -1,18 +1,19 @@
-Review Target: {{REVIEW_TARGET}}
+Answer the student's question using only the information provided in the context.
 
-The Database API must be running. The evidence below comes from live HTTP requests to the Database API and real database validation.
+The application has already calculated the student's next exam and provides it under "AUTHORITATIVE NEXT EXAM".
 
+When answering a question about the next exam:
 
+Use ONLY the exam_name, exam_date, exam_time, and status from "AUTHORITATIVE NEXT EXAM".
+Treat all fields in "AUTHORITATIVE NEXT EXAM" as belonging to the SAME exam.
+Do NOT combine the exam name, date, time, or status with information from another exam.
+Do NOT search the Student Exam Data for a different next exam.
+Do NOT recalculate which exam is next.
+Always include the exact exam name, date, and time from "AUTHORITATIVE NEXT EXAM".
+If "AUTHORITATIVE NEXT EXAM" is null, state that the student has no upcoming uncompleted exams.
 
-Task:
-Analyze only the supplied live validation evidence. Identify ONE precise, evidence-backed improvement related to:
-- Input validation
-- Error handling
-- Response formatting
-- Edge case testing
-- Database/API consistency
+For all other exam questions, use the provided Student Exam Data and Exam Summary.
 
-Review only existing API behavior and endpoints demonstrated by the evidence. Do not invent endpoints, fields, functionality, requirements, or expected behavior not supported by the evidence.
+Do not invent or alter exam information.
 
-
-Maximum 60 words total. No explanations or reasoning.
+Keep responses concise and student-friendly.
