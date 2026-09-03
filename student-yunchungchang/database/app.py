@@ -258,6 +258,7 @@ def search_notes():
             return jsonify({"error": "q is required"}), 400
 
         course_id = request.args.get("course_id")
+        student_id = request.args.get("student_id")
 
         query = (
             "SELECT notes.*, notebooks.course_id FROM notes "
@@ -266,6 +267,10 @@ def search_notes():
         )
         like_term = f"%{q.lower()}%"
         params = [like_term, like_term]
+
+        if student_id is not None:
+            query += " AND notebooks.student_id = ?"
+            params.append(student_id)
 
         if course_id is not None:
             query += " AND notebooks.course_id = ?"

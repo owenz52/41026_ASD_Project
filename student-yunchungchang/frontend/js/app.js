@@ -79,10 +79,9 @@ async function loadNotebooks() {
   const list = $("notebooks-list");
 
   try {
-    const notebooks = await api("/notebooks");
-    state.notebooks = notebooks.filter(
-      (notebook) => Number(notebook.student_id) === STUDENT_ID
-    );
+    // Ownership is enforced by the database service: the API only ever
+    // returns this student's notebooks, so nothing is filtered in the browser.
+    state.notebooks = await api(`/notebooks?student_id=${STUDENT_ID}`);
   } catch (error) {
     console.error("Failed to load notebooks:", error);
     list.className = "empty";
@@ -392,6 +391,18 @@ async function runAi(path, noteId, busyText, heading, field) {
       body: JSON.stringify({ note_id: noteId }),
     });
     box.textContent = `${heading} "${title}":\n\n${data[field]}`;
+
+    (data.agent_steps || []).forEach((step) => {
+      const stage = document.createElement("div");
+      stage.className = "agent__stage";
+      stage.textContent = step.stage;
+
+      const detail = document.createElement("div");
+      detail.className = "agent__detail";
+      detail.textContent = step.detail;
+
+      box.append(stage, detail);
+    });
   } catch (error) {
     console.error(`${path} failed:`, error);
     box.textContent = error.message;
@@ -419,7 +430,9 @@ async function searchNotes() {
   }
 
   try {
-    const results = await api(`/notes/search?q=${encodeURIComponent(keyword)}`);
+    const results = await api(
+      `/notes/search?q=${encodeURIComponent(keyword)}&student_id=${STUDENT_ID}`
+    );
 
     if (results.length === 0) {
       box.innerHTML = `<div class="result"><div class="result__preview">No notes matched "${escapeHtml(keyword)}".</div></div>`;
