@@ -1,9 +1,16 @@
 /* =============================================================
    STUDENT PORTAL / EXAMS
    Swiss-style visual language
+   Single-page Exams layout
+   ============================================================= */
+
+
+/* =============================================================
+   VARIABLES
    ============================================================= */
 
 :root {
+
     --red: #E5361F;
     --red-dark: #C82E1A;
 
@@ -27,41 +34,6 @@
     --gap: 26px;
 }
 
-/* AI Mode content spacing */
-.card {
-    padding: 24px;
-}
-
-.card h2 {
-    padding: 8px 0;
-    margin-bottom: 16px;
-    line-height: 1.4;
-}
-
-.card label {
-    display: block;
-    padding: 6px 0;
-    margin-bottom: 8px;
-}
-
-.card textarea {
-    padding: 12px 14px;
-    line-height: 1.6;
-    margin-bottom: 12px;
-}
-
-.card button {
-    padding: 11px 16px;
-    margin-top: 8px;
-    margin-bottom: 16px;
-}
-
-.card .panel {
-    padding: 16px;
-    line-height: 1.6;
-}
-
-
 
 /* =============================================================
    RESET
@@ -73,15 +45,22 @@
     padding: 0;
 }
 
+
 html,
 body {
     min-height: 100%;
 }
 
+
 body {
+
     min-height: 100vh;
 
-    font-family: "Helvetica Neue", Arial, sans-serif;
+    font-family:
+        "Helvetica Neue",
+        Arial,
+        sans-serif;
+
     font-size: 14px;
     line-height: 1.5;
 
@@ -95,8 +74,12 @@ body {
    ============================================================= */
 
 .layout {
+
     display: grid;
-    grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
+
+    grid-template-columns:
+        var(--sidebar-width)
+        minmax(0, 1fr);
 
     min-height: 100vh;
 }
@@ -107,11 +90,14 @@ body {
    ============================================================= */
 
 .sidebar {
+
     width: var(--sidebar-width);
     min-height: 100vh;
 
     background: var(--panel);
-    border-right: 1px solid var(--line);
+
+    border-right:
+        1px solid var(--line);
 
     padding: 22px 0;
 
@@ -126,16 +112,22 @@ body {
    ------------------------------------------------------------- */
 
 .brand {
+
     display: flex;
     align-items: center;
+
     gap: 10px;
 
-    padding: 0 20px 20px;
+    padding:
+        0 20px 20px;
 
-    border-bottom: 1px solid var(--line);
+    border-bottom:
+        1px solid var(--line);
 }
 
+
 .brand__mark {
+
     width: 14px;
     height: 14px;
 
@@ -144,17 +136,24 @@ body {
     background: var(--red);
 }
 
+
 .brand__name {
+
     font-size: 13px;
     font-weight: 700;
+
     letter-spacing: 0.06em;
 }
 
+
 .brand__sub {
+
     margin-top: 2px;
 
     font-size: 10px;
+
     color: var(--muted);
+
     letter-spacing: 0.12em;
 }
 
@@ -164,46 +163,70 @@ body {
    ------------------------------------------------------------- */
 
 .nav {
+
     padding: 12px 0;
 
-    border-bottom: 1px solid var(--line);
+    border-bottom:
+        1px solid var(--line);
 }
 
+
 .nav__item {
+
     display: block;
 
-    padding: 11px 20px;
+    padding:
+        11px 20px;
 
     font-size: 12px;
     font-weight: 700;
+
     letter-spacing: 0.08em;
 
     color: var(--ink);
+
     text-decoration: none;
 
-    border-left: 3px solid transparent;
+    border-left:
+        3px solid transparent;
 
     transition:
         background 0.15s ease,
         color 0.15s ease;
 }
 
+
 .nav__item:hover {
-    background: var(--panel-alt);
+
+    background:
+        var(--panel-alt);
 }
+
 
 .nav__item--active {
-    background: #EDEDEB;
-    border-left-color: var(--red);
+
+    background:
+        #EDEDEB;
+
+    border-left-color:
+        var(--red);
 }
+
 
 .nav__item--soon {
-    color: var(--muted-light);
-    cursor: not-allowed;
+
+    color:
+        var(--muted-light);
+
+    cursor:
+        not-allowed;
 }
 
+
 .nav__item--soon:hover {
-    background: none;
+
+    background:
+        none;
 }
 
 
@@ -212,161 +235,133 @@ body {
    ============================================================= */
 
 .app-shell {
+
     width: 100%;
+
     max-width: none;
 
     min-width: 0;
 
-    padding: 26px 30px 60px;
+    padding:
+        26px 30px 60px;
 }
 
 
 /* =============================================================
-   HEADER
+   PAGE HEADER
    ============================================================= */
 
 .app-header {
+
     display: flex;
-    justify-content: space-between;
-    align-items: flex-end;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        flex-end;
 
     gap: 20px;
 
     margin-bottom: 26px;
+
     padding-bottom: 16px;
 
-    border-bottom: 1px solid var(--line);
+    border-bottom:
+        1px solid var(--line);
 }
 
+
 .app-header h1 {
+
     font-size: 38px;
+
     font-weight: 500;
 
-    letter-spacing: -0.02em;
+    letter-spacing:
+        -0.02em;
+
     line-height: 1.1;
 }
 
+
 .app-header p {
+
     margin-top: 6px;
 
     font-size: 12px;
-    color: var(--muted);
+
+    color:
+        var(--muted);
 }
 
 
 /* =============================================================
-   CARDS
+   CARD
    ============================================================= */
 
 .card {
-    margin-bottom: var(--gap);
 
-    background: var(--panel);
+    width: 100%;
 
-    border: 1px solid var(--line);
+    margin-bottom:
+        var(--gap);
+
+    padding: 24px;
+
+    background:
+        var(--panel);
+
+    border:
+        1px solid var(--line);
+
     border-radius: 0;
 
     box-shadow: none;
 }
 
+
 .card:last-child {
+
     margin-bottom: 0;
 }
 
 
 /* =============================================================
-   TABS
+   SECTION HEADINGS
    ============================================================= */
 
-.tab-shell {
-    padding: 0;
+.card h2 {
+
+    margin-top: 30px;
+
+    margin-bottom: 16px;
+
+    padding-top: 8px;
+    padding-bottom: 8px;
+
+    font-size: 20px;
+
+    font-weight: 500;
+
+    line-height: 1.3;
+
+    letter-spacing:
+        -0.01em;
+
+    border-bottom:
+        1px solid var(--line);
 }
 
 
-/* -------------------------------------------------------------
-   Tab navigation
-   ------------------------------------------------------------- */
+/*
+   First heading should not have
+   unnecessary top spacing.
+*/
 
-.tab-nav {
-    display: flex;
-    flex-wrap: wrap;
+.card h2:first-child {
 
-    margin: 0;
-
-    border-bottom: 1px solid var(--line);
-}
-
-.tab-btn {
-    margin: 0;
-
-    padding: 10px 14px;
-
-    font-family: inherit;
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.07em;
-
-    color: var(--ink);
-    background: var(--panel);
-
-    border: 1px solid var(--line);
-    border-bottom: none;
-    border-radius: 0;
-
-    cursor: pointer;
-}
-
-.tab-btn + .tab-btn {
-    border-left: none;
-}
-
-.tab-btn:hover {
-    background: #F6F6F4;
-}
-
-.tab-btn.is-active {
-    position: relative;
-
-    color: #FFFFFF;
-    background: var(--red);
-
-    border-color: var(--red);
-}
-
-.tab-btn:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-}
-
-.tab-btn:focus-visible {
-    outline: 2px solid var(--red);
-    outline-offset: -1px;
-}
-
-
-/* -------------------------------------------------------------
-   Tab content
-   ------------------------------------------------------------- */
-
-.tab-content {
-    position: relative;
-
-    width: 100%;
-}
-
-.tab-frame {
-    display: none;
-
-    width: 100%;
-    min-height: 720px;
-
-    border: 0;
-
-    background: transparent;
-}
-
-.tab-frame.is-active {
-    display: block;
+    margin-top: 0;
 }
 
 
@@ -375,31 +370,64 @@ body {
    ============================================================= */
 
 button {
+
     font-family: inherit;
 
-    padding: 9px 14px;
+    padding:
+        9px 14px;
+
     margin-top: 8px;
 
     font-size: 11px;
+
     font-weight: 700;
-    letter-spacing: 0.07em;
 
-    color: var(--ink);
-    background: var(--panel);
+    letter-spacing:
+        0.07em;
 
-    border: 1px solid var(--line);
+    color:
+        var(--ink);
+
+    background:
+        var(--panel);
+
+    border:
+        1px solid var(--line);
+
     border-radius: 0;
 
     cursor: pointer;
+
+    transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        border-color 0.15s ease;
 }
+
 
 button:hover {
-    background: #F6F6F4;
+
+    background:
+        #F6F6F4;
 }
 
+
 button:focus-visible {
-    outline: 2px solid var(--red);
-    outline-offset: -1px;
+
+    outline:
+        2px solid var(--red);
+
+    outline-offset:
+        -1px;
+}
+
+
+button:disabled {
+
+    opacity: 0.5;
+
+    cursor:
+        not-allowed;
 }
 
 
@@ -408,57 +436,102 @@ button:focus-visible {
    ============================================================= */
 
 .btn {
-    padding: 9px 14px;
+
+    padding:
+        9px 14px;
 
     font-size: 11px;
+
     font-weight: 700;
-    letter-spacing: 0.07em;
 
-    border: 1px solid var(--line);
+    letter-spacing:
+        0.07em;
 
-    background: var(--panel);
-    color: var(--ink);
+    border:
+        1px solid var(--line);
+
+    background:
+        var(--panel);
+
+    color:
+        var(--ink);
 
     cursor: pointer;
 }
 
+
 .btn:hover {
-    background: #F6F6F4;
+
+    background:
+        #F6F6F4;
 }
+
 
 .btn:disabled {
+
     opacity: 0.5;
-    cursor: not-allowed;
+
+    cursor:
+        not-allowed;
 }
+
 
 .btn--primary {
-    color: #FFFFFF;
-    background: var(--red);
-    border-color: var(--red);
+
+    color:
+        #FFFFFF;
+
+    background:
+        var(--red);
+
+    border-color:
+        var(--red);
 }
+
 
 .btn--primary:hover {
-    background: var(--red-dark);
+
+    background:
+        var(--red-dark);
 }
+
 
 .btn--danger {
-    color: var(--red);
-    background: var(--panel);
-    border-color: var(--red);
+
+    color:
+        var(--red);
+
+    background:
+        var(--panel);
+
+    border-color:
+        var(--red);
 }
+
 
 .btn--danger:hover {
-    background: var(--danger-bg);
+
+    background:
+        var(--danger-bg);
 }
+
 
 .btn--small {
-    padding: 6px 10px;
-    font-size: 10px;
+
+    padding:
+        6px 10px;
+
+    font-size:
+        10px;
 }
 
+
 .btn--block {
+
     width: 100%;
-    margin-top: 8px;
+
+    margin-top:
+        8px;
 }
 
 
@@ -467,17 +540,25 @@ button:focus-visible {
    ============================================================= */
 
 label {
+
     display: block;
+
+    margin-top: 12px;
 
     margin-bottom: 6px;
 
     font-size: 10px;
+
     font-weight: 700;
-    letter-spacing: 0.09em;
 
-    color: var(--muted);
+    letter-spacing:
+        0.09em;
 
-    text-transform: uppercase;
+    color:
+        var(--muted);
+
+    text-transform:
+        uppercase;
 }
 
 
@@ -488,25 +569,54 @@ label {
 input,
 textarea,
 select {
+
     width: 100%;
 
-    padding: 9px 10px;
+    padding:
+        9px 10px;
 
-    font-family: inherit;
-    font-size: 13px;
+    font-family:
+        inherit;
 
-    color: var(--ink);
-    background: var(--panel);
+    font-size:
+        13px;
 
-    border: 1px solid var(--line);
-    border-radius: 0;
+    color:
+        var(--ink);
+
+    background:
+        var(--panel);
+
+    border:
+        1px solid var(--line);
+
+    border-radius:
+        0;
 }
+
 
 input:focus,
 textarea:focus,
 select:focus {
-    outline: 2px solid var(--red);
-    outline-offset: -1px;
+
+    outline:
+        2px solid var(--red);
+
+    outline-offset:
+        -1px;
+}
+
+
+textarea {
+
+    resize:
+        vertical;
+
+    min-height:
+        100px;
+
+    line-height:
+        1.6;
 }
 
 
@@ -514,58 +624,137 @@ select:focus {
    FORMS
    ============================================================= */
 
+form {
+
+    width: 100%;
+}
+
+
+form button[type="submit"] {
+
+    margin-top:
+        14px;
+
+    color:
+        #FFFFFF;
+
+    background:
+        var(--red);
+
+    border-color:
+        var(--red);
+}
+
+
+form button[type="submit"]:hover {
+
+    background:
+        var(--red-dark);
+}
+
+
+/* =============================================================
+   FIELD
+   ============================================================= */
+
 .field {
+
     display: flex;
-    flex-direction: column;
+
+    flex-direction:
+        column;
 
     gap: 5px;
 }
 
+
 .field > span,
 .field > label {
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.09em;
 
-    color: var(--muted);
+    margin-top: 0;
 
-    text-transform: uppercase;
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.09em;
+
+    color:
+        var(--muted);
+
+    text-transform:
+        uppercase;
 }
+
 
 .field input,
 .field select,
 .field textarea {
-    padding: 9px 10px;
 
-    border: 1px solid var(--line);
+    padding:
+        9px 10px;
+
+    border:
+        1px solid var(--line);
 }
 
-.input {
-    width: 100%;
 
-    padding: 9px 10px;
-
-    font-family: inherit;
-    font-size: 13px;
-
-    background: #FFFFFF;
-    color: var(--ink);
-
-    border: 1px solid var(--line);
-}
-
-.input:focus {
-    outline: 2px solid var(--red);
-    outline-offset: -1px;
-}
+/* =============================================================
+   INPUT ROW
+   ============================================================= */
 
 .input-row {
+
     display: flex;
+
     gap: 8px;
 }
 
+
 .input-row .input {
+
     flex: 1;
+}
+
+
+/* =============================================================
+   INPUT CLASS
+   ============================================================= */
+
+.input {
+
+    width: 100%;
+
+    padding:
+        9px 10px;
+
+    font-family:
+        inherit;
+
+    font-size:
+        13px;
+
+    background:
+        #FFFFFF;
+
+    color:
+        var(--ink);
+
+    border:
+        1px solid var(--line);
+}
+
+
+.input:focus {
+
+    outline:
+        2px solid var(--red);
+
+    outline-offset:
+        -1px;
 }
 
 
@@ -574,115 +763,122 @@ select:focus {
    ============================================================= */
 
 .panel {
-    min-height: 2.5rem;
 
-    margin-top: 10px;
-    padding: 12px;
+    min-height:
+        2.5rem;
 
-    background: var(--panel-alt);
+    margin-top:
+        10px;
 
-    border: 1px solid var(--line);
-    border-radius: 0;
+    padding:
+        12px;
+
+    background:
+        var(--panel-alt);
+
+    border:
+        1px solid var(--line);
+
+    border-radius:
+        0;
 }
+
+
+.panel p {
+
+    font-size:
+        13px;
+
+    color:
+        var(--ink);
+}
+
+
+.panel pre {
+
+    margin-top:
+        10px;
+
+    padding:
+        10px;
+
+    overflow-x:
+        auto;
+
+    font-size:
+        12px;
+
+    background:
+        #F1F1EF;
+
+    border:
+        1px solid var(--line);
+}
+
 
 .panel-mcp {
-    border-left: 3px solid var(--red);
+
+    border-left:
+        3px solid var(--red);
 }
 
 
 /* =============================================================
-   FEATURE TOGGLE
+   RESET EXAMS
    ============================================================= */
 
-.feature-toggle-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+#reset-exams-btn {
 
-    gap: 12px;
+    color:
+        var(--red);
 
-    margin-bottom: 14px;
-    padding: 12px;
+    background:
+        var(--panel);
 
-    background: var(--panel-alt);
-
-    border: 1px solid var(--line);
+    border-color:
+        var(--red);
 }
 
-.toggle-switch {
-    display: inline-flex;
-    align-items: center;
 
-    gap: 8px;
+#reset-exams-btn:hover {
 
-    margin: 0;
+    color:
+        var(--red-dark);
+
+    background:
+        var(--danger-bg);
+
+    border-color:
+        var(--red-dark);
 }
 
-.toggle-switch input {
-    width: auto;
-    margin: 0;
-}
 
-.toggle-label {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+#reset-exams-result {
 
-    color: var(--ink);
-
-    text-transform: uppercase;
+    margin-bottom:
+        4px;
 }
 
 
 /* =============================================================
-   FEATURE STATE
+   EXAM TABLE CONTAINER
    ============================================================= */
 
-.feature-state {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+.exam-table-scroll {
 
-    min-width: 54px;
+    width: 100%;
 
-    padding: 4px 9px;
+    max-height:
+        390px;
 
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.08em;
+    overflow-y:
+        auto;
 
-    text-transform: uppercase;
+    overflow-x:
+        auto;
 
-    border-radius: 0;
-}
-
-.feature-on {
-    color: var(--success);
-    background: #E4F2EA;
-
-    border: 1px solid #BBD8C6;
-}
-
-.feature-off {
-    color: var(--red);
-    background: var(--danger-bg);
-
-    border: 1px solid #F0BDB4;
-}
-
-
-/* =============================================================
-   RESULT BOX
-   ============================================================= */
-
-.result-box {
-    margin-top: 16px;
-    padding: 14px;
-
-    background: var(--panel-alt);
-
-    border: 1px solid var(--line);
-    border-left: 3px solid var(--red);
+    border:
+        1px solid var(--line);
 }
 
 
@@ -690,64 +886,169 @@ select:focus {
    EXAMS TABLE
    ============================================================= */
 
-#exams-result {
-    width: 100%;
+.exam-table-scroll table {
 
-    overflow-x: auto;
+    width:
+        100%;
+
+    min-width:
+        700px;
+
+    border-collapse:
+        collapse;
+
+    background:
+        var(--panel);
 }
 
-#exams-result table,
-#exam-result table,
-#course-result table {
-    width: 100%;
 
-    border-collapse: collapse;
-    table-layout: auto;
+/* -------------------------------------------------------------
+   Table header
+   ------------------------------------------------------------- */
 
-    background: var(--panel);
+.exam-table-scroll th {
 
-    border: 1px solid var(--line);
+    position:
+        sticky;
+
+    top:
+        0;
+
+    z-index:
+        2;
+
+    padding:
+        10px;
+
+    text-align:
+        left;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.1em;
+
+    color:
+        var(--muted);
+
+    text-transform:
+        uppercase;
+
+    background:
+        #F2F2F0;
+
+    border-bottom:
+        1px solid var(--line);
+
+    white-space:
+        nowrap;
 }
 
-#exams-result th,
-#exams-result td,
-#exam-result th,
-#exam-result td,
-#course-result th,
-#course-result td {
-    padding: 10px;
 
-    text-align: left;
-    vertical-align: middle;
+/* -------------------------------------------------------------
+   Table cells
+   ------------------------------------------------------------- */
 
-    border-bottom: 1px solid var(--line);
+.exam-table-scroll td {
+
+    padding:
+        10px;
+
+    text-align:
+        left;
+
+    vertical-align:
+        middle;
+
+    font-size:
+        13px;
+
+    border-bottom:
+        1px solid var(--line);
 }
 
-#exams-result th,
-#exam-result th,
-#course-result th {
-    background: #F2F2F0;
 
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.1em;
+.exam-table-scroll tbody tr:hover {
 
-    color: var(--muted);
-
-    text-transform: uppercase;
-    white-space: nowrap;
+    background:
+        var(--panel-alt);
 }
 
-#exams-result tr:hover,
-#exam-result tr:hover,
-#course-result tr:hover {
-    background: var(--panel-alt);
+
+.exam-table-scroll tbody tr:last-child td {
+
+    border-bottom:
+        none;
 }
 
-#exams-result tr:last-child td,
-#exam-result tr:last-child td,
-#course-result tr:last-child td {
-    border-bottom: none;
+
+/* =============================================================
+   STATUS BUTTONS
+   ============================================================= */
+
+.status-btn {
+
+    margin:
+        0;
+
+    padding:
+        5px 9px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.06em;
+
+    border-radius:
+        0;
+}
+
+
+.status-completed {
+
+    color:
+        var(--success);
+
+    background:
+        #E4F2EA;
+
+    border-color:
+        #BBD8C6;
+}
+
+
+.status-completed:hover {
+
+    background:
+        #D7ECDF;
+}
+
+
+.status-uncompleted {
+
+    color:
+        var(--amber);
+
+    background:
+        #FFF4DD;
+
+    border-color:
+        #E7D19C;
+}
+
+
+.status-uncompleted:hover {
+
+    background:
+        #FCECCB;
 }
 
 
@@ -756,151 +1057,560 @@ select:focus {
    ============================================================= */
 
 .actions {
-    display: flex;
-    flex-wrap: wrap;
 
-    gap: 5px;
+    display:
+        flex;
 
-    white-space: nowrap;
+    flex-wrap:
+        wrap;
+
+    gap:
+        5px;
+
+    white-space:
+        nowrap;
 }
+
 
 .edit-btn,
 .delete-btn {
-    margin-top: 0;
 
-    padding: 6px 9px;
+    margin-top:
+        0;
 
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    padding:
+        6px 9px;
 
-    color: #FFFFFF;
+    font-size:
+        10px;
 
-    border-radius: 0;
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.06em;
+
+    color:
+        #FFFFFF;
+
+    border-radius:
+        0;
 }
+
 
 .edit-btn {
-    background: var(--ink);
-    border-color: var(--ink);
+
+    background:
+        var(--ink);
+
+    border-color:
+        var(--ink);
 }
+
 
 .edit-btn:hover {
-    background: #333333;
+
+    background:
+        #333333;
 }
+
 
 .delete-btn {
-    background: var(--red);
-    border-color: var(--red);
+
+    background:
+        var(--red);
+
+    border-color:
+        var(--red);
 }
 
+
 .delete-btn:hover {
-    background: var(--red-dark);
+
+    background:
+        var(--red-dark);
+}
+
+
+/* =============================================================
+   ADD EXAM
+   ============================================================= */
+
+#add-exam-form {
+
+    display:
+        grid;
+
+    grid-template-columns:
+        1fr 1fr;
+
+    column-gap:
+        16px;
+
+    row-gap:
+        0;
+}
+
+
+/*
+   Course ID and Exam Name
+*/
+
+#add-exam-form label:nth-of-type(1),
+#add-exam-form input:nth-of-type(1),
+#add-exam-form label:nth-of-type(2),
+#add-exam-form input:nth-of-type(2) {
+
+    min-width:
+        0;
+}
+
+
+/*
+   Date and time
+*/
+
+#add-exam-form label:nth-of-type(3),
+#add-exam-form input:nth-of-type(3),
+#add-exam-form label:nth-of-type(4),
+#add-exam-form input:nth-of-type(4) {
+
+    min-width:
+        0;
+}
+
+
+/*
+   Submit button spans both columns
+*/
+
+#add-exam-form button {
+
+    grid-column:
+        1 / -1;
+
+    justify-self:
+        start;
+}
+
+
+/* =============================================================
+   FIND EXAMS
+   ============================================================= */
+
+#exams-by-course-form {
+
+    display:
+        flex;
+
+    align-items:
+        flex-end;
+
+    gap:
+        10px;
+}
+
+
+#exams-by-course-form label {
+
+    flex:
+        0 0 160px;
+
+    margin:
+        0;
+}
+
+
+#exams-by-course-form input {
+
+    flex:
+        1;
+
+    min-width:
+        0;
+}
+
+
+#exams-by-course-form button {
+
+    flex:
+        0 0 auto;
+
+    margin:
+        0;
+}
+
+
+/* =============================================================
+   AI AGENT
+   ============================================================= */
+
+#ask-with-context-form {
+
+    display:
+        flex;
+
+    flex-direction:
+        column;
+
+    align-items:
+        stretch;
+}
+
+
+#ask-with-context-form button {
+
+    align-self:
+        flex-start;
+
+    margin-top:
+        14px;
+}
+
+
+#context-result {
+
+    line-height:
+        1.6;
+}
+
+
+/* =============================================================
+   AI BLOCK
+   ============================================================= */
+
+.ai-block {
+
+    padding:
+        16px;
+
+    color:
+        #FFFFFF;
+
+    background:
+        var(--ink);
+}
+
+
+.ai-block__label {
+
+    margin-bottom:
+        8px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.12em;
+
+    color:
+        var(--red);
+}
+
+
+.ai-block__text {
+
+    font-size:
+        12px;
+
+    line-height:
+        1.55;
+
+    color:
+        #D6D6D6;
+}
+
+
+.ai-block .input {
+
+    color:
+        #FFFFFF;
+
+    background:
+        #2A2A2A;
+
+    border-color:
+        #4A4A4A;
+}
+
+
+.ai-block .input::placeholder {
+
+    color:
+        #7A7A7A;
+}
+
+
+.ai-output {
+
+    margin-top:
+        12px;
+
+    font-size:
+        13px;
+
+    line-height:
+        1.6;
+
+    color:
+        #E4E4E4;
+
+    white-space:
+        pre-wrap;
+}
+
+
+.ai-output:empty {
+
+    display:
+        none;
+}
+
+
+/* =============================================================
+   FEATURE TOGGLE
+   Kept for compatibility with other portal pages
+   ============================================================= */
+
+.feature-toggle-row {
+
+    display:
+        flex;
+
+    justify-content:
+        space-between;
+
+    align-items:
+        center;
+
+    gap:
+        12px;
+
+    margin-bottom:
+        14px;
+
+    padding:
+        12px;
+
+    background:
+        var(--panel-alt);
+
+    border:
+        1px solid var(--line);
+}
+
+
+.toggle-switch {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    gap:
+        8px;
+
+    margin:
+        0;
+}
+
+
+.toggle-switch input {
+
+    width:
+        auto;
+
+    margin:
+        0;
+}
+
+
+.toggle-label {
+
+    font-size:
+        11px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.08em;
+
+    color:
+        var(--ink);
+
+    text-transform:
+        uppercase;
+}
+
+
+/* =============================================================
+   FEATURE STATE
+   ============================================================= */
+
+.feature-state {
+
+    display:
+        inline-flex;
+
+    align-items:
+        center;
+
+    justify-content:
+        center;
+
+    min-width:
+        54px;
+
+    padding:
+        4px 9px;
+
+    font-size:
+        10px;
+
+    font-weight:
+        700;
+
+    letter-spacing:
+        0.08em;
+
+    text-transform:
+        uppercase;
+
+    border-radius:
+        0;
+}
+
+
+.feature-on {
+
+    color:
+        var(--success);
+
+    background:
+        #E4F2EA;
+
+    border:
+        1px solid #BBD8C6;
+}
+
+
+.feature-off {
+
+    color:
+        var(--red);
+
+    background:
+        var(--danger-bg);
+
+    border:
+        1px solid #F0BDB4;
+}
+
+
+/* =============================================================
+   RESULT BOX
+   ============================================================= */
+
+.result-box {
+
+    margin-top:
+        16px;
+
+    padding:
+        14px;
+
+    background:
+        var(--panel-alt);
+
+    border:
+        1px solid var(--line);
+
+    border-left:
+        3px solid var(--red);
 }
 
 
 /* =============================================================
    EDIT FORM
+   Kept for compatibility
    ============================================================= */
 
 #edit-form {
-    display: none;
 
-    margin-top: 20px;
-    margin-bottom: 20px;
+    display:
+        none;
 
-    padding: 20px;
+    margin-top:
+        20px;
 
-    background: var(--panel-alt);
+    margin-bottom:
+        20px;
 
-    border: 1px solid var(--line);
-    border-top: 3px solid var(--red);
+    padding:
+        20px;
+
+    background:
+        var(--panel-alt);
+
+    border:
+        1px solid var(--line);
+
+    border-top:
+        3px solid var(--red);
 }
+
 
 #edit-form input,
 #edit-form select {
-    margin-bottom: 10px;
+
+    margin-bottom:
+        10px;
 }
 
-
-/* =============================================================
-   EDIT STATUS
-   ============================================================= */
 
 #edit_status {
-    width: 200px;
 
-    padding: 9px 10px;
+    width:
+        200px;
 
-    font-family: inherit;
-    font-size: 13px;
+    padding:
+        9px 10px;
 
-    color: var(--ink);
-    background: var(--panel);
+    font-family:
+        inherit;
 
-    border: 1px solid var(--line);
-    border-radius: 0;
+    font-size:
+        13px;
 
-    cursor: pointer;
+    color:
+        var(--ink);
+
+    background:
+        var(--panel);
+
+    border:
+        1px solid var(--line);
+
+    border-radius:
+        0;
+
+    cursor:
+        pointer;
 }
+
 
 #edit_status:focus {
-    outline: 2px solid var(--red);
-    outline-offset: -1px;
-}
 
+    outline:
+        2px solid var(--red);
 
-/* =============================================================
-   AI PANEL
-   ============================================================= */
-
-.ai-block {
-    padding: 16px;
-
-    color: #FFFFFF;
-    background: var(--ink);
-}
-
-.ai-block__label {
-    margin-bottom: 8px;
-
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.12em;
-
-    color: var(--red);
-}
-
-.ai-block__text {
-    font-size: 12px;
-    line-height: 1.55;
-
-    color: #D6D6D6;
-}
-
-.ai-block .input {
-    color: #FFFFFF;
-    background: #2A2A2A;
-
-    border-color: #4A4A4A;
-}
-
-.ai-block .input::placeholder {
-    color: #7A7A7A;
-}
-
-.ai-output {
-    margin-top: 12px;
-
-    font-size: 13px;
-    line-height: 1.6;
-
-    color: #E4E4E4;
-
-    white-space: pre-wrap;
-}
-
-.ai-output:empty {
-    display: none;
+    outline-offset:
+        -1px;
 }
 
 
@@ -909,18 +1619,29 @@ select:focus {
    ============================================================= */
 
 .muted {
-    color: var(--muted);
+
+    color:
+        var(--muted);
 }
+
 
 .empty {
-    padding: 18px;
 
-    font-size: 13px;
-    color: var(--muted);
+    padding:
+        18px;
+
+    font-size:
+        13px;
+
+    color:
+        var(--muted);
 }
 
+
 .is-hidden {
-    display: none !important;
+
+    display:
+        none !important;
 }
 
 
@@ -931,46 +1652,97 @@ select:focus {
 @media (max-width: 900px) {
 
     .layout {
-        grid-template-columns: 1fr;
+
+        grid-template-columns:
+            1fr;
     }
+
 
     .sidebar {
-        display: none;
+
+        display:
+            none;
     }
+
 
     .app-shell {
-        padding: 16px;
+
+        padding:
+            16px;
     }
+
 
     .app-header {
-        flex-direction: column;
-        align-items: flex-start;
 
-        gap: 12px;
+        flex-direction:
+            column;
+
+        align-items:
+            flex-start;
+
+        gap:
+            12px;
     }
+
 
     .app-header h1 {
-        font-size: 28px;
+
+        font-size:
+            28px;
     }
 
-    .feature-toggle-row {
-        flex-direction: column;
-        align-items: flex-start;
+
+    .card {
+
+        padding:
+            18px;
     }
 
-    .tab-frame {
-        min-height: 840px;
+
+    #add-exam-form {
+
+        grid-template-columns:
+            1fr;
     }
 
-    #exams-result,
-    #exam-result,
-    #course-result {
-        overflow-x: auto;
+
+    #add-exam-form button {
+
+        grid-column:
+            auto;
     }
 
-    .actions {
-        justify-content: flex-start;
+
+    #exams-by-course-form {
+
+        flex-direction:
+            column;
+
+        align-items:
+            stretch;
     }
+
+
+    #exams-by-course-form label {
+
+        flex:
+            none;
+    }
+
+
+    #exams-by-course-form button {
+
+        width:
+            100%;
+    }
+
+
+    .exam-table-scroll {
+
+        max-height:
+            390px;
+    }
+
 }
 
 
@@ -981,23 +1753,51 @@ select:focus {
 @media (max-width: 500px) {
 
     .app-shell {
-        padding: 12px;
+
+        padding:
+            12px;
     }
+
+
+    .app-header {
+
+        margin-bottom:
+            16px;
+    }
+
 
     .app-header h1 {
-        font-size: 25px;
+
+        font-size:
+            25px;
     }
 
-    .tab-btn {
-        flex: 1;
-        text-align: center;
-    }
-
-    .tab-frame {
-        min-height: 900px;
-    }
 
     .card {
-        margin-bottom: 16px;
+
+        padding:
+            14px;
     }
+
+
+    .card h2 {
+
+        font-size:
+            18px;
+    }
+
+
+    .exam-table-scroll table {
+
+        min-width:
+            650px;
+    }
+
+
+    .actions {
+
+        justify-content:
+            flex-start;
+    }
+
 }
