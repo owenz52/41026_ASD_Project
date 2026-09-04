@@ -1,3 +1,6 @@
+# Docker reads .dockerignore from the build context root, and this image's
+# context is this folder. A committed data/*.db from an older schema would
+# otherwise be copied in and break init_db.py during the build.
 data/
 __pycache__/
 *.pyc
