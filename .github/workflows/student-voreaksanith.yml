@@ -54,6 +54,8 @@ jobs:
           python -m py_compile student-voreaksanith/database/app.py
           python -m py_compile student-voreaksanith/database/init_db.py
 
+      # The AI features load their prompts from disk at runtime. A missing file
+      # only shows up when a student clicks the button, so it is checked here.
       - name: Check AI prompt files are present
         run: |
           cd student-voreaksanith
@@ -68,6 +70,9 @@ jobs:
         run: |
           node --check student-voreaksanith/frontend/js/calendar.js
 
+      # Runs the whole feature: adds, deletes and moves events, imports
+      # deadlines from stub assessment and exam services, and checks the
+      # behaviour when those services and Ollama are unreachable.
       - name: Run calendar test suite
         run: |
           python student-voreaksanith/tests/test_calendar_features.py
@@ -90,6 +95,8 @@ jobs:
             -f student-voreaksanith/frontend/Dockerfile \
             student-voreaksanith/frontend
 
+      # Catches the failure mode where the backend image builds but the prompts
+      # folder was not copied into it, which breaks every AI feature at runtime.
       - name: Verify prompts exist inside the backend image
         run: |
           docker build -q -t calendar-backend-ci \
