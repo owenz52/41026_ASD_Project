@@ -112,3 +112,32 @@ def sync_exams_response(student_id, course_ids):
         timeout=5
     )
 
+import requests
+
+
+# ==================================================
+# ADD EXAM
+# ==================================================
+
+def add_exam_response(
+    student_id,
+    course_id,
+    exam_name,
+    exam_date,
+    exam_time
+):
+
+    data = {
+        "student_id": student_id,
+        "course_id": course_id,
+        "exam_name": exam_name,
+        "exam_date": exam_date,
+        "exam_time": exam_time
+    }
+
+    response = requests.post(
+        f"{DATABASE_SERVICE_URL}/exams",
+        json=data
+    )
+
+    return response

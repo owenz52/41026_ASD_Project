@@ -498,6 +498,104 @@ def sync_exams():
         conn.close()
 
 
+# ==================================================
+# ADD EXAM
+# ==================================================
+
+@app.post("/exams")
+def add_exam():
+
+    data = request.get_json(silent=True) or {}
+
+    student_id = data.get("student_id")
+    course_id = data.get("course_id")
+    exam_name = data.get("exam_name")
+    exam_date = data.get("exam_date")
+    exam_time = data.get("exam_time")
+
+    # --------------------------------------------------
+    # Validate required fields
+    # --------------------------------------------------
+
+    if student_id is None or str(student_id).strip() == "":
+        return jsonify({
+            "error": "student_id required"
+        }), 400
+
+    if course_id is None or str(course_id).strip() == "":
+        return jsonify({
+            "error": "course_id required"
+        }), 400
+
+    if exam_name is None or str(exam_name).strip() == "":
+        return jsonify({
+            "error": "exam_name required"
+        }), 400
+
+    if exam_date is None or str(exam_date).strip() == "":
+        return jsonify({
+            "error": "exam_date required"
+        }), 400
+
+    if exam_time is None or str(exam_time).strip() == "":
+        return jsonify({
+            "error": "exam_time required"
+        }), 400
+
+    conn = get_db_connection()
+
+    try:
+
+        # --------------------------------------------------
+        # Add the exam
+        # --------------------------------------------------
+
+        cursor = conn.execute(
+            """
+            INSERT INTO student_exams (
+                course_id,
+                student_id,
+                exam_name,
+                exam_date,
+                exam_time,
+                status
+            )
+            VALUES (?, ?, ?, ?, ?, ?)
+            """,
+            (
+                course_id,
+                student_id,
+                exam_name,
+                exam_date,
+                exam_time,
+                "Uncompleted"
+            )
+        )
+
+        conn.commit()
+
+        exam_id = cursor.lastrowid
+
+        return jsonify({
+            "message": "Exam added successfully.",
+            "exam_id": exam_id
+        }), 201
+
+    except Exception as exc:
+
+        conn.rollback()
+
+        return jsonify({
+            "error": "Failed to add exam.",
+            "details": str(exc)
+        }), 500
+
+    finally:
+
+        conn.close()
+
+
+
 
 # ==================================================
 # START SERVER
