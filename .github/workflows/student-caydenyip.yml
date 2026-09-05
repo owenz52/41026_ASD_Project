@@ -1,0 +1,27 @@
+name: Cayden Microservice CI
+
+on:
+    push:
+        paths:
+            - "student-caydenyip/**"
+            - "docker-compose.yml"
+            - ".github/workflows/student-caydenyip.yml"
+
+    pull_request:
+        paths:
+            - "student-caydenyip/**"
+            - "docker-compose.yml"
+            - ".github/workflows/student-caydenyip.yml"
+
+jobs:
+    docker-build:
+        runs-on: ubuntu-latest
+
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Build Docker services
+              run: >
+                  docker compose -f docker-compose.yml build
+                  exam-frontend exam-backend exam-database 
