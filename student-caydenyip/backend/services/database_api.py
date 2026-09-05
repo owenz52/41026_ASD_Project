@@ -13,6 +13,9 @@ ENROLMENT_SERVICE_URL = os.getenv(
 )
 
 
+# ==================================================
+# GET STUDENT ENROLMENTS
+# ==================================================
 
 def get_student_enrolments(student_id):
 
@@ -26,6 +29,9 @@ def get_student_enrolments(student_id):
     return response.json()
 
 
+# ==================================================
+# GET EXAMS
+# ==================================================
 
 def get_exams(student_id):
 
@@ -42,6 +48,10 @@ def get_exams(student_id):
     return response.json()
 
 
+# ==================================================
+# GET EXAM BY ID
+# ==================================================
+
 def get_exam_by_id_response(exam_id):
 
     return requests.get(
@@ -49,6 +59,10 @@ def get_exam_by_id_response(exam_id):
         timeout=5
     )
 
+
+# ==================================================
+# GET EXAMS BY COURSE
+# ==================================================
 
 def get_exams_by_course_response(course_id):
 
@@ -61,6 +75,10 @@ def get_exams_by_course_response(course_id):
     )
 
 
+# ==================================================
+# UPDATE EXAM
+# ==================================================
+
 def update_exam_response(exam_id, data):
 
     return requests.put(
@@ -69,6 +87,10 @@ def update_exam_response(exam_id, data):
         timeout=5
     )
 
+
+# ==================================================
+# DELETE EXAM
+# ==================================================
 
 def delete_exam_response(exam_id):
 
@@ -95,6 +117,8 @@ def reset_exams_response(student_id, course_ids):
         },
         timeout=5
     )
+
+
 # ==================================================
 # SYNC STUDENT EXAMS
 # ==================================================
@@ -111,8 +135,6 @@ def sync_exams_response(student_id, course_ids):
         },
         timeout=5
     )
-
-import requests
 
 
 # ==================================================
@@ -137,7 +159,8 @@ def add_exam_response(
 
     response = requests.post(
         f"{DATABASE_SERVICE_URL}/exams",
-        json=data
+        json=data,
+        timeout=5
     )
 
     return response

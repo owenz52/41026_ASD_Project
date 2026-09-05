@@ -8,6 +8,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY app.py .
 COPY init_db.py .
+COPY db_connection.py .
+COPY routes ./routes
 
 EXPOSE 5010
 
