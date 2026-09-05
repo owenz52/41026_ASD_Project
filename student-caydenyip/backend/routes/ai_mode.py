@@ -9,11 +9,7 @@ ai_mode_bp = Blueprint("ai_mode", __name__)
 
 
 from services.database_api import (
-    get_exam_by_id_response,
-    get_exams,
-    get_exams_by_course_response,
-    update_exam_response,
-    delete_exam_response,
+    get_exams
 )
 
 
@@ -110,22 +106,6 @@ def ask_with_context():
         else:
             next_exam_text = "There are no upcoming uncompleted exams."
 
-
-
-
-
-
-
-        
-
-        
-
-
-
-
-
-
-
         final_prompt = f"""
 {task_prompt}
 
@@ -174,67 +154,3 @@ STUDENT QUESTION:
         )
 
 
-@ai_mode_bp.post("/pattern-selection")
-def pattern_selection():
-    architecture_request = request.form.get("architecture_request", "").strip()
-
-    if not architecture_request:
-        return "<p>Architecture request is required.</p>", 400
-
-    try:
-        answer = call_architecture_agent(
-            "architecture_system_prompt.txt",
-            "pattern_selection_prompt.txt",
-            architecture_request,
-        )
-        return f"<pre>{answer}</pre>", 200
-    except Exception as exc:
-        return (
-            "<p>Pattern selection request failed.</p>"
-            f"<pre>{exc}</pre>",
-            503,
-        )
-
-
-@ai_mode_bp.post("/architecture-review")
-def architecture_review():
-    architecture_request = request.form.get("architecture_request", "").strip()
-
-    if not architecture_request:
-        return "<p>Architecture request is required.</p>", 400
-
-    try:
-        answer = call_architecture_agent(
-            "architecture_system_prompt.txt",
-            "architecture_task_prompt.txt",
-            architecture_request,
-        )
-        return f"<pre>{answer}</pre>", 200
-    except Exception as exc:
-        return (
-            "<p>Architecture review request failed.</p>"
-            f"<pre>{exc}</pre>",
-            503,
-        )
-
-
-@ai_mode_bp.post("/adr-review")
-def adr_review():
-    architecture_request = request.form.get("architecture_request", "").strip()
-
-    if not architecture_request:
-        return "<p>ADR text is required.</p>", 400
-
-    try:
-        answer = call_architecture_agent(
-            "architecture_system_prompt.txt",
-            "adr_review_prompt.txt",
-            architecture_request,
-        )
-        return f"<pre>{answer}</pre>", 200
-    except Exception as exc:
-        return (
-            "<p>ADR review request failed.</p>"
-            f"<pre>{exc}</pre>",
-            503,
-        )
