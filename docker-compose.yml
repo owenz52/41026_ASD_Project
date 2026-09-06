@@ -32,7 +32,7 @@ services:
     depends_on:
       - auth-backend
       - enrolment-frontend
-      - priority-frontend
+      - assessment-frontend
       - calendar-frontend
       - notebook-frontend
       - exam-frontend
@@ -40,7 +40,7 @@ services:
 
   # Adrian Voljak - Assessment Tracker
 
-  priority-database:
+  assessment-database:
     build:
       context: ./student-adrianvoljak/database
       dockerfile: Dockerfile
@@ -49,28 +49,28 @@ services:
     ports:
       - "5008:5008"
 
-  priority-backend:
+  assessment-backend:
     build:
       context: ./student-adrianvoljak
       dockerfile: backend/Dockerfile
     environment:
       BACKEND_PORT: 5007
-      DATABASE_SERVICE_URL: http://priority-database:5008
+      DATABASE_SERVICE_URL: http://assessment-database:5008
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5:0.5b
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
-      - priority-database
+      - assessment-database
     ports:
       - "5007:5007"
 
-  priority-frontend:
+  assessment-frontend:
     build:
       context: ./student-adrianvoljak/frontend
       dockerfile: Dockerfile
     depends_on:
-      - priority-backend
+      - assessment-backend
     expose:
       - "80"
 
