@@ -33,6 +33,7 @@ def get_exams():
         """
         SELECT
             exam_id,
+            course_exam_id,
             course_id,
             student_id,
             exam_name,
@@ -67,6 +68,7 @@ def get_exam(exam_id):
         """
         SELECT
             exam_id,
+            course_exam_id,
             course_id,
             student_id,
             exam_name,
@@ -117,6 +119,7 @@ def get_exams_by_course():
         """
         SELECT
             exam_id,
+            course_exam_id,
             course_id,
             student_id,
             exam_name,

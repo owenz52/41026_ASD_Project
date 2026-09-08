@@ -16,6 +16,10 @@ get_exam_bp = Blueprint(
 )
 
 
+# ==================================================
+# GET EXAMS FOR STUDENT
+# ==================================================
+
 @get_exam_bp.get("/exams")
 def get_exams_route():
 
@@ -25,11 +29,13 @@ def get_exams_route():
     ).strip()
 
     if not student_id:
+
         return jsonify({
             "error": "Student ID is required."
         }), 400
 
     try:
+
         enrolments = get_student_enrolments(
             student_id
         )
@@ -56,6 +62,13 @@ def get_exams_route():
 
     try:
 
+        # --------------------------------------------------
+        # Synchronize the student's exams first.
+        #
+        # Course-generated exams will have a course_exam_id.
+        # Manual exams will have course_exam_id = NULL.
+        # --------------------------------------------------
+
         response = sync_exams_response(
             student_id,
             course_ids
@@ -63,11 +76,27 @@ def get_exams_route():
 
         response.raise_for_status()
 
+        # --------------------------------------------------
+        # Retrieve the synchronized exams.
+        #
+        # The database service now returns:
+        #
+        # course_exam_id
+        # course_id
+        # student_id
+        # exam_name
+        # exam_date
+        # exam_time
+        # status
+        # --------------------------------------------------
+
         exams = get_exams(
             student_id
         )
 
-        return jsonify(exams), 200
+        return jsonify(
+            exams
+        ), 200
 
     except requests.RequestException as exc:
 
@@ -79,6 +108,10 @@ def get_exams_route():
         }), 503
 
 
+# ==================================================
+# GET EXAM BY ID
+# ==================================================
+
 @get_exam_bp.get("/exams/by-id")
 def get_exam_by_id():
 
@@ -88,8 +121,23 @@ def get_exam_by_id():
     ).strip()
 
     if not exam_id:
+
         return jsonify({
             "error": "Exam ID is required."
+        }), 400
+
+    # --------------------------------------------------
+    # Validate exam ID
+    # --------------------------------------------------
+
+    try:
+
+        exam_id = int(exam_id)
+
+    except ValueError:
+
+        return jsonify({
+            "error": "Exam ID must be valid."
         }), 400
 
     try:
@@ -99,14 +147,10 @@ def get_exam_by_id():
         )
 
         if response.status_code == 404:
+
             return jsonify({
                 "error": "Exam not found."
             }), 404
-
-        if response.status_code == 400:
-            return jsonify({
-                "error": "Exam ID must be valid."
-            }), 400
 
         response.raise_for_status()
 
@@ -124,6 +168,10 @@ def get_exam_by_id():
         }), 503
 
 
+# ==================================================
+# GET EXAMS BY COURSE
+# ==================================================
+
 @get_exam_bp.get("/exams/by-course")
 def get_exams_by_course():
 
@@ -133,8 +181,23 @@ def get_exams_by_course():
     ).strip()
 
     if not course_id:
+
         return jsonify({
             "error": "Course ID is required."
+        }), 400
+
+    # --------------------------------------------------
+    # Validate course ID
+    # --------------------------------------------------
+
+    try:
+
+        course_id = int(course_id)
+
+    except ValueError:
+
+        return jsonify({
+            "error": "Course ID must be valid."
         }), 400
 
     try:
@@ -144,6 +207,7 @@ def get_exams_by_course():
         )
 
         if response.status_code == 404:
+
             return jsonify({
                 "error":
                     f"No exams found for course {course_id}."

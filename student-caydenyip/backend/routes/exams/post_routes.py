@@ -14,6 +14,10 @@ post_exam_bp = Blueprint(
 )
 
 
+# ==================================================
+# ADD MANUAL EXAM
+# ==================================================
+
 @post_exam_bp.post("/exams")
 def add_exam():
 
@@ -27,32 +31,44 @@ def add_exam():
     exam_date = data.get("exam_date")
     exam_time = data.get("exam_time")
 
-    if not student_id:
+    # --------------------------------------------------
+    # Validate required fields
+    # --------------------------------------------------
+
+    if student_id is None or str(student_id).strip() == "":
         return jsonify({
             "error": "Student ID is required."
         }), 400
 
-    if not course_id:
+    if course_id is None or str(course_id).strip() == "":
         return jsonify({
             "error": "Course ID is required."
         }), 400
 
-    if not exam_name:
+    if exam_name is None or str(exam_name).strip() == "":
         return jsonify({
             "error": "Exam name is required."
         }), 400
 
-    if not exam_date:
+    if exam_date is None or str(exam_date).strip() == "":
         return jsonify({
             "error": "Exam date is required."
         }), 400
 
-    if not exam_time:
+    if exam_time is None or str(exam_time).strip() == "":
         return jsonify({
             "error": "Exam time is required."
         }), 400
 
     try:
+
+        # --------------------------------------------------
+        # Manual exams do not have a course_exam_id.
+        #
+        # The database service will store:
+        #
+        # course_exam_id = NULL
+        # --------------------------------------------------
 
         response = add_exam_response(
             student_id,
@@ -63,6 +79,7 @@ def add_exam():
         )
 
         if response.status_code == 400:
+
             return jsonify({
                 "error": "Invalid exam data."
             }), 400
@@ -83,6 +100,10 @@ def add_exam():
         }), 503
 
 
+# ==================================================
+# RESET STUDENT EXAMS
+# ==================================================
+
 @post_exam_bp.post("/exams/reset")
 def reset_exams():
 
@@ -92,9 +113,14 @@ def reset_exams():
     ).strip()
 
     if not student_id:
+
         return jsonify({
             "error": "Student ID is required."
         }), 400
+
+    # --------------------------------------------------
+    # Get student's current enrolments
+    # --------------------------------------------------
 
     try:
 
@@ -124,12 +150,27 @@ def reset_exams():
                 str(exc)
         }), 503
 
+    # --------------------------------------------------
+    # Reset exams using the student's current courses.
+    #
+    # The database service will populate course_exam_id
+    # for every course-generated exam.
+    # --------------------------------------------------
+
     try:
 
         response = reset_exams_response(
             student_id,
             course_ids
         )
+
+        if response.status_code == 400:
+
+            return jsonify({
+                "error": "Invalid exam reset data."
+            }), 400
+
+        response.raise_for_status()
 
         return jsonify(
             response.json()

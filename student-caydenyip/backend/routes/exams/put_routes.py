@@ -12,6 +12,10 @@ put_exam_bp = Blueprint(
 )
 
 
+# ==================================================
+# UPDATE EXAM
+# ==================================================
+
 @put_exam_bp.put("/exams/<int:exam_id>")
 def update_exam(exam_id):
 
@@ -20,8 +24,29 @@ def update_exam(exam_id):
     )
 
     if not data:
+
         return jsonify({
             "error": "Exam data is required."
+        }), 400
+
+    # --------------------------------------------------
+    # Only status is updated.
+    #
+    # course_exam_id is intentionally left unchanged.
+    # --------------------------------------------------
+
+    if "status" not in data:
+
+        return jsonify({
+            "error": "Status is required."
+        }), 400
+
+    if data.get("status") is None or str(
+        data.get("status")
+    ).strip() == "":
+
+        return jsonify({
+            "error": "Status is required."
         }), 400
 
     try:
@@ -32,11 +57,13 @@ def update_exam(exam_id):
         )
 
         if response.status_code == 404:
+
             return jsonify({
                 "error": "Exam not found."
             }), 404
 
         if response.status_code == 400:
+
             return jsonify({
                 "error": "Invalid exam data."
             }), 400

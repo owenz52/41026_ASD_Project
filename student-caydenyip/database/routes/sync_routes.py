@@ -87,11 +87,11 @@ def sync_exams():
         # 1. REMOVE COURSE-GENERATED EXAMS FROM
         #    COURSES THE STUDENT IS NO LONGER ENROLLED IN
         #
-        # IMPORTANT:
+        # Only exams with a course_exam_id are considered
+        # course-generated exams.
         #
-        # Only exams matching course_exams are removed.
-        #
-        # This protects manually added exams.
+        # Manually added exams have course_exam_id = NULL
+        # and are therefore protected.
         # ==================================================
 
         if course_ids:
@@ -108,22 +108,7 @@ def sync_exams():
 
                   AND course_id NOT IN ({placeholders})
 
-                  AND EXISTS (
-                      SELECT 1
-                      FROM course_exams
-
-                      WHERE course_exams.course_id =
-                            student_exams.course_id
-
-                        AND course_exams.exam_name =
-                            student_exams.exam_name
-
-                        AND course_exams.exam_date =
-                            student_exams.exam_date
-
-                        AND course_exams.exam_time =
-                            student_exams.exam_time
-                  )
+                  AND course_exam_id IS NOT NULL
                 """,
                 (
                     student_id,
@@ -140,7 +125,8 @@ def sync_exams():
             #
             # Remove course-generated exams only.
             #
-            # Manually added exams remain.
+            # Manually added exams remain because their
+            # course_exam_id is NULL.
             # --------------------------------------------------
 
             cursor = conn.execute(
@@ -149,22 +135,7 @@ def sync_exams():
 
                 WHERE student_id = ?
 
-                  AND EXISTS (
-                      SELECT 1
-                      FROM course_exams
-
-                      WHERE course_exams.course_id =
-                            student_exams.course_id
-
-                        AND course_exams.exam_name =
-                            student_exams.exam_name
-
-                        AND course_exams.exam_date =
-                            student_exams.exam_date
-
-                        AND course_exams.exam_time =
-                            student_exams.exam_time
-                  )
+                  AND course_exam_id IS NOT NULL
                 """,
                 (student_id,)
             )
@@ -210,20 +181,11 @@ def sync_exams():
 
                     WHERE student_id = ?
 
-                      AND course_id = ?
-
-                      AND exam_name = ?
-
-                      AND exam_date = ?
-
-                      AND exam_time = ?
+                      AND course_exam_id = ?
                     """,
                     (
                         student_id,
-                        course_exam["course_id"],
-                        course_exam["exam_name"],
-                        course_exam["exam_date"],
-                        course_exam["exam_time"]
+                        course_exam["course_exam_id"]
                     )
                 ).fetchone()
 
@@ -249,6 +211,7 @@ def sync_exams():
                 conn.execute(
                     """
                     INSERT INTO student_exams (
+                        course_exam_id,
                         course_id,
                         student_id,
                         exam_name,
@@ -257,9 +220,10 @@ def sync_exams():
                         status,
                         is_deleted
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        course_exam["course_exam_id"],
                         course_exam["course_id"],
                         student_id,
                         course_exam["exam_name"],

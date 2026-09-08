@@ -59,9 +59,16 @@ def add_exam():
 
     try:
 
+        # --------------------------------------------------
+        # Manually added exams do NOT have a course_exam_id.
+        #
+        # course_exam_id is therefore NULL.
+        # --------------------------------------------------
+
         cursor = conn.execute(
             """
             INSERT INTO student_exams (
+                course_exam_id,
                 course_id,
                 student_id,
                 exam_name,
@@ -70,9 +77,10 @@ def add_exam():
                 status,
                 is_deleted
             )
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
+                None,
                 course_id,
                 student_id,
                 exam_name,
@@ -142,7 +150,10 @@ def reset_exams():
             "error": "course_ids must be a list"
         }), 400
 
+    # --------------------------------------------------
     # Remove null course IDs
+    # --------------------------------------------------
+
     course_ids = [
         course_id
         for course_id in course_ids
@@ -193,6 +204,7 @@ def reset_exams():
                 conn.execute(
                     """
                     INSERT INTO student_exams (
+                        course_exam_id,
                         course_id,
                         student_id,
                         exam_name,
@@ -201,9 +213,10 @@ def reset_exams():
                         status,
                         is_deleted
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        course_exam["course_exam_id"],
                         course_exam["course_id"],
                         student_id,
                         course_exam["exam_name"],
@@ -301,12 +314,14 @@ def sync_exams():
         removed = 0
 
         # ==================================================
-        # 1. REMOVE EXAMS FOR COURSES NO LONGER ENROLLED
+        # 1. REMOVE COURSE-GENERATED EXAMS FROM COURSES
+        #    THE STUDENT IS NO LONGER ENROLLED IN
         #
-        # Only removes exams that originated from
-        # course_exams.
+        # course_exam_id IS NOT NULL means the exam was
+        # generated from a course_exam.
         #
-        # Manually added exams are preserved.
+        # Manually added exams have course_exam_id = NULL
+        # and are therefore protected.
         # ==================================================
 
         if course_ids:
@@ -318,20 +333,12 @@ def sync_exams():
             cursor = conn.execute(
                 f"""
                 DELETE FROM student_exams
+
                 WHERE student_id = ?
+
                   AND course_id NOT IN ({placeholders})
-                  AND EXISTS (
-                      SELECT 1
-                      FROM course_exams
-                      WHERE course_exams.course_id =
-                            student_exams.course_id
-                        AND course_exams.exam_name =
-                            student_exams.exam_name
-                        AND course_exams.exam_date =
-                            student_exams.exam_date
-                        AND course_exams.exam_time =
-                            student_exams.exam_time
-                  )
+
+                  AND course_exam_id IS NOT NULL
                 """,
                 (
                     student_id,
@@ -347,25 +354,17 @@ def sync_exams():
             # No enrolled courses.
             #
             # Remove course-generated exams only.
+            #
             # Manually added exams remain.
             # --------------------------------------------------
 
             cursor = conn.execute(
                 """
                 DELETE FROM student_exams
+
                 WHERE student_id = ?
-                  AND EXISTS (
-                      SELECT 1
-                      FROM course_exams
-                      WHERE course_exams.course_id =
-                            student_exams.course_id
-                        AND course_exams.exam_name =
-                            student_exams.exam_name
-                        AND course_exams.exam_date =
-                            student_exams.exam_date
-                        AND course_exams.exam_time =
-                            student_exams.exam_time
-                  )
+
+                  AND course_exam_id IS NOT NULL
                 """,
                 (student_id,)
             )
@@ -404,27 +403,26 @@ def sync_exams():
                     SELECT
                         exam_id,
                         is_deleted
+
                     FROM student_exams
+
                     WHERE student_id = ?
-                      AND course_id = ?
-                      AND exam_name = ?
-                      AND exam_date = ?
-                      AND exam_time = ?
+
+                      AND course_exam_id = ?
                     """,
                     (
                         student_id,
-                        course_exam["course_id"],
-                        course_exam["exam_name"],
-                        course_exam["exam_date"],
-                        course_exam["exam_time"]
+                        course_exam["course_exam_id"]
                     )
                 ).fetchone()
 
                 # --------------------------------------------------
-                # Existing records are skipped.
+                # Existing exam.
                 #
-                # This includes soft-deleted exams, so a
-                # manually deleted exam will not be recreated.
+                # This includes soft-deleted exams.
+                #
+                # Therefore a deleted course exam will NOT
+                # be recreated by sync.
                 # --------------------------------------------------
 
                 if existing_exam:
@@ -440,6 +438,7 @@ def sync_exams():
                 conn.execute(
                     """
                     INSERT INTO student_exams (
+                        course_exam_id,
                         course_id,
                         student_id,
                         exam_name,
@@ -448,9 +447,10 @@ def sync_exams():
                         status,
                         is_deleted
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        course_exam["course_exam_id"],
                         course_exam["course_id"],
                         student_id,
                         course_exam["exam_name"],
