@@ -9,41 +9,66 @@ delete_exam_bp = Blueprint(
 )
 
 
+# ==================================================
+# DELETE EXAM
+# ==================================================
+
 @delete_exam_bp.delete("/exams/<int:exam_id>")
 def delete_exam(exam_id):
 
     conn = get_db_connection()
 
-    exam = conn.execute(
-        """
-        SELECT exam_id
-        FROM student_exams
-        WHERE exam_id = ?
-          AND is_deleted = 0
-        """,
-        (exam_id,)
-    ).fetchone()
+    try:
 
-    if exam is None:
+        exam = conn.execute(
+            """
+            SELECT
+                exam_id,
+                course_exam_id
+            FROM student_exams
+            WHERE exam_id = ?
+              AND is_deleted = 0
+            """,
+            (exam_id,)
+        ).fetchone()
 
-        conn.close()
+        if exam is None:
+
+            return jsonify({
+                "error": "Exam not found"
+            }), 404
+
+        # --------------------------------------------------
+        # Soft delete the exam.
+        #
+        # course_exam_id is left unchanged so we still
+        # know which course exam this student exam came from.
+        # --------------------------------------------------
+
+        conn.execute(
+            """
+            UPDATE student_exams
+            SET is_deleted = 1
+            WHERE exam_id = ?
+            """,
+            (exam_id,)
+        )
+
+        conn.commit()
 
         return jsonify({
-            "error": "Exam not found"
-        }), 404
+            "message": "Exam deleted successfully"
+        }), 200
 
-    conn.execute(
-        """
-        UPDATE student_exams
-        SET is_deleted = 1
-        WHERE exam_id = ?
-        """,
-        (exam_id,)
-    )
+    except Exception as exc:
 
-    conn.commit()
-    conn.close()
+        conn.rollback()
 
-    return jsonify({
-        "message": "Exam deleted successfully"
-    }), 200
+        return jsonify({
+            "error": "Failed to delete exam.",
+            "details": str(exc)
+        }), 500
+
+    finally:
+
+        conn.close()

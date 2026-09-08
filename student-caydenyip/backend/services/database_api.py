@@ -112,7 +112,6 @@ def reset_exams_response(student_id, course_ids):
             "student_id": student_id
         },
         json={
-            "student_id": student_id,
             "course_ids": course_ids
         },
         timeout=5
@@ -156,6 +155,13 @@ def add_exam_response(
         "exam_date": exam_date,
         "exam_time": exam_time
     }
+
+    # --------------------------------------------------
+    # This creates a MANUAL exam.
+    #
+    # course_exam_id is intentionally not sent.
+    # The database service inserts it as NULL.
+    # --------------------------------------------------
 
     response = requests.post(
         f"{DATABASE_SERVICE_URL}/exams",

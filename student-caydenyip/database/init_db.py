@@ -18,6 +18,9 @@ conn = sqlite3.connect(
     DATABASE_NAME
 )
 
+# Enable foreign key enforcement in SQLite
+conn.execute("PRAGMA foreign_keys = ON")
+
 cursor = conn.cursor()
 
 
@@ -43,13 +46,17 @@ CREATE TABLE IF NOT EXISTS course_exams (
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS student_exams (
     exam_id INTEGER PRIMARY KEY,
+    course_exam_id INTEGER,
     course_id INTEGER NOT NULL,
     student_id INTEGER NOT NULL,
     exam_name TEXT NOT NULL,
     exam_date DATE NOT NULL,
     exam_time TIME NOT NULL,
     status TEXT NOT NULL,
-    is_deleted INTEGER NOT NULL DEFAULT 0
+    is_deleted INTEGER NOT NULL DEFAULT 0,
+
+    FOREIGN KEY (course_exam_id)
+        REFERENCES course_exams(course_exam_id)
 )
 """)
 
@@ -58,7 +65,7 @@ CREATE TABLE IF NOT EXISTS student_exams (
 # MIGRATE EXISTING DATABASE
 #
 # If student_exams already existed before
-# is_deleted was added, add the column.
+# course_exam_id was added, add the column.
 # ==================================================
 
 columns = cursor.execute(
@@ -72,6 +79,16 @@ column_names = [
     column[1]
     for column in columns
 ]
+
+
+if "course_exam_id" not in column_names:
+
+    cursor.execute(
+        """
+        ALTER TABLE student_exams
+        ADD COLUMN course_exam_id INTEGER
+        """
+    )
 
 
 if "is_deleted" not in column_names:
@@ -157,6 +174,7 @@ cursor.executemany(
     """
     INSERT INTO student_exams (
         exam_id,
+        course_exam_id,
         course_id,
         student_id,
         exam_name,
@@ -165,7 +183,7 @@ cursor.executemany(
         status,
         is_deleted
     )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     """,
     student_exams
 )

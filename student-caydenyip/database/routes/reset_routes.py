@@ -115,6 +115,7 @@ def reset_exams():
                 conn.execute(
                     """
                     INSERT INTO student_exams (
+                        course_exam_id,
                         course_id,
                         student_id,
                         exam_name,
@@ -123,9 +124,10 @@ def reset_exams():
                         status,
                         is_deleted
                     )
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                     """,
                     (
+                        course_exam["course_exam_id"],
                         course_exam["course_id"],
                         student_id,
                         course_exam["exam_name"],

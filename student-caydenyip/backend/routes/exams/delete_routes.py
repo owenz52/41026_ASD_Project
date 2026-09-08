@@ -12,6 +12,10 @@ delete_exam_bp = Blueprint(
 )
 
 
+# ==================================================
+# DELETE EXAM
+# ==================================================
+
 @delete_exam_bp.delete("/exams/<int:exam_id>")
 def delete_exam(exam_id):
 
@@ -22,6 +26,7 @@ def delete_exam(exam_id):
         )
 
         if response.status_code == 404:
+
             return jsonify({
                 "error": "Exam not found."
             }), 404
@@ -35,8 +40,6 @@ def delete_exam(exam_id):
     except requests.RequestException as exc:
 
         return jsonify({
-            "error":
-                "Failed to delete exam.",
-            "details":
-                str(exc)
+            "error": "Failed to delete exam.",
+            "details": str(exc)
         }), 503
