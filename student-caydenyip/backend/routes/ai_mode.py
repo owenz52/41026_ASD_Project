@@ -135,8 +135,8 @@ STUDENT QUESTION:
                     "content": final_prompt
                 },
             ],
-            max_tokens=500,
-            temperature=0.2,
+            max_tokens=300,
+            temperature=0,
             model=OLLAMA_MODEL,
         )
 
