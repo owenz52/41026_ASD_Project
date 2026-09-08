@@ -1,6 +1,6 @@
 from flask import Blueprint, request
 import requests, json
-from services.llm_client import OLLAMA_MODEL, call_architecture_agent, create_chat_completion
+from services.llm_client import OLLAMA_MODEL, create_chat_completion
 from services.prompt_loader import load_prompt
 from datetime import datetime
 
