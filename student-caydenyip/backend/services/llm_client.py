@@ -2,7 +2,6 @@ import os
 
 from openai import OpenAI
 
-from services.prompt_loader import load_lab4_prompt
 
 
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434/v1")
