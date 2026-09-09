@@ -5,6 +5,7 @@ from pathlib import Path
 DATABASE_PATH = Path(__file__).parent / "assessment_tracker.db"
 
 
+
 def create_database():
     connection = sqlite3.connect(DATABASE_PATH)
     cursor = connection.cursor()

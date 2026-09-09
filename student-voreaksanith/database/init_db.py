@@ -7,6 +7,7 @@ DATABASE_NAME = os.path.join(DATA_DIR, "calendar.db")
 os.makedirs(DATA_DIR, exist_ok=True)
 
 
+
 EVENTS = [
     
     (1, 1, "41026", "ASD Lecture", "lecture", "2026-09-02 10:00", "2026-09-02 11:30", "CB11.05.300"),

@@ -19,6 +19,7 @@ notebooks = [
     (10, 1005, 8, "Digital Marketing Notes", "2026-08-18"),
 ]
 
+
 notes = [
     (1, 1, "Intro to Microservices with Docker",
      "Docker packages an application together with its dependencies into a single "
