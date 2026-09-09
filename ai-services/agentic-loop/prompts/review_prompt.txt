@@ -1,0 +1,29 @@
+Review the GitHub Actions CI evidence below.
+
+Return exactly four sections using these headings and no other headings:
+
+## PLAN
+State which workflow and run are being reviewed and what CI evidence will be checked.
+
+## ACT
+Summarise the jobs and validation steps that were executed.
+
+## OBSERVE
+State the actual CI outcome.
+
+If the workflow, jobs, and steps are successful, state clearly that the CI validation passed successfully.
+
+Only mention failures, cancellations, skipped steps, or warnings when they are explicitly present in the supplied evidence.
+
+## ADAPT
+If CI failed, provide corrective actions directly related to the failed evidence.
+
+If CI passed, state that no corrective action is required and recommend the next appropriate validation step, such as integrated Docker Compose testing.
+
+Do not output additional headings.
+Do not output YAML.
+Do not invent files, errors, tests, or configuration.
+
+CI EVIDENCE:
+
+{ci_evidence}

@@ -52,3 +52,7 @@ Thumbs.db
 
 # Docker local override files
 docker-compose.override.yml
+
+#Other
+ai-services/agentic-loop/data/
+ai-services/agentic-loop/reports/*.md
