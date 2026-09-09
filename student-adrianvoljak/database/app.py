@@ -17,7 +17,7 @@ def get_db_connection():
     return connection
 
 
-# Get all assignments
+#Get all assignments
 @app.get("/assignments")
 def get_assignments():
     student_id = request.args.get("student_id")
@@ -86,7 +86,7 @@ def get_assignments():
         connection.close()
 
 
-# Get assignment by ID
+#Get assignment by ID
 @app.get("/assignments/<int:assignment_id>")
 def get_assignment(assignment_id):
     connection = get_db_connection()
@@ -112,7 +112,7 @@ def get_assignment(assignment_id):
         connection.close()
 
 
-# Create assignment
+#Create assignment
 @app.post("/assignments")
 def create_assignment():
     data = request.get_json()
@@ -199,7 +199,7 @@ def create_assignment():
         connection.close()
 
 
-# Update assignment
+#Update assignment
 @app.put("/assignments/<int:assignment_id>")
 def update_assignment(assignment_id):
     data = request.get_json() or {}
@@ -307,7 +307,7 @@ def update_assignment(assignment_id):
         connection.close()
 
 
-# Delete assignment
+#Delete assignment
 @app.delete("/assignments/<int:assignment_id>")
 def delete_assignment(assignment_id):
     connection = get_db_connection()
@@ -336,7 +336,7 @@ def delete_assignment(assignment_id):
         connection.close()
 
 
-# Update assignment status
+#Update assignment status
 @app.patch("/assignments/<int:assignment_id>/status")
 def update_assignment_status(assignment_id):
     data = request.get_json() or {}

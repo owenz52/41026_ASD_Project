@@ -38,6 +38,26 @@ services:
       - exam-frontend
     restart: unless-stopped
 
+  # Shared - Agentic DevOps Loop
+  agentic-loop:
+    build:
+      context: ./ai-services/agentic-loop
+      dockerfile: Dockerfile
+    environment:
+      GITHUB_REPOSITORY: owenz52/41026_ASD_Project
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: qwen2.5:0.5b
+      POLL_SECONDS: 300
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "5012:5012"
+    volumes:
+      - agentic_loop_data:/app/data
+      - ./ai-services/agentic-loop/reports:/app/reports
+    restart: unless-stopped
+
   # Adrian Voljak - Assessment Tracker
 
   assessment-database:
@@ -243,3 +263,4 @@ volumes:
   notebook_data:
   exam_data:
   user_database_data:
+  agentic_loop_data:
