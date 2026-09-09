@@ -193,6 +193,7 @@ conn.commit()
 conn.close()
 
 
+
 print(
     "Database initialized with course_exams and student_exams."
 )

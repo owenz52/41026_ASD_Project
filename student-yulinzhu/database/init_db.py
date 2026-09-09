@@ -42,6 +42,7 @@ cursor.execute(
 cursor.execute("DELETE FROM enrolments")
 cursor.execute("DELETE FROM courses")
 
+
 courses = [
     (1, "41026", "Advanced Software Development", "Software development with Agent AI", 1),
     (2, "48024", "Programming 2", "This subject teaches concepts, theories and technologies underlying the methods and techniques of OOP programming and GUI programming", 1),
