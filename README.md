@@ -5,7 +5,7 @@ Features:
 Register, Login, Enrolment, Calendar, Notebook, Assessment and Exam Tracker 
 
 Application Requirements: 
-Docker, Docker Compose, Ollama
+Docker , Ollama with qwen2.5:0.5b
 
 Setup steps:
 // Within the docker-compose.yml file, the ports need to changed if already used by other systems.
