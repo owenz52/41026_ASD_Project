@@ -91,10 +91,11 @@ calling Ollama. `GET /health` checks whether the RAG HTTP server is running.
 
 ## Shared loop validation
 
-`POST http://localhost:5012/validate-now` checks MCP tool discovery and RAG
-retrieval using a synthetic document. The normal loop also runs these checks
-during polling. This check does not execute feature tools or assess the
-accuracy of generated answers.
+The local agentic loop provides separate validation modes:
 
-Discuss changes to these shared schemas with the group before teammates build
-against them.
+- `POST http://localhost:5012/validate-mcp` checks MCP tool discovery.
+- `POST http://localhost:5012/validate-rag` checks RAG retrieval with a synthetic document.
+- `POST http://localhost:5012/validate-now` runs both checks.
+
+The normal polling loop also runs both checks. These checks do not execute
+feature tools or assess the accuracy of generated answers.

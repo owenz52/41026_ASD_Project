@@ -1,3 +1,4 @@
+import asyncio
 import os
 import threading
 import time
@@ -5,7 +6,7 @@ import time
 from flask import Flask, jsonify
 
 from review_service import review_new_ci_runs
-from service_checks import check_shared_services
+from service_checks import check_mcp, check_rag, check_shared_services
 
 
 app = Flask(__name__)
@@ -48,6 +49,28 @@ def health():
         "service_checks": status["service_checks"],
     })
 
+@app.post("/validate-mcp")
+def validate_mcp():
+    try:
+        result = asyncio.run(check_mcp())
+    except Exception as exc:
+        result = {"status": "fail", "error": str(exc)}
+
+    return jsonify({"mode": "mcp", **result}), (
+        200 if result["status"] == "pass" else 503
+    )
+
+
+@app.post("/validate-rag")
+def validate_rag():
+    try:
+        result = check_rag()
+    except Exception as exc:
+        result = {"status": "fail", "error": str(exc)}
+
+    return jsonify({"mode": "rag", **result}), (
+        200 if result["status"] == "pass" else 503
+    )
 
 @app.post("/validate-now")
 def validate_now():
