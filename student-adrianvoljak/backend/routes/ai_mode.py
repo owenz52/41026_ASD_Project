@@ -1,6 +1,6 @@
 import json
 from datetime import date
-from pathlib import Path
+from os import getenv
 
 from flask import Blueprint, jsonify, request
 
@@ -10,218 +10,255 @@ from services.llm_client import ask_llm
 
 ai_mode_bp = Blueprint("ai_mode", __name__)
 
-PROMPT_DIR = Path(__file__).resolve().parents[2] / "prompts"
+STATUS_LABELS = {
+    "not_started": "Not started",
+    "in_progress": "In progress",
+    "completed": "Completed",
+}
 
 
-def load_prompt(filename):
-    prompt_path = PROMPT_DIR / filename
-    return prompt_path.read_text(
-        encoding="utf-8"
-    ).strip()
+def parse_ranking(raw, assignments):
+    data = json.loads(raw)
+    if not isinstance(data, dict):
+        raise ValueError("The ranking must be a JSON object")
+
+    ids = data.get("ordered_ids")
+    expected = {assignment["assignment_id"] for assignment in assignments}
+
+    if (
+        not isinstance(ids, list)
+        or any(type(item) is not int for item in ids)
+        or len(ids) != len(assignments)
+        or len(set(ids)) != len(ids)
+        or set(ids) != expected
+    ):
+        raise ValueError(
+            "The ranking must contain every incomplete assignment ID exactly once"
+        )
+
+    return ids
+
+
+def fallback_ranking(assignments):
+    ranked = sorted(
+        assignments,
+        key=lambda assignment: (
+            assignment.get("due_date") or "9999-12-31",
+            -float(assignment.get("weighting") or 0),
+            assignment["assignment_id"],
+        ),
+    )
+    return [assignment["assignment_id"] for assignment in ranked]
+
+
+def render_recommendation(ordered_ids, assignments, used_fallback):
+    records = {
+        assignment["assignment_id"]: assignment
+        for assignment in assignments
+    }
+
+    lines = [
+        (
+            "The AI ranking failed validation. Fallback: earliest due "
+            "date first, then highest weighting."
+            if used_fallback
+            else "AI suggested priority order. Assessment details come "
+                 "directly from your records."
+        ),
+        "",
+    ]
+
+    for position, assignment_id in enumerate(ordered_ids, start=1):
+        assignment = records[assignment_id]
+        status = STATUS_LABELS.get(
+            assignment["status"],
+            assignment["status"],
+        )
+        weighting = assignment.get("weighting")
+        weighting_text = (
+            f"{weighting}%"
+            if weighting is not None
+            else "not recorded"
+        )
+
+        lines.append(
+            f"{position}. {assignment['title']} — "
+            f"due {assignment.get('due_date') or 'not recorded'}; "
+            f"weighting {weighting_text}; status: {status}."
+        )
+
+    first = records[ordered_ids[0]]
+    lines.extend([
+        "",
+        f"NEXT ACTION: Work on {first['title']}, "
+        "the first assessment in this suggested order.",
+    ])
+    return "\n".join(lines)
 
 
 @ai_mode_bp.post("/ai/prioritise")
 def prioritise_assignments():
-    agent_steps = []
-
-    data = request.get_json(silent=True) or {}
-    student_id = data.get("student_id")
-
-    if not student_id:
+    if getenv("AI_ENABLED", "true").lower() != "true":
         return jsonify({
-            "error": "student_id is required"
-        }), 400
-    # PLAN
-    agent_steps.append({
+            "status": "disabled",
+            "message": "AI mode is disabled",
+        }), 503
+
+    data = request.get_json(silent=True)
+    if not isinstance(data, dict):
+        return jsonify({"error": "Request body must be a JSON object"}), 400
+
+    student_id = data.get("student_id")
+    if type(student_id) is not int or student_id <= 0:
+        return jsonify({"error": "student_id must be a positive integer"}), 400
+
+    agent_steps = [{
         "stage": "PLAN",
         "detail": (
-            "Analyse the student's incomplete assessments and "
-            "determine an appropriate priority order."
-        )
-    })
-
-    # ACT
-    status_code, assignments = database_api.get_assignments({
-        "order": "asc"
-    })
-
-    if status_code != 200:
-        return jsonify({
-            "error": "Could not retrieve assignments",
-            "agent_steps": agent_steps
-        }), status_code
-
-    incomplete_assignments = [
-        assignment
-        for assignment in assignments
-        if assignment["status"] != "completed"
-    ]
-
-    if not incomplete_assignments:
-        agent_steps.append({
-            "stage": "ACT",
-            "detail": "Retrieved assignments from the database."
-        })
-
-        agent_steps.append({
-            "stage": "OBSERVE",
-            "detail": "No incomplete assessments were found."
-        })
-
-        agent_steps.append({
-            "stage": "ADAPT",
-            "detail": "No AI prioritisation is required."
-        })
-
-        return jsonify({
-            "message": "There are no incomplete assignments.",
-            "agent_steps": agent_steps
-        }), 200
-
-    agent_steps.append({
-        "stage": "ACT",
-        "detail": (
-            f"Retrieved {len(incomplete_assignments)} incomplete "
-            "assessment(s) from the database."
-        )
-    })
-
-    system_prompt = load_prompt(
-        "priority_system_prompt.txt"
-    )
-
-    task_prompt = load_prompt(
-        "priority_task_prompt.txt"
-    )
-
-    task_prompt = task_prompt.replace(
-        "{{ASSIGNMENTS}}",
-        json.dumps(
-            incomplete_assignments,
-            indent=2
-        )
-    )
-
-    # Give the model an explicit current date.
-    today = date.today().isoformat()
-
-    task_prompt = (
-        f"Today's date is {today}.\n\n"
-        + task_prompt
-    )
+            "Ask the AI to rank the student's incomplete assessment IDs "
+            "using due dates, weighting and progress."
+        ),
+    }]
 
     try:
-        recommendation = ask_llm(
-            system_prompt,
-            task_prompt
-        )
-
-        # OBSERVE
-        response_text = (
-            recommendation.strip()
-            if isinstance(recommendation, str)
-            else ""
-        )
-
-        missing_titles = [
-            assignment["title"]
-            for assignment in incomplete_assignments
-            if assignment["title"].lower()
-            not in response_text.lower()
-        ]
-
-        has_next_action = (
-            "NEXT ACTION:" in response_text.upper()
-        )
-
-        valid_response = (
-            len(response_text) > 20
-            and not missing_titles
-            and has_next_action
-        )
-
-        if valid_response:
-            observe_detail = (
-                "The AI response included all incomplete assessments "
-                "and a NEXT ACTION recommendation."
-            )
-        else:
-            problems = []
-
-            if len(response_text) <= 20:
-                problems.append(
-                    "the response was missing or too short"
-                )
-
-            if missing_titles:
-                problems.append(
-                    f"the first AI response omitted {len(missing_titles)} assessments(s)"
-                )
-
-            if not has_next_action:
-                problems.append(
-                    "NEXT ACTION was missing"
-                )
-
-            observe_detail = (
-                "Validation found: "
-                + "; ".join(problems)
-                + "."
-            )
-
-        agent_steps.append({
-            "stage": "OBSERVE",
-            "detail": observe_detail
+        status_code, assignments = database_api.get_assignments({
+            "student_id": student_id,
+            "order": "asc",
         })
 
-        # ADAPT
-        if not valid_response:
+        if status_code != 200:
+            return jsonify({
+                "error": "Could not retrieve assignments",
+                "agent_steps": agent_steps,
+            }), status_code
+
+        if not isinstance(assignments, list):
+            raise RuntimeError("Unexpected assignment response")
+
+        incomplete = [
+            assignment
+            for assignment in assignments
+            if assignment.get("student_id") == student_id
+            and assignment["status"] != "completed"
+        ]
+
+        agent_steps.append({
+            "stage": "ACT",
+            "detail": f"Retrieved {len(incomplete)} incomplete assessment(s).",
+        })
+
+        if not incomplete:
+            agent_steps.extend([
+                {
+                    "stage": "OBSERVE",
+                    "detail": "No incomplete assessments were found.",
+                },
+                {
+                    "stage": "ADAPT",
+                    "detail": "No AI prioritisation is required.",
+                },
+            ])
+            return jsonify({
+                "message": "There are no incomplete assignments.",
+                "agent_steps": agent_steps,
+            }), 200
+
+        ids = [assignment["assignment_id"] for assignment in incomplete]
+        schema = {
+            "type": "object",
+            "properties": {
+                "ordered_ids": {
+                    "type": "array",
+                    "items": {"type": "integer", "enum": ids},
+                    "minItems": len(ids),
+                    "maxItems": len(ids),
+                    "uniqueItems": True,
+                },
+            },
+            "required": ["ordered_ids"],
+            "additionalProperties": False,
+        }
+
+        system_prompt = (
+            "You rank university assessments by urgency and importance. "
+            "Consider due dates, weighting and current progress. "
+            "Return only a JSON object containing ordered_ids. "
+            "Include every supplied assignment ID exactly once, "
+            "highest priority first."
+        )
+
+        records = [{
+            key: assignment.get(key)
+            for key in (
+                "assignment_id",
+                "title",
+                "due_date",
+                "weighting",
+                "status",
+            )
+        } for assignment in incomplete]
+
+        task_prompt = (
+            f"Today's date is {date.today().isoformat()}.\n"
+            "Rank these incomplete assessments:\n"
+            + json.dumps(records)
+        )
+
+        raw = ask_llm(system_prompt, task_prompt, schema)
+        used_fallback = False
+
+        try:
+            ordered_ids = parse_ranking(raw, incomplete)
+            agent_steps.append({
+                "stage": "OBSERVE",
+                "detail": (
+                    "The AI returned every incomplete assignment ID "
+                    "exactly once. Ranking quality is not automatically verified."
+                ),
+            })
+            agent_steps.append({
+                "stage": "ADAPT",
+                "detail": "No retry was required.",
+            })
+
+        except (ValueError, TypeError):
+            agent_steps.append({
+                "stage": "OBSERVE",
+                "detail": "The first AI ranking failed ID validation.",
+            })
+
             retry_prompt = (
                 task_prompt
-                + "\n\n"
-                + "Your previous response failed validation.\n"
-                + f"There are exactly "
-                + f"{len(incomplete_assignments)} incomplete assessments.\n"
-                + "You must include every assessment exactly once.\n"
-                + "Return a numbered priority list from highest "
-                + "priority to lowest priority.\n"
-                + "Do not invent dates or assessments.\n"
-                + "Use the supplied current date when discussing urgency.\n"
-                + "Finish with exactly one NEXT ACTION identifying "
-                + "the single highest priority assessment."
+                + "\nReturn every ID exactly once. Allowed IDs: "
+                + json.dumps(ids)
             )
+            raw = ask_llm(system_prompt, retry_prompt, schema)
 
-            recommendation = ask_llm(
-                system_prompt,
-                retry_prompt
-            )
-
-            agent_steps.append({
-                "stage": "ADAPT",
-                "detail": (
-                    "The response failed validation, so the AI was "
-                    "retried with stricter instructions requiring all "
-                    "assessments and one NEXT ACTION."
+            try:
+                ordered_ids = parse_ranking(raw, incomplete)
+                detail = "The retry passed ID validation."
+            except (ValueError, TypeError):
+                ordered_ids = fallback_ranking(incomplete)
+                used_fallback = True
+                detail = (
+                    "The retry failed ID validation. Used the explicit "
+                    "date-and-weighting fallback."
                 )
-            })
 
-        else:
-            agent_steps.append({
-                "stage": "ADAPT",
-                "detail": (
-                    "The response passed validation, so no retry "
-                    "was required."
-                )
-            })
+            agent_steps.append({"stage": "ADAPT", "detail": detail})
 
         return jsonify({
-            "recommendation": recommendation,
-            "agent_steps": agent_steps
+            "recommendation": render_recommendation(
+                ordered_ids,
+                incomplete,
+                used_fallback,
+            ),
+            "agent_steps": agent_steps,
+            "ranking_method": "fallback" if used_fallback else "ai",
         }), 200
 
-    except Exception as error:
+    except Exception:
         return jsonify({
-            "error": "AI request failed",
-            "detail": str(error),
-            "agent_steps": agent_steps
-        }), 500
+            "error": "AI prioritisation request failed",
+            "agent_steps": agent_steps,
+        }), 502

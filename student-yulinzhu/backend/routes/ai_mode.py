@@ -1,5 +1,6 @@
 import json
 import re
+import os
 from flask import Blueprint, request, jsonify
 
 from services.database_api import get_courses, get_course_by_code, search_courses
@@ -12,6 +13,12 @@ ai_mode_bp = Blueprint("ai_mode", __name__)
 
 @ai_mode_bp.post("/ask")
 def ask_ai():
+    enabled = os.getenv("AI_ENABLED", "true").strip().lower()
+    if enabled not in {"true", "1", "yes"}:
+        return jsonify({
+            "status": "disabled",
+            "error": "AI mode is not enabled",
+        }), 503
     data = request.get_json()
 
     if not data or not data.get("question"):
