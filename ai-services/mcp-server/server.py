@@ -12,6 +12,11 @@ ASSESSMENT_BACKEND_URL = os.getenv(
     "http://127.0.0.1:5007",
 ).rstrip("/")
 
+ENROLLMENT_BACKEND_URL = os.getenv(
+    "ENROLLMENT_BACKEND_URL",
+    "http://127.0.0.1:5001",
+).rstrip("/")
+
 mcp = MCPServer("ASD Shared Tools")
 
 class AssessmentResult(TypedDict):
@@ -78,6 +83,44 @@ def assessments_get_upcoming(
         "as_of": today.isoformat(),
         "assignments": assignments,
     }
+
+#Course Enrollment - Yulin Zhu
+class CourseResult(TypedDict):
+    course_id: int
+    course_name: str
+    course_code: str
+    description: str
+    availability: int
+
+class CoursesResult(TypedDict):
+    status: str
+    courses: list[CourseResult]
+
+@mcp.tool()
+def enrolment_get_courses(available_only: bool = True, ) -> CoursesResult:
+    """Read public course information without modifying enrolments."""
+    response = requests.get(
+        f"{ENROLLMENT_BACKEND_URL}/courses",
+        timeout=10,
+    )
+    response.raise_for_status()
+    courses: list[CourseResult] = []
+    for row in response.json():
+        if available_only and row["availability"] != 1:
+            continue
+        courses.append({
+            "course_id": row["course_id"],
+            "course_name": row["course_name"],
+            "course_code": row["course_code"],
+            "description": row["description"],
+            "availability": row["availability"],
+        })
+    return {
+        "status": "success",
+        "courses": courses,
+    }
+
+
 
 
 if __name__ == "__main__":

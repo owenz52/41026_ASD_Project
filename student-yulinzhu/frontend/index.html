@@ -260,7 +260,108 @@
 
         </section>
 
+        <section class="section">
 
+            <div class="section__head">
+
+                <div class="section__title">
+                    MCP Course Lookup
+                </div>
+
+                <div class="section__hint">
+                    Browse available courses
+                </div>
+
+            </div>
+
+            <div class="section__body">
+                <button
+                    id="mcp-courses-button"
+                    type="button"
+                    class="btn btn--primary"
+                    onclick="loadMcpCourses()"
+                >
+                    LOAD MCP COURSES
+                </button>
+
+                <p
+                    id="mcp-status"
+                    role="status"
+                    aria-live="polite"
+                ></p>
+
+                <div
+                    id="mcp-courses-list"
+                    class="card-grid"
+                ></div>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <div class="section__title">
+                    RAG Course Assistant
+                </div>
+                <div class="section__hint">
+                    Answers based on course information
+                </div>
+            </div>
+
+            <div class="section__body">
+                <p>
+                    Ask about course descriptions and availability.
+                    Personal enrolment records are not included.
+                </p>
+
+                <form id="rag-form" onsubmit="askRag(event)">
+                    <label for="rag-input">Your question</label>
+
+                    <div class="ai-input-row">
+                        <input
+                            id="rag-input"
+                            class="input"
+                            type="text"
+                            maxlength="1000"
+                            placeholder="What is course 41026 about?"
+                            required
+                        >
+
+                        <button
+                            id="rag-button"
+                            type="submit"
+                            class="btn btn--primary"
+                        >
+                            ASK RAG
+                        </button>
+                    </div>
+                </form>
+
+                <p id="rag-status" role="status" aria-live="polite"></p>
+
+                <div id="rag-result" hidden>
+                    <h3>Answer</h3>
+                    <p id="rag-answer" style="white-space: pre-wrap;"></p>
+
+                    <p>
+                        <strong>Confidence:</strong>
+                        <span id="rag-confidence"></span>
+                    </p>
+
+                    <p>
+                        “Context Available” means supporting context was retrieved.
+                        It is not an accuracy score.
+                    </p>
+
+                    <h3>Citations</h3>
+                    <ul id="rag-citations"></ul>
+
+                    <div id="rag-source-details" hidden>
+                        <h3>Source information</h3>
+                        <div id="rag-sources"></div>
+                    </div>
+                </div>
+            </div>
+        </section>
     </main>
 
 </div>

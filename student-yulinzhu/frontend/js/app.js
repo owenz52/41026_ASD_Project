@@ -399,3 +399,169 @@ document.addEventListener("DOMContentLoaded", async () => {
     loadCourses();
     loadEnrolments();
 });
+
+async function loadMcpCourses() {
+    const button = document.getElementById("mcp-courses-button");
+    const status = document.getElementById("mcp-status");
+    const list = document.getElementById("mcp-courses-list");
+
+    button.disabled = true;
+    status.textContent = "Loading courses through MCP...";
+    list.replaceChildren();
+
+    try {
+        const response = await fetch(`${API_URL}/mcp/courses`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ available_only: true })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to load MCP courses.");
+        }
+
+        if (data.status !== "success" || !Array.isArray(data.courses)) {
+            throw new Error("Unexpected MCP response.");
+        }
+
+        const fragment = document.createDocumentFragment();
+
+        for (const course of data.courses) {
+            const card = document.createElement("article");
+
+            const title = document.createElement("h3");
+            title.textContent =
+                `${course.course_code} — ${course.course_name}`;
+
+            const description = document.createElement("p");
+            description.textContent = course.description;
+
+            const availability = document.createElement("p");
+            availability.textContent = course.availability === 1
+                ? "Available"
+                : "Unavailable";
+
+            card.append(title, description, availability);
+            fragment.append(card);
+        }
+
+        list.append(fragment);
+
+        status.textContent = data.courses.length
+            ? `MCP returned ${data.courses.length} courses.`
+            : "No available courses found.";
+    } catch (error) {
+        console.error("MCP course lookup failed:", error);
+        status.textContent = error.message || "Unable to load courses.";
+    } finally {
+        button.disabled = false;
+    }
+}
+
+async function askRag(event) {
+    event.preventDefault();
+
+    const input = document.getElementById("rag-input");
+    const button = document.getElementById("rag-button");
+    const status = document.getElementById("rag-status");
+    const resultBox = document.getElementById("rag-result");
+    const answer = document.getElementById("rag-answer");
+    const confidence = document.getElementById("rag-confidence");
+    const citations = document.getElementById("rag-citations");
+    const sources = document.getElementById("rag-sources");
+    const sourceDetails = document.getElementById("rag-source-details");
+
+    const query = input.value.trim();
+
+    resultBox.hidden = true;
+    answer.textContent = "";
+    confidence.textContent = "";
+    citations.replaceChildren();
+    sources.replaceChildren();
+    sourceDetails.hidden = true;
+
+    if (!query) {
+        status.textContent = "Please enter a question.";
+        return;
+    }
+
+    if (!Number.isInteger(loggedInUserId) || loggedInUserId <= 0) {
+        status.textContent = "Please signin first.";
+        return;
+    }
+
+    button.disabled = true;
+    status.textContent = "Searching course information and preparing an answer...";
+
+    try {
+        const response = await fetch(`${API_URL}/rag/ask`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                student_id: loggedInUserId,
+                query: query
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.error || "Unable to get a RAG answer.");
+        }
+
+        if (
+            !["success", "insufficient_context"].includes(data.status) ||
+            typeof data.answer !== "string" ||
+            typeof data.confidence !== "string" ||
+            !Array.isArray(data.citations) ||
+            !Array.isArray(data.sources)
+        ) {
+            throw new Error("Unexpected RAG response.");
+        }
+
+        answer.textContent = data.answer;
+        confidence.textContent = data.confidence;
+
+        if (data.status === "insufficient_context") {
+            status.textContent = "Insufficient context";
+
+            const item = document.createElement("li");
+            item.textContent = "No supporting sources found.";
+            citations.append(item);
+        } else {
+            status.textContent = "Answer received.";
+
+            for (const citation of data.citations) {
+                const item = document.createElement("li");
+                item.textContent = citation;
+                citations.append(item);
+            }
+
+            for (const source of data.sources) {
+                const heading = document.createElement("h4");
+                heading.textContent = source.source_id;
+
+                const text = document.createElement("p");
+                text.style.whiteSpace = "pre-wrap";
+                text.textContent = source.text;
+
+                sources.append(heading, text);
+            }
+
+            sourceDetails.hidden = data.sources.length === 0;
+        }
+
+        resultBox.hidden = false;
+    } catch (error) {
+        console.error("RAG request failed:", error);
+        status.textContent = error.message || "Unable to get a RAG answer.";
+    } finally {
+        button.disabled = false;
+    }
+}
