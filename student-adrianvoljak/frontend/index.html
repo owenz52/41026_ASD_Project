@@ -68,6 +68,47 @@
             <div class="stat"><span class="stat__num" id="stat-done">—</span><span class="stat__label">Completed</span></div>
             <div class="stat"><span class="stat__num" id="stat-weight">—</span><span class="stat__label">Weighting outstanding</span></div>
         </div>
+        
+        <section class="section">
+            <div class="section__head">
+                <h2 class="section__title">Upcoming assessments</h2>
+                <span class="section__hint">Incomplete assessments due within 14 days</span>
+            </div>
+
+            <button id="mcp-upcoming-btn" type="button" class="btn btn--primary">
+                CHECK UPCOMING
+            </button>
+
+            <div id="mcp-output" aria-live="polite"></div>
+        </section>
+
+        <section class="section">
+            <div class="section__head">
+                <h2 class="section__title">Ask about your assessments</h2>
+            </div>
+
+            <form id="rag-form" class="form">
+                <label class="field">
+                    <span>Your question</span>
+                    <input
+                        id="rag-query"
+                        name="query"
+                        type="text"
+                        maxlength="1000"
+                        placeholder="When is the Software Architecture Report due?"
+                        required
+                    >
+                </label>
+
+                <div class="form__actions">
+                    <button id="rag-submit-btn" type="submit" class="btn btn--primary">
+                        ASK
+                    </button>
+                </div>
+            </form>
+
+            <div id="rag-output" aria-live="polite"></div>
+        </section>
 
         <section class="section">
             <div class="section__head">

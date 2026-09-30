@@ -243,3 +243,39 @@
   .field-row { grid-template-columns: 1fr; }
   .modal__box { padding: 18px; }
 }
+
+#mcp-output,
+#rag-output {
+    margin-top: 1rem;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+#mcp-output:empty,
+#rag-output:empty {
+    display: none;
+}
+
+.rag-answer {
+    white-space: pre-wrap;
+}
+
+#rag-output details {
+    margin-top: 0.75rem;
+}
+
+#rag-output summary {
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.rag-source {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background: rgba(127, 127, 127, 0.08);
+    border-radius: 6px;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-family: inherit;
+    font-size: 0.9rem;
+}

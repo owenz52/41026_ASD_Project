@@ -42,8 +42,15 @@ async function api(path, options = {}) {
     headers: { "Content-Type": "application/json" },
     ...options,
   });
+
   const body = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(body.error || `Request failed (${response.status})`);
+
+  if (!response.ok) {
+    throw new Error(
+      body.message || body.error || `Request failed (${response.status})`
+    );
+  }
+
   return body;
 }
 
@@ -58,7 +65,7 @@ function daysUntil(dueDate) {
 async function loadAssignments() {
   const list = document.getElementById("assignments-list");
   try {
-    const data = await api("/assignments");
+    const data = await api(`/assignments?student_id=${STUDENT_ID}`);
     state.assignments = Array.isArray(data) ? data : data.assignments || [];
     render();
   } catch (error) {
@@ -273,6 +280,104 @@ async function prioritise() {
   }
 }
 
+async function checkUpcoming() {
+  const button = document.getElementById("mcp-upcoming-btn");
+  const output = document.getElementById("mcp-output");
+
+  button.disabled = true;
+  output.textContent = "Checking upcoming assessments...";
+
+  try {
+    const data = await api(
+      `/mcp/assessments/upcoming?student_id=${STUDENT_ID}&days_ahead=14`
+    );
+
+    if (!Array.isArray(data.assignments)) {
+      throw new Error("Unexpected assessment result");
+    }
+
+    if (!data.assignments.length) {
+      output.textContent = "No incomplete assessments are due within 14 days.";
+      return;
+    }
+
+    output.innerHTML = `
+      <p>Checked as of ${escapeHtml(data.as_of)}.</p>
+      <ul>
+        ${data.assignments.map((assignment) => `
+          <li>
+            <strong>${escapeHtml(assignment.title)}</strong>
+            — due ${escapeHtml(assignment.due_date)},
+            course ${escapeHtml(assignment.course_id)},
+            ${escapeHtml(STATUS_LABELS[assignment.status] || assignment.status)}
+          </li>
+        `).join("")}
+      </ul>
+    `;
+  } catch (error) {
+    output.textContent = `Could not check upcoming assessments: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
+
+
+async function askAssessmentQuestion(event) {
+  event.preventDefault();
+
+  const input = document.getElementById("rag-query");
+  const button = document.getElementById("rag-submit-btn");
+  const output = document.getElementById("rag-output");
+  const query = input.value.trim();
+
+  if (!query) {
+    input.focus();
+    return;
+  }
+
+  button.disabled = true;
+  output.textContent = "Looking through your assessments...";
+
+  try {
+    const data = await api("/rag/assessments/answer", {
+      method: "POST",
+      body: JSON.stringify({
+        student_id: STUDENT_ID,
+        query,
+      }),
+    });
+
+    if (!["success", "insufficient_context"].includes(data.status)) {
+      throw new Error("Unexpected answer result");
+    }
+
+    output.innerHTML = `
+      <p class="rag-answer">${escapeHtml(data.answer)}</p>
+      <p><strong>Confidence:</strong> ${escapeHtml(data.confidence)}</p>
+    `;
+
+    if (data.status === "success") {
+      const citations = Array.isArray(data.citations) ? data.citations : [];
+      const sources = Array.isArray(data.sources) ? data.sources : [];
+
+      output.innerHTML += `
+        <p><strong>Citations:</strong>
+          ${citations.map(escapeHtml).join(", ")}
+        </p>
+        ${sources.map((source) => `
+          <details>
+            <summary>Source: ${escapeHtml(source.source_id)}</summary>
+            <pre class="rag-source">${escapeHtml(source.text)}</pre>
+          </details>
+        `).join("")}
+      `;
+    }
+  } catch (error) {
+    output.textContent = `Could not answer your question: ${error.message}`;
+  } finally {
+    button.disabled = false;
+  }
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   currentUser = readUser();
@@ -303,6 +408,12 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   document.getElementById("prioritise-btn").addEventListener("click", prioritise);
+
+  document.getElementById("mcp-upcoming-btn")
+    .addEventListener("click", checkUpcoming);
+
+  document.getElementById("rag-form")
+    .addEventListener("submit", askAssessmentQuestion);
 
   document.addEventListener("keydown", (e) => {
     if (e.key === "Escape") document.getElementById("form-modal").hidden = true;

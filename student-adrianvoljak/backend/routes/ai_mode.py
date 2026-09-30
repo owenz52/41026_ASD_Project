@@ -1,7 +1,7 @@
 import json
 from datetime import date
 from pathlib import Path
-
+from os import getenv
 from flask import Blueprint, jsonify, request
 
 from services import database_api
@@ -22,6 +22,11 @@ def load_prompt(filename):
 
 @ai_mode_bp.post("/ai/prioritise")
 def prioritise_assignments():
+    if getenv("AI_ENABLED", "true").lower() != "true":
+        return jsonify({
+            "status": "disabled",
+            "message": "AI mode is disabled",
+        }), 503
     agent_steps = []
 
     data = request.get_json(silent=True) or {}
@@ -42,7 +47,8 @@ def prioritise_assignments():
 
     # ACT
     status_code, assignments = database_api.get_assignments({
-        "order": "asc"
+        "student_id" : student_id,
+        "order" : "asc"
     })
 
     if status_code != 200:
