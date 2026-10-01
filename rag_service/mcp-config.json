@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "student-exams-rag": {
-      "command": "python",
-      "args": ["rag_server.py"]
-    }
-  }
-}
