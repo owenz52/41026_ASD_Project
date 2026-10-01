@@ -452,6 +452,129 @@ async function searchNotes() {
   }
 }
 
+/* ------------------------------------------------------------- mcp mode */
+
+async function mcpSearchNotes() {
+  const keyword = $("mcp-input").value.trim();
+  const status = $("mcp-status");
+  const box = $("mcp-results");
+  const button = $("mcp-btn");
+
+  box.innerHTML = "";
+
+  if (!keyword) {
+    toast("Enter a keyword for the MCP tool.", "warn");
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Calling notebooks_search_notes through the shared MCP server...";
+
+  try {
+    const data = await api("/mcp/notes/search", {
+      method: "POST",
+      body: JSON.stringify({ student_id: STUDENT_ID, keyword, limit: 10 }),
+    });
+
+    if (data.status !== "success" || !Array.isArray(data.notes)) {
+      throw new Error("Unexpected MCP response.");
+    }
+
+    status.textContent = data.notes.length
+      ? `MCP tool returned ${data.notes.length} note(s) for "${data.keyword}".`
+      : `MCP tool returned no notes for "${data.keyword}".`;
+
+    box.innerHTML = data.notes.map((note) => `
+      <div class="result">
+        <div class="result__title">${escapeHtml(note.note_title)}</div>
+        <div class="result__preview">${escapeHtml(note.preview)}</div>
+        <div class="result__meta">Note ${escapeHtml(note.note_id)} · Notebook ${escapeHtml(note.notebook_id)} · Course ${escapeHtml(note.course_id)} · Updated ${escapeHtml(note.updated_date)}</div>
+      </div>
+    `).join("");
+  } catch (error) {
+    console.error("MCP search failed:", error);
+    status.textContent = error.message;
+    toast(error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
+/* ------------------------------------------------------------- rag mode */
+
+async function askRag() {
+  const query = $("rag-input").value.trim();
+  const status = $("rag-status");
+  const button = $("rag-btn");
+  const result = $("rag-result");
+  const answer = $("rag-answer");
+  const confidence = $("rag-confidence");
+  const citations = $("rag-citations");
+  const sources = $("rag-sources");
+  const sourceDetails = $("rag-source-details");
+
+  result.hidden = true;
+  answer.textContent = "";
+  confidence.textContent = "";
+  confidence.className = "badge";
+  citations.textContent = "";
+  sources.innerHTML = "";
+
+  if (!query) {
+    toast("Enter a question for RAG.", "warn");
+    return;
+  }
+
+  button.disabled = true;
+  status.textContent = "Retrieving your notes and generating a grounded answer...";
+
+  try {
+    const data = await api("/rag/notes/answer", {
+      method: "POST",
+      body: JSON.stringify({ student_id: STUDENT_ID, query }),
+    });
+
+    if (
+      !["success", "insufficient_context"].includes(data.status) ||
+      typeof data.answer !== "string" ||
+      typeof data.confidence !== "string" ||
+      !Array.isArray(data.citations) ||
+      !Array.isArray(data.sources)
+    ) {
+      throw new Error("Unexpected RAG response.");
+    }
+
+    answer.textContent = data.answer;
+    confidence.textContent = data.confidence;
+
+    if (data.status === "insufficient_context") {
+      status.textContent = "Insufficient context: no relevant notes were found, so no answer was generated.";
+      confidence.classList.add("badge--none");
+      citations.textContent = "None";
+      sourceDetails.hidden = true;
+    } else {
+      status.textContent = "Grounded answer received.";
+      confidence.classList.add("badge--ok");
+      citations.textContent = data.citations.join(", ");
+
+      sources.innerHTML = data.sources.map((source) => `
+        <div class="rag__source">
+          <div class="rag__source-id">${escapeHtml(source.source_id)}</div>${escapeHtml(source.text)}
+        </div>
+      `).join("");
+      sourceDetails.hidden = data.sources.length === 0;
+    }
+
+    result.hidden = false;
+  } catch (error) {
+    console.error("RAG request failed:", error);
+    status.textContent = error.message;
+    toast(error.message, "error");
+  } finally {
+    button.disabled = false;
+  }
+}
+
 /* ------------------------------------------------------------------ wire */
 
 const ACTIONS = {
@@ -492,6 +615,14 @@ $("note-form").addEventListener("submit", submitNote);
 $("search-btn").addEventListener("click", searchNotes);
 $("search-input").addEventListener("keydown", (e) => {
   if (e.key === "Enter") searchNotes();
+});
+$("mcp-btn").addEventListener("click", mcpSearchNotes);
+$("mcp-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") mcpSearchNotes();
+});
+$("rag-btn").addEventListener("click", askRag);
+$("rag-input").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") askRag();
 });
 
 $("confirm-ok").addEventListener("click", () => {
