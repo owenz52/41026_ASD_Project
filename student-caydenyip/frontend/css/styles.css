@@ -850,3 +850,597 @@ button:hover,
         padding: 18px;
     }
 }
+/* =========================================================
+   MCP TEST PANEL
+   ========================================================= */
+
+#mcp-test {
+    margin-bottom: 24px;
+    padding: 24px;
+
+    color: var(--ink);
+    background: var(--panel);
+    border: 1px solid var(--line);
+}
+
+#mcp-test h2 {
+    margin-bottom: 18px;
+
+    font-size: 20px;
+    font-weight: 500;
+}
+
+#mcp-test h3 {
+    margin-top: 24px;
+    margin-bottom: 12px;
+
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+
+    color: var(--muted);
+}
+
+
+/* =========================================================
+   MCP FIELD
+   ========================================================= */
+
+.mcp-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+}
+
+.mcp-field label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   MCP SELECT
+   ========================================================= */
+
+#mcp-tool {
+    width: 100%;
+    padding: 9px 10px;
+
+    color: var(--ink);
+    background: #FFF;
+
+    border: 1px solid var(--line);
+    border-radius: 0;
+
+    font-size: 13px;
+}
+
+#mcp-tool:hover {
+    border-color: #BDBDBD;
+}
+
+#mcp-tool:focus {
+    outline: 2px solid var(--red);
+    outline-offset: -1px;
+}
+
+
+/* =========================================================
+   MCP BUTTON
+   ========================================================= */
+
+.mcp-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+
+    margin-top: 18px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--line);
+}
+
+#mcp-run-button {
+    margin: 0;
+    padding: 9px 14px;
+
+    color: #FFF;
+    background: var(--red);
+
+    border: 1px solid var(--red);
+    border-radius: 0;
+
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .07em;
+
+    cursor: pointer;
+}
+
+#mcp-run-button:hover {
+    background: var(--red-dark);
+    border-color: var(--red-dark);
+}
+
+#mcp-run-button:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+}
+
+
+/* =========================================================
+   MCP LOADING
+   ========================================================= */
+
+.mcp-loading {
+    margin-top: 14px;
+    padding: 10px 12px;
+
+    color: var(--muted);
+    background: var(--panel-alt);
+
+    border: 1px solid var(--line);
+
+    font-size: 11px;
+}
+
+
+/* =========================================================
+   MCP ERROR
+   ========================================================= */
+
+.mcp-error {
+    margin-top: 14px;
+    padding: 10px 12px;
+
+    color: #96200F;
+    background: var(--danger-bg);
+
+    border: 1px solid #F0BDB4;
+    border-left: 3px solid var(--red);
+
+    font-size: 12px;
+}
+
+
+/* =========================================================
+   MCP RESULT CONTAINER
+   ========================================================= */
+
+.mcp-result-container {
+    width: 100%;
+    overflow-x: auto;
+
+    border: 1px solid var(--line);
+    background: var(--panel);
+}
+
+
+/* =========================================================
+   MCP RESULT TABLE
+   ========================================================= */
+
+.mcp-result-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    background: var(--panel);
+    color: var(--ink);
+}
+
+
+/* =========================================================
+   MCP RESULT CELLS
+   ========================================================= */
+
+.mcp-result-table th,
+.mcp-result-table td {
+    padding: 10px;
+
+    text-align: left;
+    vertical-align: middle;
+
+    border-bottom: 1px solid var(--line);
+}
+
+
+/* =========================================================
+   MCP FIELD NAME
+   ========================================================= */
+
+.mcp-result-table th {
+    width: 180px;
+    min-width: 150px;
+
+    color: var(--muted);
+    background: var(--bg);
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   MCP VALUE
+   ========================================================= */
+
+.mcp-result-table td {
+    color: var(--ink);
+    background: var(--panel);
+
+    font-size: 13px;
+
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   MCP TABLE HOVER
+   ========================================================= */
+
+.mcp-result-table tr:hover th,
+.mcp-result-table tr:hover td {
+    background: var(--panel-alt);
+}
+
+
+/* =========================================================
+   MCP LAST ROW
+   ========================================================= */
+
+.mcp-result-table tr:last-child th,
+.mcp-result-table tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* =========================================================
+   MCP SCROLLBAR
+   ========================================================= */
+
+.mcp-result-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.mcp-result-container::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.mcp-result-container::-webkit-scrollbar-thumb {
+    background: #BDBDBD;
+}
+
+.mcp-result-container::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+
+/* =========================================================
+   RAG TEST PANEL
+   ========================================================= */
+
+.rag-test {
+    width: 100%;
+    margin-bottom: 24px;
+    padding: 24px;
+
+    background: var(--panel);
+    border: 1px solid var(--line);
+}
+
+.rag-test h2 {
+    margin-bottom: 18px;
+
+    font-size: 20px;
+    font-weight: 500;
+}
+
+
+/* =========================================================
+   RAG FIELDS
+   ========================================================= */
+
+.rag-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+
+    margin-bottom: 14px;
+}
+
+.rag-field > label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+
+/* =========================================================
+   RAG INPUTS
+   ========================================================= */
+
+#rag-caller,
+#rag-query,
+#rag-k {
+    width: 100%;
+    padding: 9px 10px;
+
+    color: var(--ink);
+    background: #FFF;
+
+    border: 1px solid var(--line);
+    border-radius: 0;
+
+    font-size: 13px;
+}
+
+#rag-caller:hover,
+#rag-query:hover,
+#rag-k:hover {
+    border-color: #BDBDBD;
+}
+
+#rag-caller:focus,
+#rag-query:focus,
+#rag-k:focus {
+    outline: 2px solid var(--red);
+    outline-offset: -1px;
+}
+
+#rag-query {
+    min-height: 100px;
+
+    resize: vertical;
+    line-height: 1.5;
+}
+
+#rag-k {
+    width: 120px;
+}
+
+
+/* =========================================================
+   RAG BUTTONS
+   ========================================================= */
+
+.rag-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+
+    margin-top: 18px;
+    padding-top: 14px;
+
+    border-top: 1px solid var(--line);
+}
+
+.rag-buttons button {
+    margin: 0;
+}
+
+
+/* =========================================================
+   RAG RETRIEVE
+   ========================================================= */
+
+#rag-retrieve-btn {
+    color: #FFF;
+    background: var(--red);
+    border-color: var(--red);
+}
+
+#rag-retrieve-btn:hover {
+    background: var(--red-dark);
+    border-color: var(--red-dark);
+}
+
+
+/* =========================================================
+   RAG ANSWER
+   ========================================================= */
+
+#rag-answer-btn {
+    color: var(--ink);
+    background: var(--panel);
+    border-color: var(--line);
+}
+
+#rag-answer-btn:hover {
+    background: #F6F6F4;
+}
+
+
+/* =========================================================
+   RAG STATUS
+   ========================================================= */
+
+.rag-status {
+    margin-top: 14px;
+    padding: 10px 12px;
+
+    color: var(--muted);
+    background: var(--panel-alt);
+
+    border: 1px solid var(--line);
+
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+
+/* =========================================================
+   RAG RESPONSE CONTAINER
+   ========================================================= */
+
+.rag-response-container {
+    width: 100%;
+    margin-top: 20px;
+
+    overflow-x: auto;
+
+    border: 1px solid var(--line);
+    background: var(--panel);
+}
+
+
+/* =========================================================
+   RAG RESPONSE TABLE
+   ========================================================= */
+
+.rag-response-table {
+    width: 100%;
+
+    border-collapse: collapse;
+
+    background: var(--panel);
+    color: var(--ink);
+}
+
+
+/* =========================================================
+   RAG RESPONSE CELLS
+   ========================================================= */
+
+.rag-response-table th,
+.rag-response-table td {
+    padding: 10px;
+
+    text-align: left;
+    vertical-align: middle;
+
+    border-bottom: 1px solid var(--line);
+}
+
+
+/* =========================================================
+   RAG FIELD NAME
+   ========================================================= */
+
+.rag-response-table th {
+    width: 180px;
+    min-width: 150px;
+
+    color: var(--muted);
+    background: var(--bg);
+
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+
+/* =========================================================
+   RAG VALUE
+   ========================================================= */
+
+.rag-response-table td {
+    color: var(--ink);
+    background: var(--panel);
+
+    font-size: 13px;
+
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+
+/* =========================================================
+   RAG TABLE HOVER
+   ========================================================= */
+
+.rag-response-table tr:hover th,
+.rag-response-table tr:hover td {
+    background: var(--panel-alt);
+}
+
+
+/* =========================================================
+   RAG LAST ROW
+   ========================================================= */
+
+.rag-response-table tr:last-child th,
+.rag-response-table tr:last-child td {
+    border-bottom: 0;
+}
+
+
+/* =========================================================
+   RAG SCROLLBAR
+   ========================================================= */
+
+.rag-response-container::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.rag-response-container::-webkit-scrollbar-track {
+    background: var(--bg);
+}
+
+.rag-response-container::-webkit-scrollbar-thumb {
+    background: #BDBDBD;
+}
+
+.rag-response-container::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media (max-width: 600px) {
+
+    #mcp-test,
+    .rag-test {
+        padding: 16px;
+    }
+
+    .mcp-result-table th,
+    .rag-response-table th {
+        width: 130px;
+        min-width: 130px;
+    }
+
+    .mcp-result-table th,
+    .mcp-result-table td,
+    .rag-response-table th,
+    .rag-response-table td {
+        padding: 9px;
+        font-size: 12px;
+    }
+
+    .mcp-buttons,
+    .rag-buttons {
+        flex-direction: column;
+    }
+
+    #mcp-run-button,
+    .rag-buttons button {
+        width: 100%;
+    }
+
+    #rag-k {
+        width: 100%;
+    }
+}
