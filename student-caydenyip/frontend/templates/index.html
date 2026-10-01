@@ -129,15 +129,18 @@
 
 
 
-            
 
-            <!-- MCP TEST PANEL -->
+            <!-- ==================================================
+     MCP TEST PANEL
+     ================================================== -->
 
             <section id="mcp-test">
 
                 <h2>Student Exams MCP Tester</h2>
 
-                <div>
+
+                <div class="mcp-field">
+
                     <label for="mcp-tool">
                         MCP Tool:
                     </label>
@@ -157,62 +160,80 @@
                         </option>
 
                     </select>
+
                 </div>
 
-                <br>
 
-                <button type="button" id="mcp-run-button">
-                    Run MCP Tool
-                </button>
+                <div class="mcp-buttons">
 
-                <p id="mcp-loading" hidden>
+                    <button type="button" id="mcp-run-button">
+                        Run MCP Tool
+                    </button>
+
+                </div>
+
+
+                <p id="mcp-loading" hidden class="mcp-loading">
                     Running MCP tool...
                 </p>
 
-                <p id="mcp-error" hidden></p>
+
+                <p id="mcp-error" hidden class="mcp-error"></p>
+
 
                 <h3>Result</h3>
 
-                <pre id="mcp-result">No result yet.</pre>
+
+                <!-- Dynamic MCP Response Table -->
+
+                <div class="mcp-result-container">
+
+                    <table class="mcp-result-table">
+
+                        <tbody id="mcp-result-table-body">
+
+                            <tr>
+                                <th>Response</th>
+                                <td>No result yet.</td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
 
             </section>
 
 
 
+
+
             <!-- RAG TEST PANEL -->
 
-
-
-
             <section id="rag-test" class="rag-test">
+
                 <h2>RAG Endpoint Tester</h2>
 
                 <div class="rag-field">
-                    <label>
-                        <input type="checkbox" id="rag-enabled" checked>
-                        RAG Mode Enabled
+                    <label for="rag-query">
+                        Query
                     </label>
-                </div>
 
-                <div class="rag-field">
-                    <label for="rag-caller">Caller</label>
-                    <input type="text" id="rag-caller" value="student" placeholder="student">
-                </div>
-
-                <div class="rag-field">
-                    <label for="rag-query">Query</label>
                     <textarea id="rag-query" rows="4" placeholder="Ask something..."></textarea>
                 </div>
 
+
                 <div class="rag-field">
-                    <label for="rag-k">Number of results (k)</label>
+                    <label for="rag-k">
+                        Number of results (k)
+                    </label>
+
                     <input type="number" id="rag-k" value="5" min="1" max="20">
                 </div>
 
+
                 <div class="rag-buttons">
-                    <button type="button" id="rag-refresh-btn">
-                        Refresh RAG
-                    </button>
 
                     <button type="button" id="rag-retrieve-btn">
                         Retrieve
@@ -221,13 +242,32 @@
                     <button type="button" id="rag-answer-btn">
                         Get Answer
                     </button>
+
                 </div>
+
 
                 <div class="rag-status" id="rag-status">
                     Ready
                 </div>
 
-                <pre class="rag-response" id="rag-response">Response will appear here...</pre>
+
+                <!-- RAG Response Table -->
+                <div class="rag-response-container">
+
+                    <table class="rag-response-table">
+
+                        <tbody id="rag-response-table-body">
+                            <tr>
+                                <th>Response</th>
+                                <td>Response will appear here...</td>
+                            </tr>
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+
             </section>
 
 

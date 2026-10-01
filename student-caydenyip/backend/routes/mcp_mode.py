@@ -5,7 +5,7 @@ import json
 from flask import Blueprint, jsonify, request
 
 from mcp import ClientSession
-from mcp.client.sse import sse_client
+from mcp.client.streamable_http import streamable_http_client
 
 
 mcp_bp = Blueprint(
@@ -20,7 +20,7 @@ mcp_bp = Blueprint(
 
 MCP_SERVER_URL = os.getenv(
     "MCP_SERVER_URL",
-    "http://host.docker.internal:8050/sse",
+    "http://host.docker.internal:8011/mcp",
 )
 
 
@@ -74,8 +74,6 @@ def mcp_disabled_response():
 # MCP RESULT SERIALIZATION
 # ==================================================
 
-
-
 def serialize_mcp_result(result):
 
     output = []
@@ -102,7 +100,6 @@ def serialize_mcp_result(result):
     return output
 
 
-
 # ==================================================
 # CALL MCP SERVER
 # ==================================================
@@ -112,12 +109,20 @@ async def _call_mcp_tool(
     student_id,
 ):
 
-    async with sse_client(
-        MCP_SERVER_URL
-    ) as streams:
+    # ----------------------------------------------
+    # Connect using Streamable HTTP
+    # ----------------------------------------------
 
-        read_stream = streams[0]
-        write_stream = streams[1]
+    async with streamable_http_client(
+        MCP_SERVER_URL
+    ) as (
+        read_stream,
+        write_stream,
+    ):
+
+        # ------------------------------------------
+        # Create MCP session
+        # ------------------------------------------
 
         async with ClientSession(
             read_stream,
@@ -272,8 +277,9 @@ def mcp_test():
         # Return response
         # --------------------------------------
 
-        return jsonify(serialized_result), 200
-
+        return jsonify(
+            serialized_result
+        ), 200
 
     except Exception as exc:
 

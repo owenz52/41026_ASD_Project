@@ -6,6 +6,13 @@ from mcp.server.mcpserver import MCPServer
 
 from typing_extensions import TypedDict
 
+from tools_caydenyip import (
+
+    get_student_exam_status,
+    get_student_exams,
+    get_student_exam_summary,
+)
+
 
 ASSESSMENT_BACKEND_URL = os.getenv(
     "ASSESSMENT_BACKEND_URL",
@@ -120,6 +127,28 @@ def enrolment_get_courses(available_only: bool = True, ) -> CoursesResult:
         "courses": courses,
     }
 
+#========================================
+#=============Exams Tools================
+#========================================
+@mcp.tool()
+def student_exam_status(student_id: int):
+    """Get the number of completed and non-completed exams."""
+    return get_student_exam_status(student_id)
+
+
+@mcp.tool()
+def student_exams(student_id: int):
+    """Get all active exams belonging to a student."""
+    return get_student_exams(student_id)
+
+
+@mcp.tool()
+def student_exam_summary(student_id: int):
+    """
+    Get a complete student exam summary including
+    student information, subjects, exam counts and exams.
+    """
+    return get_student_exam_summary(student_id)
 
 
 
