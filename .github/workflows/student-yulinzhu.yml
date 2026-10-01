@@ -1,25 +1,168 @@
 name: Yulin Zhu CI
 
 on:
-    push:
-        paths:
-            - "student-yulinzhu/**"
-            - "docker-compose.yml"
-            - ".github/workflows/student-yulinzhu.yml"
-    
-    pull_request:
-        paths:
-            - "student-yulinzhu/**"
-            - "docker-compose.yml"
-            - ".github/workflows/student-yulinzhu.yml"
+  push:
+    paths:
+      - "student-yulinzhu/**"
+      - "ai-services/mcp-server/**"
+      - "ai-services/rag-server/**"
+      - "ai-services/SHARED_SERVICES.md"
+      - "docker-compose.yml"
+      - ".github/workflows/student-yulinzhu.yml"
+
+  pull_request:
+    paths:
+      - "student-yulinzhu/**"
+      - "ai-services/mcp-server/**"
+      - "ai-services/rag-server/**"
+      - "ai-services/SHARED_SERVICES.md"
+      - "docker-compose.yml"
+      - ".github/workflows/student-yulinzhu.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-    docker-build:
-        runs-on: ubuntu-latest
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Bulid Docker services
-              run: docker compose -f docker-compose.yml build enrolment-database  enrolment-backend  enrolment-frontend
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build Enrolment images
+        run: |
+          docker build -t yulin-db-ci student-yulinzhu/database
+          docker build -t yulin-backend-ci \
+            -f student-yulinzhu/backend/Dockerfile student-yulinzhu
+          docker build -t yulin-frontend-ci student-yulinzhu/frontend
+
+      - name: Start isolated CI containers
+        run: |
+          docker network create yulin-ci
+
+          docker run -d --name yulin-db-ci \
+            --network yulin-ci \
+            yulin-db-ci
+
+          docker run -d --name yulin-backend-ci \
+            --network yulin-ci \
+            -e DATABASE_SERVICE_URL=http://yulin-db-ci:5002 \
+            -e AI_ENABLED=false \
+            -e MCP_ENABLED=false \
+            -e RAG_ENABLED=false \
+            yulin-backend-ci
+
+          docker run -d --name yulin-frontend-ci \
+            --network yulin-ci \
+            yulin-frontend-ci
+
+      - name: Validate frontend backend database and disabled modes
+        run: |
+          docker exec -i yulin-backend-ci python - <<'PY'
+          import time
+          import requests
+
+          backend = "http://127.0.0.1:5001"
+          frontend = "http://yulin-frontend-ci"
+
+          def wait_for(url):
+              for _ in range(30):
+                  try:
+                      response = requests.get(url, timeout=2)
+                      if response.status_code == 200:
+                          return response
+                  except requests.RequestException:
+                      pass
+                  time.sleep(1)
+              raise RuntimeError(f"Service not ready: {url}")
+
+          courses = wait_for(f"{backend}/courses").json()
+          assert isinstance(courses, list) and courses, courses
+          course_id = courses[0]["course_id"]
+          print("PASS: backend reads courses from database")
+
+          page = wait_for(frontend).text
+          assert 'id="mcp-courses-button"' in page
+          assert 'id="rag-form"' in page
+          script = requests.get(f"{frontend}/js/app.js", timeout=5)
+          script.raise_for_status()
+          assert "loadMcpCourses" in script.text
+          assert "askRag" in script.text
+          print("PASS: frontend serves MCP/RAG UI assets")
+
+          for path, payload in [
+              ("/ask", {"question": "Recommend a course"}),
+              ("/mcp/courses", {"available_only": True}),
+              ("/rag/ask", {
+                  "student_id": 1001,
+                  "query": "What is course 41026 about?",
+              }),
+          ]:
+              response = requests.post(
+                  backend + path, json=payload, timeout=5
+              )
+              assert response.status_code == 503, (
+                  path, response.status_code, response.text
+              )
+              assert response.json().get("status") == "disabled"
+              print(f"PASS: {path} disabled")
+
+          payload = {
+              "student_id": 999999,
+              "course_id": course_id,
+              "enrolment_status": "enrolled",
+              "enrolment_date": "2026-10-01",
+          }
+
+          response = requests.post(
+              f"{backend}/enrolments", json=payload, timeout=5
+          )
+          response.raise_for_status()
+          enrolment_id = response.json()["enrolment_id"]
+          url = f"{backend}/enrolments/{enrolment_id}"
+
+          response = requests.get(url, timeout=5)
+          response.raise_for_status()
+          assert response.json()["student_id"] == 999999
+
+          payload["enrolment_status"] = "withdrawn"
+          response = requests.put(url, json=payload, timeout=5)
+          response.raise_for_status()
+
+          response = requests.get(url, timeout=5)
+          response.raise_for_status()
+          assert response.json()["enrolment_status"] == "withdrawn"
+
+          response = requests.delete(url, timeout=5)
+          response.raise_for_status()
+
+          response = requests.get(
+              f"{backend}/enrolments", timeout=5
+          )
+          response.raise_for_status()
+          assert all(
+              row["enrolment_id"] != enrolment_id
+              for row in response.json()
+          )
+          print("PASS: enrolment create/read/update/delete")
+          PY
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          for container in yulin-db-ci yulin-backend-ci yulin-frontend-ci; do
+            docker logs "$container" || true
+          done
+
+      - name: Clean up CI containers
+        if: always()
+        run: |
+          docker rm -f yulin-frontend-ci yulin-backend-ci yulin-db-ci || true
+          docker network rm yulin-ci || true

@@ -5,14 +5,21 @@ on:
     paths:
       - "student-adrianvoljak/**"
       - ".github/workflows/student-adrianvoljak.yml"
+      - "docker-compose.yml"
   pull_request:
     paths:
       - "student-adrianvoljak/**"
       - ".github/workflows/student-adrianvoljak.yml"
+      - "docker-compose.yml"
 
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
+
+    env:
+      AI_ENABLED: "false"
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
 
     steps:
       - name: Checkout repository
@@ -21,15 +28,15 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: "3.11"
+          python-version: "3.12"
 
       - name: Install backend dependencies
         run: |
-          pip install -r student-adrianvoljak/backend/requirements.txt
+          python -m pip install -r student-adrianvoljak/backend/requirements.txt
 
       - name: Install database dependencies
         run: |
-          pip install -r student-adrianvoljak/database/requirements.txt
+          python -m pip install -r student-adrianvoljak/database/requirements.txt
 
       - name: Initialise assessment database
         run: |
@@ -37,16 +44,49 @@ jobs:
 
       - name: Validate backend Python
         run: |
-          python -m py_compile student-adrianvoljak/backend/app.py
-          python -m py_compile student-adrianvoljak/backend/routes/normal_ui.py
-          python -m py_compile student-adrianvoljak/backend/routes/ai_mode.py
-          python -m py_compile student-adrianvoljak/backend/services/database_api.py
-          python -m py_compile student-adrianvoljak/backend/services/llm_client.py
+          python -m compileall -q student-adrianvoljak/backend
 
       - name: Validate database Python
         run: |
-          python -m py_compile student-adrianvoljak/database/app.py
-          python -m py_compile student-adrianvoljak/database/init_db.py
+          python -m compileall -q student-adrianvoljak/database
+
+      - name: Verify AI, MCP and RAG are disabled
+        working-directory: student-adrianvoljak/backend
+        run: |
+          python - <<'PY'
+          from unittest.mock import patch
+          from app import app
+
+          with (
+              patch("routes.ai_mode.database_api.get_assignments") as database,
+              patch("routes.ai_mode.ask_llm") as llm,
+              patch("routes.mcp_mode.get_upcoming_assessments") as mcp,
+              patch("routes.rag_mode.answer_assessment_question") as rag,
+          ):
+              with app.test_client() as client:
+                  responses = [
+                      client.post("/ai/prioritise", json={"student_id": 1}),
+                      client.get("/mcp/assessments/upcoming?student_id=1"),
+                      client.post(
+                          "/rag/assessments/answer",
+                          json={"student_id": 1, "query": "When is my report due?"},
+                      ),
+                  ]
+
+              for response in responses:
+                  assert response.status_code == 503, response.get_json()
+                  assert response.get_json()["status"] == "disabled"
+
+              database.assert_not_called()
+              llm.assert_not_called()
+              mcp.assert_not_called()
+              rag.assert_not_called()
+
+          print("AI, MCP and RAG routes are disabled without service calls.")
+          PY
+
+      - name: Validate Docker Compose configuration
+        run: docker compose config --quiet
 
       - name: Build backend Docker image
         run: |

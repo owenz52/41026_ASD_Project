@@ -38,26 +38,6 @@ services:
       - exam-frontend
     restart: unless-stopped
 
-  # Shared - Agentic DevOps Loop
-  agentic-loop:
-    build:
-      context: ./ai-services/agentic-loop
-      dockerfile: Dockerfile
-    environment:
-      GITHUB_REPOSITORY: owenz52/41026_ASD_Project
-      GITHUB_TOKEN: ${GITHUB_TOKEN}
-      OLLAMA_BASE_URL: http://host.docker.internal:11434
-      OLLAMA_MODEL: qwen2.5:0.5b
-      POLL_SECONDS: 300
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
-    ports:
-      - "5012:5012"
-    volumes:
-      - agentic_loop_data:/app/data
-      - ./ai-services/agentic-loop/reports:/app/reports
-    restart: unless-stopped
-
   # Adrian Voljak - Assessment Tracker
 
   assessment-database:
@@ -78,6 +58,8 @@ services:
       DATABASE_SERVICE_URL: http://assessment-database:5008
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_SERVER_URL: http://host.docker.internal:8011/mcp
+      RAG_SERVER_URL: http://host.docker.internal:8012
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -106,6 +88,8 @@ services:
       ENROLMENT_SERVICE_URL: http://enrolment-database:5002
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_SERVER_URL: http://host.docker.internal:8011/mcp
+      RAG_SERVER_URL: http://host.docker.internal:8012
       TZ: Australia/Sydney
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -154,6 +138,8 @@ services:
       DATABASE_SERVICE_URL: http://enrolment-database:5002
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_SERVER_URL: http://host.docker.internal:8011/mcp
+      RAG_SERVER_URL: http://host.docker.internal:8012
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -191,6 +177,8 @@ services:
       DATABASE_SERVICE_URL: http://notebook-database:5004
       OLLAMA_BASE_URL: http://host.docker.internal:11434
       OLLAMA_MODEL: qwen2.5:0.5b
+      MCP_SERVER_URL: http://host.docker.internal:8011/mcp
+      RAG_SERVER_URL: http://host.docker.internal:8012
     extra_hosts:
       - "host.docker.internal:host-gateway"
     depends_on:
@@ -242,9 +230,8 @@ services:
             ENROLMENT_DATABASE_URL: http://enrolment-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
-            MCP_ENABLED: "true"
-            RAG_SERVICE_URL: http://host.docker.internal:5051
-            RAG_ENABLED: "true"
+            MCP_SERVER_URL: http://host.docker.internal:8011/mcp
+            RAG_SERVER_URL: http://host.docker.internal:8012
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -266,4 +253,3 @@ volumes:
   notebook_data:
   exam_data:
   user_database_data:
-  agentic_loop_data:
