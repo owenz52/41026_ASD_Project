@@ -435,3 +435,44 @@ body {
   .field-row { grid-template-columns: 1fr; }
   .table__actions { justify-content: flex-start; }
 }
+
+/* ------------------------------------------------------------ mcp / rag */
+
+.status { font-size: 12px; color: var(--muted); margin: 0 0 10px; min-height: 16px; }
+.status:empty { display: none; }
+
+.rag { background: var(--panel); border: 1px solid var(--line); padding: 16px; }
+.rag[hidden] { display: none; }
+
+.rag__answer { font-size: 14px; line-height: 1.65; white-space: pre-wrap; margin-bottom: 12px; }
+
+.rag__meta {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  margin-top: 6px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border: 1px solid var(--line);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: none;
+  color: #333;
+}
+
+.badge--ok { border-color: #2E7D32; color: #2E7D32; }
+.badge--none { border-color: var(--red); color: var(--red); }
+
+.rag__sources { margin-top: 12px; font-size: 12px; }
+.rag__sources summary { cursor: pointer; color: var(--muted); }
+.rag__sources[hidden] { display: none; }
+.rag__source { padding: 10px 0; border-top: 1px solid var(--line); white-space: pre-wrap; line-height: 1.55; color: #555; }
+.rag__source-id { font-weight: 600; color: #333; margin-bottom: 4px; }
+

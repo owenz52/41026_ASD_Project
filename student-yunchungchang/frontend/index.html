@@ -89,6 +89,56 @@
         </div>
         <div id="search-results" class="results"></div>
       </section>
+
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">MCP tool: search my notes</h2>
+            <p class="section__hint">
+              Calls the shared MCP server's <code>notebooks_search_notes</code> tool
+              through the notebook backend. Returns only your own notes.
+            </p>
+          </div>
+        </div>
+        <div class="search">
+          <input id="mcp-input" type="text" maxlength="100" placeholder="Keyword, e.g. docker">
+          <button id="mcp-btn" class="btn btn--primary">RUN MCP TOOL</button>
+        </div>
+        <p id="mcp-status" class="status" role="status" aria-live="polite"></p>
+        <div id="mcp-results" class="results"></div>
+      </section>
+
+      <section class="section">
+        <div class="section__head">
+          <div>
+            <h2 class="section__title">Ask my notes (RAG)</h2>
+            <p class="section__hint">
+              Answers are grounded in your own notes through the shared RAG server,
+              with source citations and a confidence category.
+            </p>
+          </div>
+        </div>
+        <div class="search">
+          <input id="rag-input" type="text" maxlength="1000" placeholder="Question, e.g. What did I write about Docker Compose?">
+          <button id="rag-btn" class="btn btn--primary">ASK RAG</button>
+        </div>
+        <p id="rag-status" class="status" role="status" aria-live="polite"></p>
+        <div id="rag-result" class="rag" hidden>
+          <div class="rag__answer" id="rag-answer"></div>
+          <div class="rag__meta">
+            <span>CONFIDENCE</span>
+            <span id="rag-confidence" class="badge"></span>
+          </div>
+          <div class="rag__meta">
+            <span>CITATIONS</span>
+            <span id="rag-citations"></span>
+          </div>
+          <details id="rag-source-details" class="rag__sources">
+            <summary>Source notes used</summary>
+            <div id="rag-sources"></div>
+          </details>
+        </div>
+      </section>
     </main>
   </div>
 

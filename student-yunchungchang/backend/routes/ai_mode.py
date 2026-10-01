@@ -1,4 +1,5 @@
 import json
+import os
 
 from flask import Blueprint, jsonify, request
 
@@ -9,9 +10,24 @@ from services.prompt_loader import load_prompt
 ai_mode_bp = Blueprint("ai_mode", __name__)
 
 
+def ai_mode_disabled():
+    enabled = os.getenv("AI_ENABLED", "true").strip().lower()
+    return enabled not in {"true", "1", "yes"}
+
+
+def ai_disabled_response():
+    return jsonify({
+        "status": "disabled",
+        "error": "AI mode is not enabled",
+    }), 503
+
+
 @ai_mode_bp.post("/ai/summarise")
 def summarise_note():
-    data = request.get_json()
+    if ai_mode_disabled():
+        return ai_disabled_response()
+
+    data = request.get_json(silent=True)
 
     if not data or not data.get("note_id"):
         return jsonify({"error": "note_id is required"}), 400
@@ -68,9 +84,12 @@ def check_recommendations(text, candidates):
 
 @ai_mode_bp.post("/ai/recommend")
 def recommend_notes():
+    if ai_mode_disabled():
+        return ai_disabled_response()
+
     agent_steps = []
 
-    data = request.get_json()
+    data = request.get_json(silent=True)
 
     if not data or not data.get("note_id"):
         return jsonify({"error": "note_id is required"}), 400

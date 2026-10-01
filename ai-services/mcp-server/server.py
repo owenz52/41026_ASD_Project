@@ -17,6 +17,11 @@ ENROLLMENT_BACKEND_URL = os.getenv(
     "http://127.0.0.1:5001",
 ).rstrip("/")
 
+NOTEBOOK_BACKEND_URL = os.getenv(
+    "NOTEBOOK_BACKEND_URL",
+    "http://127.0.0.1:5003",
+).rstrip("/")
+
 mcp = MCPServer("ASD Shared Tools")
 
 class AssessmentResult(TypedDict):
@@ -121,6 +126,64 @@ def enrolment_get_courses(available_only: bool = True, ) -> CoursesResult:
     }
 
 
+# Study Notebook — Yunchung Chang
+class NoteResult(TypedDict):
+    note_id: int
+    notebook_id: int
+    course_id: int
+    note_title: str
+    preview: str
+    updated_date: str
+
+
+class SearchNotesResult(TypedDict):
+    status: str
+    keyword: str
+    notes: list[NoteResult]
+
+
+@mcp.tool()
+def notebooks_search_notes(
+    student_id: int,
+    keyword: str,
+    limit: int = 10,
+) -> SearchNotesResult:
+    """Search one student's own notes by keyword and return read-only previews."""
+    if student_id <= 0:
+        raise ValueError("student_id must be positive")
+
+    keyword = keyword.strip()
+    if not 1 <= len(keyword) <= 100:
+        raise ValueError("keyword must contain 1–100 characters")
+
+    if not 1 <= limit <= 50:
+        raise ValueError("limit must be between 1 and 50")
+
+    response = requests.get(
+        f"{NOTEBOOK_BACKEND_URL}/notes/search",
+        params={"q": keyword, "student_id": student_id},
+        timeout=10,
+    )
+    response.raise_for_status()
+
+    notes = []
+
+    for row in response.json()[:limit]:
+        content = row.get("note_content", "")
+        notes.append({
+            "note_id": row["note_id"],
+            "notebook_id": row["notebook_id"],
+            "course_id": row["course_id"],
+            "note_title": row["note_title"],
+            "preview": content[:200],
+            "updated_date": row["updated_date"],
+        })
+
+    return {
+        "status": "success",
+        "keyword": keyword,
+        "notes": notes,
+    }
 
 
 if __name__ == "__main__":
