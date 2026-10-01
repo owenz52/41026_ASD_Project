@@ -3,13 +3,13 @@ name: Cayden Microservice CI
 on:
   push:
     paths:
-      - "student-caydenyip/**"
+      - "student_caydenyip/**"
       - "docker-compose.yml"
       - ".github/workflows/student-caydenyip.yml"
 
   pull_request:
     paths:
-      - "student-caydenyip/**"
+      - "student_caydenyip/**"
       - "docker-compose.yml"
       - ".github/workflows/student-caydenyip.yml"
 

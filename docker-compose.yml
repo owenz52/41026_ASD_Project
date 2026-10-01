@@ -222,7 +222,7 @@ services:
 # Cayden Yip - Exam
   exam-frontend:
     build:
-      context: ./student-caydenyip/frontend
+      context: ./student_caydenyip/frontend
     container_name: exam-frontend
     expose:
       - "80"
@@ -232,7 +232,7 @@ services:
 
   exam-backend:
         build:
-            context: ./student-caydenyip
+            context: ./student_caydenyip
             dockerfile: backend/Dockerfile
         container_name: exam-backend
         ports:
@@ -242,6 +242,9 @@ services:
             ENROLMENT_DATABASE_URL: http://enrolment-database:5002
             OLLAMA_BASE_URL: http://host.docker.internal:11434/v1
             OLLAMA_MODEL: qwen2.5:0.5b
+            MCP_ENABLED: "true"
+            RAG_SERVICE_URL: http://host.docker.internal:5051
+            RAG_ENABLED: "true"
         extra_hosts:
             - "host.docker.internal:host-gateway"
         depends_on:
@@ -251,12 +254,12 @@ services:
 
   exam-database:
         build:
-            context: ./student-caydenyip/database
+            context: ./student_caydenyip/database
         container_name: exam-database
         ports:
             - "5010:5010"
         volumes:
-            - exam_data:/app/data
+            - ./data:/app/data
         restart: unless-stopped
 volumes:
   enrolment_database_data:
