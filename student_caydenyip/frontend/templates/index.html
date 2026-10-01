@@ -127,6 +127,114 @@
                 </div>
             </section>
 
+
+
+            
+
+            <!-- MCP TEST PANEL -->
+
+            <section id="mcp-test">
+
+                <h2>Student Exams MCP Tester</h2>
+
+                <div>
+                    <label for="mcp-tool">
+                        MCP Tool:
+                    </label>
+
+                    <select id="mcp-tool">
+
+                        <option value="student_exam_status">
+                            student_exam_status
+                        </option>
+
+                        <option value="student_exams">
+                            student_exams
+                        </option>
+
+                        <option value="student_exam_summary">
+                            student_exam_summary
+                        </option>
+
+                    </select>
+                </div>
+
+                <br>
+
+                <button type="button" id="mcp-run-button">
+                    Run MCP Tool
+                </button>
+
+                <p id="mcp-loading" hidden>
+                    Running MCP tool...
+                </p>
+
+                <p id="mcp-error" hidden></p>
+
+                <h3>Result</h3>
+
+                <pre id="mcp-result">No result yet.</pre>
+
+            </section>
+
+
+
+            <!-- RAG TEST PANEL -->
+
+
+
+
+            <section id="rag-test" class="rag-test">
+                <h2>RAG Endpoint Tester</h2>
+
+                <div class="rag-field">
+                    <label>
+                        <input type="checkbox" id="rag-enabled" checked>
+                        RAG Mode Enabled
+                    </label>
+                </div>
+
+                <div class="rag-field">
+                    <label for="rag-caller">Caller</label>
+                    <input type="text" id="rag-caller" value="student" placeholder="student">
+                </div>
+
+                <div class="rag-field">
+                    <label for="rag-query">Query</label>
+                    <textarea id="rag-query" rows="4" placeholder="Ask something..."></textarea>
+                </div>
+
+                <div class="rag-field">
+                    <label for="rag-k">Number of results (k)</label>
+                    <input type="number" id="rag-k" value="5" min="1" max="20">
+                </div>
+
+                <div class="rag-buttons">
+                    <button type="button" id="rag-refresh-btn">
+                        Refresh RAG
+                    </button>
+
+                    <button type="button" id="rag-retrieve-btn">
+                        Retrieve
+                    </button>
+
+                    <button type="button" id="rag-answer-btn">
+                        Get Answer
+                    </button>
+                </div>
+
+                <div class="rag-status" id="rag-status">
+                    Ready
+                </div>
+
+                <pre class="rag-response" id="rag-response">Response will appear here...</pre>
+            </section>
+
+
+
+
+
+
         </main>
     </div>
 
@@ -195,51 +303,7 @@
 
 
 
-    <!-- MCP TEST PANEL -->
 
-    <section id="mcp-test">
-
-        <h2>Student Exams MCP Tester</h2>
-
-        <div>
-            <label for="mcp-tool">
-                MCP Tool:
-            </label>
-
-            <select id="mcp-tool">
-
-                <option value="student_exam_status">
-                    student_exam_status
-                </option>
-
-                <option value="student_exams">
-                    student_exams
-                </option>
-
-                <option value="student_exam_summary">
-                    student_exam_summary
-                </option>
-
-            </select>
-        </div>
-
-        <br>
-
-        <button type="button" id="mcp-run-button">
-            Run MCP Tool
-        </button>
-
-        <p id="mcp-loading" hidden>
-            Running MCP tool...
-        </p>
-
-        <p id="mcp-error" hidden></p>
-
-        <h3>Result</h3>
-
-        <pre id="mcp-result">No result yet.</pre>
-
-    </section>
 
 
     <div id="toast" class="toast"></div>
@@ -253,6 +317,7 @@
     <script src="./js/exam-reset.js"></script>
     <script src="./js/ai.js"></script>
     <script src="./js/mcp.js"></script>
+    <script src="./js/rag.js"></script>
 
 
 

@@ -850,3 +850,394 @@ button:hover,
         padding: 18px;
     }
 }
+
+/* =========================================================
+   MCP TEST PANEL
+   ========================================================= */
+
+#mcp-test,
+#rag-test {
+    width: 100%;
+    margin-bottom: 24px;
+    padding: 24px;
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 0;
+    box-shadow: none;
+    color: var(--ink);
+}
+
+/* Section headings */
+
+#mcp-test h2,
+#rag-test h2 {
+    margin: 0 0 18px;
+    font-size: 20px;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+#mcp-test h3 {
+    margin: 22px 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* =========================================================
+   MCP TOOL SELECT
+   ========================================================= */
+
+#mcp-test > div {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+#mcp-test > div label {
+    flex-shrink: 0;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+#mcp-tool {
+    width: 100%;
+    padding: 9px 10px;
+    color: var(--ink);
+    background: #FFF;
+    border: 1px solid var(--line);
+    border-radius: 0;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+#mcp-tool:hover {
+    border-color: #BDBDBD;
+}
+
+#mcp-tool:focus {
+    outline: 2px solid var(--red);
+    outline-offset: -1px;
+}
+
+/* =========================================================
+   MCP RUN BUTTON
+   ========================================================= */
+
+#mcp-run-button {
+    margin: 0;
+    padding: 9px 14px;
+    color: #FFF;
+    background: var(--red);
+    border: 1px solid var(--red);
+    border-radius: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+}
+
+#mcp-run-button:hover {
+    background: var(--red-dark);
+}
+
+/* =========================================================
+   MCP LOADING / ERROR
+   ========================================================= */
+
+#mcp-loading {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    color: var(--muted);
+    background: var(--panel-alt);
+    border: 1px solid var(--line);
+    font-size: 12px;
+}
+
+#mcp-error {
+    margin: 12px 0 0;
+    padding: 10px 12px;
+    color: #96200F;
+    background: var(--danger-bg);
+    border-left: 3px solid var(--red);
+    font-size: 12px;
+}
+
+/* =========================================================
+   MCP RESULT
+   ========================================================= */
+
+#mcp-result {
+    width: 100%;
+    min-height: 130px;
+    max-height: 420px;
+    overflow: auto;
+
+    margin: 0;
+    padding: 14px;
+
+    color: #D6D6D6;
+    background: #1A1A1A;
+    border: 1px solid #1A1A1A;
+
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono",
+        Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* =========================================================
+   RAG TEST PANEL
+   ========================================================= */
+
+.rag-test {
+    width: 100%;
+}
+
+.rag-field {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    margin-bottom: 14px;
+}
+
+.rag-field > label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: .09em;
+    color: var(--muted);
+    text-transform: uppercase;
+}
+
+/* RAG enabled checkbox */
+
+.rag-field:first-of-type > label {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink);
+    text-transform: none;
+    letter-spacing: .02em;
+}
+
+#rag-enabled {
+    width: auto;
+    margin: 0;
+    accent-color: var(--red);
+}
+
+/* =========================================================
+   RAG INPUTS
+   ========================================================= */
+
+#rag-caller,
+#rag-query,
+#rag-k {
+    width: 100%;
+    padding: 9px 10px;
+
+    color: var(--ink);
+    background: #FFF;
+
+    border: 1px solid var(--line);
+    border-radius: 0;
+
+    font-size: 13px;
+}
+
+#rag-caller:focus,
+#rag-query:focus,
+#rag-k:focus {
+    outline: 2px solid var(--red);
+    outline-offset: -1px;
+}
+
+#rag-query {
+    min-height: 100px;
+    resize: vertical;
+    line-height: 1.5;
+}
+
+#rag-k {
+    width: 120px;
+}
+
+/* =========================================================
+   RAG BUTTONS
+   ========================================================= */
+
+.rag-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px;
+
+    margin-top: 18px;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+}
+
+.rag-buttons button {
+    margin: 0;
+}
+
+/* Refresh = primary */
+
+#rag-refresh-btn {
+    color: #FFF;
+    background: var(--red);
+    border-color: var(--red);
+}
+
+#rag-refresh-btn:hover {
+    background: var(--red-dark);
+}
+
+/* Retrieve = normal */
+
+#rag-retrieve-btn {
+    color: var(--ink);
+    background: var(--panel);
+    border-color: var(--line);
+}
+
+#rag-retrieve-btn:hover {
+    background: #F6F6F4;
+}
+
+/* Answer = dark */
+
+#rag-answer-btn {
+    color: #FFF;
+    background: var(--ink);
+    border-color: var(--ink);
+}
+
+#rag-answer-btn:hover {
+    background: #333;
+}
+
+/* =========================================================
+   RAG STATUS
+   ========================================================= */
+
+.rag-status {
+    margin-top: 14px;
+    padding: 10px 12px;
+
+    color: var(--muted);
+    background: var(--panel-alt);
+    border: 1px solid var(--line);
+
+    font-size: 11px;
+    line-height: 1.4;
+}
+
+.rag-status.success {
+    color: var(--success);
+    background: #E4F2EA;
+    border-color: #BBD8C6;
+}
+
+.rag-status.error {
+    color: #96200F;
+    background: var(--danger-bg);
+    border-left: 3px solid var(--red);
+}
+
+.rag-status.loading {
+    color: var(--muted);
+    background: #F6F6F4;
+}
+
+/* =========================================================
+   RAG RESPONSE
+   ========================================================= */
+
+.rag-response {
+    width: 100%;
+    min-height: 160px;
+    max-height: 450px;
+    overflow: auto;
+
+    margin-top: 10px;
+    padding: 14px;
+
+    color: #D6D6D6;
+    background: #1A1A1A;
+    border: 1px solid #1A1A1A;
+
+    font-family: "SFMono-Regular", Consolas, "Liberation Mono",
+        Menlo, monospace;
+    font-size: 11px;
+    line-height: 1.5;
+
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* =========================================================
+   CODE OUTPUT SCROLLBARS
+   ========================================================= */
+
+#mcp-result::-webkit-scrollbar,
+.rag-response::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+#mcp-result::-webkit-scrollbar-track,
+.rag-response::-webkit-scrollbar-track {
+    background: #242424;
+}
+
+#mcp-result::-webkit-scrollbar-thumb,
+.rag-response::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+#mcp-result::-webkit-scrollbar-thumb:hover,
+.rag-response::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media (max-width: 600px) {
+    #mcp-test,
+    #rag-test {
+        padding: 18px;
+    }
+
+    #mcp-test > div {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    #mcp-tool {
+        width: 100%;
+    }
+
+    .rag-buttons {
+        flex-direction: column;
+    }
+
+    .rag-buttons button {
+        width: 100%;
+    }
+
+    #rag-k {
+        width: 100%;
+    }
+}

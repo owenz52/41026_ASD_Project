@@ -4,7 +4,7 @@ from rag_pipeline import answer_question as answer_question_impl
 from rag_pipeline import refresh_corpus as refresh_corpus_impl
 from rag_pipeline import retrieve_context as retrieve_context_impl
 
-mcp = FastMCP("Student Enrolment RAG MCP")
+mcp = FastMCP("Student Dashboard RAG MCP")
 AVAILABLE_TOOLS = ["refresh_corpus", "retrieve_context", "answer_question"]
 
 

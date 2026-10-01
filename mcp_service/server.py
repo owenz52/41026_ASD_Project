@@ -2,7 +2,7 @@ from mcp.server.fastmcp import FastMCP
 from mcp.server.transport_security import TransportSecuritySettings
 
 
-from mcp_service.tools import (
+from tools import (
 
     get_student_exam_status,
     get_student_exams,
