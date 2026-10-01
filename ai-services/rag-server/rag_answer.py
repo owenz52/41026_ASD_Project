@@ -2,6 +2,8 @@ import re
 
 import requests
 
+from rag_pipeline import words
+
 
 OLLAMA_URL = "http://127.0.0.1:11434/api/generate"
 OLLAMA_MODEL = "qwen2.5:0.5b"
@@ -62,7 +64,7 @@ Answer:"""
 
     if not cited_ids:
         # Only attribute an uncited answer if it is copied from the context.
-        excerpt = answer.strip()
+        excerpt = answer.strip().rstrip(".!?;:, ")
         matching_sources = []
 
         if len(excerpt) >= 8:
@@ -72,6 +74,18 @@ Answer:"""
                 for item in results
                 if re.search(pattern, item["text"], flags=re.IGNORECASE)
             ))
+
+        if not matching_sources:
+            # Small models often shorten a context sentence without citing it.
+            # Accept it only if every content word appears in one retrieved source.
+            answer_words = words(answer)
+
+            if len(answer_words) >= 3:
+                matching_sources = [
+                    item["source_id"]
+                    for item in results
+                    if answer_words <= words(item["text"])
+                ][:1]
 
         if not matching_sources:
             return insufficient_context()
