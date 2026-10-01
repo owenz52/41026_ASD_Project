@@ -1,5 +1,6 @@
 import asyncio
 import os
+import json
 
 from flask import Blueprint, jsonify, request
 
@@ -73,6 +74,8 @@ def mcp_disabled_response():
 # MCP RESULT SERIALIZATION
 # ==================================================
 
+
+
 def serialize_mcp_result(result):
 
     output = []
@@ -81,26 +84,23 @@ def serialize_mcp_result(result):
 
         if hasattr(content, "text"):
 
-            output.append({
-                "type": "text",
-                "text": content.text,
-            })
+            try:
+                output.append(
+                    json.loads(content.text)
+                )
+            except (json.JSONDecodeError, TypeError):
+                output.append(content.text)
 
         elif hasattr(content, "data"):
 
-            output.append({
-                "type": "data",
-                "data": content.data,
-            })
+            output.append(content.data)
 
         else:
 
-            output.append({
-                "type": "unknown",
-                "value": str(content),
-            })
+            output.append(str(content))
 
     return output
+
 
 
 # ==================================================
@@ -272,12 +272,8 @@ def mcp_test():
         # Return response
         # --------------------------------------
 
-        return jsonify({
-            "success": True,
-            "tool": tool,
-            "student_id": student_id,
-            "result": serialized_result,
-        }), 200
+        return jsonify(serialized_result), 200
+
 
     except Exception as exc:
 
