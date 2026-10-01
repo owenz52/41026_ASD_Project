@@ -1,27 +1,179 @@
 name: Yunchung Chang CI
 
 on:
-    push:
-        paths:
-            - "student-yunchungchang/**"
-            - "docker-compose.yml"
-            - ".github/workflows/student-yunchungchang-ci.yml"
+  push:
+    paths:
+      - "student-yunchungchang/**"
+      - "ai-services/mcp-server/**"
+      - "ai-services/rag-server/**"
+      - "docker-compose.yml"
+      - ".github/workflows/student-yunchungchang-ci.yml"
 
-    pull_request:
-        paths:
-            - "student-yunchungchang/**"
-            - "docker-compose.yml"
-            - ".github/workflows/student-yunchungchang-ci.yml"
+  pull_request:
+    paths:
+      - "student-yunchungchang/**"
+      - "ai-services/mcp-server/**"
+      - "ai-services/rag-server/**"
+      - "docker-compose.yml"
+      - ".github/workflows/student-yunchungchang-ci.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
 
 jobs:
-    docker-build:
-        runs-on: ubuntu-latest
+  docker-build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
 
-        steps:
-            - name: Checkout repository
-              uses: actions/checkout@v4
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-            - name: Build Docker services
-              run: >
-                  docker compose -f docker-compose.yml build
-                  notebook-backend notebook-database notebook-frontend
+      - name: Validate Compose configuration
+        run: docker compose config --quiet
+
+      - name: Build Notebook images
+        run: |
+          docker build -t yunchung-db-ci student-yunchungchang/database
+          docker build -t yunchung-backend-ci \
+            -f student-yunchungchang/backend/Dockerfile student-yunchungchang
+          docker build -t yunchung-frontend-ci student-yunchungchang/frontend
+
+      # AI-Mode, MCP and RAG stay integrated in the backend but are switched
+      # off here: the CI runner has no Ollama, MCP server or RAG server.
+      - name: Start isolated CI containers
+        run: |
+          docker network create yunchung-ci
+
+          docker run -d --name yunchung-db-ci \
+            --network yunchung-ci \
+            yunchung-db-ci
+
+          docker run -d --name yunchung-backend-ci \
+            --network yunchung-ci \
+            -e DATABASE_SERVICE_URL=http://yunchung-db-ci:5004 \
+            -e AI_ENABLED=false \
+            -e MCP_ENABLED=false \
+            -e RAG_ENABLED=false \
+            yunchung-backend-ci
+
+          docker run -d --name yunchung-frontend-ci \
+            --network yunchung-ci \
+            yunchung-frontend-ci
+
+      - name: Validate frontend backend database and disabled modes
+        run: |
+          docker exec -i yunchung-backend-ci python - <<'PY'
+          import time
+          import requests
+
+          backend = "http://127.0.0.1:5003"
+          frontend = "http://yunchung-frontend-ci"
+
+          def wait_for(url):
+              for _ in range(30):
+                  try:
+                      response = requests.get(url, timeout=2)
+                      if response.status_code == 200:
+                          return response
+                  except requests.RequestException:
+                      pass
+                  time.sleep(1)
+              raise RuntimeError(f"Service not ready: {url}")
+
+          notebooks = wait_for(f"{backend}/notebooks?student_id=1001").json()
+          assert isinstance(notebooks, list) and notebooks, notebooks
+          notes = requests.get(
+              f"{backend}/notebooks/{notebooks[0]['notebook_id']}/notes", timeout=5
+          ).json()
+          assert isinstance(notes, list) and notes, notes
+          print("PASS: backend reads seeded notebooks and notes from database")
+
+          page = wait_for(frontend).text
+          assert 'id="mcp-btn"' in page
+          assert 'id="rag-btn"' in page
+          script = requests.get(f"{frontend}/js/app.js", timeout=5)
+          script.raise_for_status()
+          assert "mcpSearchNotes" in script.text
+          assert "askRag" in script.text
+          print("PASS: frontend serves MCP/RAG UI assets")
+
+          for path, payload in [
+              ("/ai/summarise", {"note_id": notes[0]["note_id"]}),
+              ("/ai/recommend", {"note_id": notes[0]["note_id"]}),
+              ("/mcp/notes/search", {"student_id": 1001, "keyword": "docker"}),
+              ("/rag/notes/answer", {
+                  "student_id": 1001,
+                  "query": "What did I write about Docker?",
+              }),
+          ]:
+              response = requests.post(
+                  backend + path, json=payload, timeout=5
+              )
+              assert response.status_code == 503, (
+                  path, response.status_code, response.text
+              )
+              assert response.json().get("status") == "disabled"
+              print(f"PASS: {path} disabled")
+
+          response = requests.post(
+              f"{backend}/notebooks",
+              json={
+                  "student_id": 999999,
+                  "course_id": 1,
+                  "notebook_title": "CI notebook",
+              },
+              timeout=5,
+          )
+          response.raise_for_status()
+          notebook_id = response.json()["notebook_id"]
+
+          response = requests.post(
+              f"{backend}/notes",
+              json={
+                  "notebook_id": notebook_id,
+                  "note_title": "CI note",
+                  "note_content": "Created during CI",
+              },
+              timeout=5,
+          )
+          response.raise_for_status()
+          note_id = response.json()["note_id"]
+          note_url = f"{backend}/notes/{note_id}"
+
+          response = requests.get(note_url, timeout=5)
+          response.raise_for_status()
+          assert response.json()["note_title"] == "CI note"
+
+          response = requests.put(
+              note_url, json={"note_content": "Updated during CI"}, timeout=5
+          )
+          response.raise_for_status()
+          assert response.json()["note_content"] == "Updated during CI"
+
+          response = requests.delete(
+              f"{backend}/notebooks/{notebook_id}", timeout=5
+          )
+          response.raise_for_status()
+
+          response = requests.get(note_url, timeout=5)
+          assert response.status_code == 404, (
+              "cascade delete did not remove the note", response.text
+          )
+          print("PASS: notebook/note create/read/update/delete with cascade")
+          PY
+
+      - name: Show container logs on failure
+        if: failure()
+        run: |
+          for container in yunchung-db-ci yunchung-backend-ci yunchung-frontend-ci; do
+            docker logs "$container" || true
+          done
+
+      - name: Clean up CI containers
+        if: always()
+        run: |
+          docker rm -f yunchung-frontend-ci yunchung-backend-ci yunchung-db-ci || true
+          docker network rm yunchung-ci || true
