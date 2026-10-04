@@ -602,6 +602,19 @@ document.addEventListener("DOMContentLoaded", () => {
   });
   document.getElementById("agent-import").addEventListener("click", findDeadlines);
   document.getElementById("brief-btn").addEventListener("click", getBriefing);
+
+  document.getElementById("rag-ask").addEventListener("click", askRag);
+  document.getElementById("rag-question").addEventListener("keydown", (e) => {
+    if (e.key === "Enter") askRag();
+  });
+  document.getElementById("mcp-run").addEventListener("click", runMcpTool);
+  document.getElementById("mcp-tool").addEventListener("change", (e) => {
+    const tool = mcpTools.find((t) => t.name === e.target.value);
+    document.getElementById("mcp-description").textContent =
+      tool ? tool.description || "" : "";
+    renderMcpArguments(tool);
+  });
+  loadMcpTools();
   document.getElementById("agent-dismiss").addEventListener("click", () => {
     clearSuggestions();
     document.getElementById("agent-text").textContent =
@@ -620,3 +633,247 @@ document.addEventListener("DOMContentLoaded", () => {
 
   loadEvents();
 });
+
+/* ------------------------------------ shared MCP and RAG (Release 1) */
+/* Both shared servers are reached through the calendar backend, so the
+   browser never speaks the MCP protocol or supplies RAG documents itself. */
+
+function renderRagResult(data) {
+  const box = document.getElementById("rag-result");
+
+  if (!data.available) {
+    box.innerHTML = `<div class="rag-card rag-card--error">${escapeHtml(
+      data.error || "The shared RAG server is unavailable.")}</div>`;
+    return;
+  }
+
+  // An insufficient-context result is shown as such, never as an answer.
+  if (!data.grounded) {
+    box.innerHTML = `
+      <div class="rag-card rag-card--insufficient">
+        <span class="rag-card__badge">INSUFFICIENT CONTEXT</span>
+        <p class="rag-card__answer">${escapeHtml(data.answer || "")}</p>
+        ${data.reason ? `<p class="rag-card__why">${escapeHtml(data.reason)}</p>` : ""}
+      </div>`;
+    return;
+  }
+
+  const citations = (data.citations || [])
+    .map((c, i) => `
+      <li class="citation">
+        <span class="citation__index">[${i + 1}]</span>
+        <span class="citation__source">${escapeHtml(c.source)}</span>
+        ${c.snippet ? `<span class="citation__snippet">${escapeHtml(c.snippet)}</span>` : ""}
+      </li>`).join("");
+
+  const searched = data.searched || {};
+
+  box.innerHTML = `
+    <div class="rag-card">
+      <span class="rag-card__badge rag-card__badge--${escapeHtml(data.confidence)}">
+        CONFIDENCE: ${escapeHtml(String(data.confidence).toUpperCase())}
+      </span>
+      <p class="rag-card__answer">${escapeHtml(data.answer)}</p>
+      <div class="rag-card__sources">
+        <span class="rag-card__sources-label">Sources</span>
+        <ul class="citations">${citations}</ul>
+        ${searched.documents ? `<p class="rag-card__why">Searched ${
+          searched.documents} calendar record(s).</p>` : ""}
+      </div>
+    </div>`;
+}
+
+async function askRag() {
+  const input = document.getElementById("rag-question");
+  const button = document.getElementById("rag-ask");
+  const box = document.getElementById("rag-result");
+
+  const question = input.value.trim();
+  if (!question) return;
+
+  button.disabled = true;
+  box.innerHTML = `<div class="rag-card">Retrieving from your calendar...</div>`;
+
+  try {
+    renderRagResult(await api("/ai/rag/ask", {
+      method: "POST",
+      body: JSON.stringify({ question, student_id: STUDENT_ID }),
+    }));
+  } catch (error) {
+    renderRagResult({ available: false, error: error.message });
+  } finally {
+    button.disabled = false;
+  }
+}
+
+let mcpTools = [];
+
+const MCP_TYPE_COLOURS = {
+  lecture: "#3366CC", seminar: "#3366CC", lab: "#3366CC",
+  deadline: "#DC3545", exam: "#FF6B6B", revision: "#1A1A1A",
+  office_hours: "#666666", other: "#999999",
+};
+
+function setMcpStatus(text, ok) {
+  const el = document.getElementById("mcp-status");
+  el.textContent = text;
+  el.className = `mcp-status ${ok ? "mcp-status--ok" : "mcp-status--down"}`;
+}
+
+async function loadMcpTools() {
+  const select = document.getElementById("mcp-tool");
+  const description = document.getElementById("mcp-description");
+
+  try {
+    const data = await api("/ai/mcp/tools");
+    mcpTools = data.tools || [];
+
+    if (!mcpTools.length) {
+      select.innerHTML = `<option value="">No calendar tools registered</option>`;
+      setMcpStatus("Connected, but no calendar tools are registered", false);
+      return;
+    }
+
+    setMcpStatus(`Connected - ${mcpTools.length} calendar tools, read-only`, true);
+    select.innerHTML = mcpTools
+      .map((t) => `<option value="${escapeHtml(t.name)}">${escapeHtml(t.name)}</option>`)
+      .join("");
+    description.textContent = mcpTools[0].description || "";
+    renderMcpArguments(mcpTools[0]);
+  } catch (error) {
+    select.innerHTML = `<option value="">Shared MCP server unavailable</option>`;
+    setMcpStatus("Shared MCP server unavailable", false);
+    description.textContent = error.message;
+  }
+}
+
+/* Build an input for each argument a tool declares, so the calendar adapts to
+   the tools the backend allows rather than hard-coding them. The permitted
+   range comes from the backend as tool.limits. */
+function renderMcpArguments(tool) {
+  const box = document.getElementById("mcp-args");
+  const properties = (tool && tool.input_schema && tool.input_schema.properties) || {};
+  const limits = (tool && tool.limits) || {};
+
+  const fields = Object.keys(properties)
+    // student_id is supplied from the signed-in user, not typed.
+    .filter((name) => name !== "student_id")
+    .map((name) => {
+      const spec = properties[name] || {};
+      const type = spec.type === "integer" || spec.type === "number"
+        ? "number" : "text";
+      const value = spec.default !== undefined ? spec.default : "";
+      return `
+        <label class="mcp-arg">
+          <span class="mcp-arg__name">${escapeHtml(name)}</span>
+          <input class="input mcp-arg__input" data-arg="${escapeHtml(name)}"
+                 data-type="${type}" type="${type}"
+                 value="${escapeHtml(String(value))}"
+                 placeholder="${escapeHtml(limits[name] || "")}">
+          <span class="mcp-arg__hint">${escapeHtml(limits[name] || "")}</span>
+        </label>`;
+    });
+
+  box.innerHTML = fields.join("");
+}
+
+function argumentsFor() {
+  const args = {};
+
+  document.querySelectorAll("#mcp-args .mcp-arg__input").forEach((input) => {
+    const raw = input.value.trim();
+    if (!raw) return;
+    args[input.dataset.arg] =
+      input.dataset.type === "number" ? Number(raw) : raw;
+  });
+
+  return args;
+}
+
+function formatMcpTime(value) {
+  const [day, time] = String(value).replace("T", " ").split(" ");
+  return `${day} ${(time || "").slice(0, 5)}`.trim();
+}
+
+function mcpEventRow(event) {
+  const colour = MCP_TYPE_COLOURS[event.event_type] || MCP_TYPE_COLOURS.other;
+  const where = event.location ? ` - ${escapeHtml(event.location)}` : "";
+  return `
+    <li class="mcp-event">
+      <span class="mcp-event__dot" style="background:${colour}"></span>
+      <span class="mcp-event__time">${escapeHtml(formatMcpTime(event.start_time))}</span>
+      <span class="mcp-event__title">${escapeHtml(event.title)}
+        <span class="mcp-event__meta">${escapeHtml(event.event_type)}${where}</span>
+      </span>
+    </li>`;
+}
+
+/* A readable view of the structured result. Anything unrecognised falls back
+   to the raw JSON, which is always available under "Raw result". */
+function renderMcpResult(result) {
+  if (result && Array.isArray(result.events)) {
+    if (!result.events.length) {
+      return `<p class="mcp-empty">No events in the next ${result.days_ahead} days.</p>`;
+    }
+    return `
+      <p class="mcp-summary">${result.count} event${result.count === 1 ? "" : "s"}
+        in the next ${result.days_ahead} days (from ${escapeHtml(result.as_of)})</p>
+      <ul class="mcp-events">${result.events.map(mcpEventRow).join("")}</ul>`;
+  }
+
+  if (result && Array.isArray(result.conflicts)) {
+    if (!result.conflicts.length) {
+      return `<p class="mcp-empty">No clashes on ${escapeHtml(result.day)}
+        (${result.events_checked} events checked).</p>`;
+    }
+    return `
+      <p class="mcp-summary">${result.conflict_count} clash${result.conflict_count === 1 ? "" : "es"}
+        on ${escapeHtml(result.day)}</p>
+      <ul class="mcp-events">${result.conflicts.map((c) => `
+        <li class="mcp-conflict">
+          <ul class="mcp-events">${mcpEventRow(c.first)}${mcpEventRow(c.second)}</ul>
+          <span class="mcp-conflict__note">overlap ${c.overlap_minutes} min</span>
+        </li>`).join("")}</ul>`;
+  }
+
+  return "";
+}
+
+async function runMcpTool() {
+  const select = document.getElementById("mcp-tool");
+  const button = document.getElementById("mcp-run");
+  const box = document.getElementById("mcp-result");
+
+  const name = select.value;
+  if (!name) return;
+
+  button.disabled = true;
+  box.innerHTML = `<div class="mcp-card">Calling ${escapeHtml(name)}...</div>`;
+
+  try {
+    const data = await api("/ai/mcp/invoke", {
+      method: "POST",
+      body: JSON.stringify({
+        tool: name,
+        student_id: STUDENT_ID,
+        arguments: argumentsFor(),
+      }),
+    });
+
+    box.innerHTML = `
+      <div class="mcp-card">
+        <span class="mcp-card__tool">${escapeHtml(data.tool || name)}</span>
+        ${renderMcpResult(data.result)}
+        <details class="mcp-raw">
+          <summary>Raw result</summary>
+          <pre class="mcp-card__result">${escapeHtml(
+            JSON.stringify(data.result, null, 2))}</pre>
+        </details>
+      </div>`;
+  } catch (error) {
+    box.innerHTML = `<div class="mcp-card mcp-card--error">${escapeHtml(
+      error.message)}</div>`;
+  } finally {
+    button.disabled = false;
+  }
+}

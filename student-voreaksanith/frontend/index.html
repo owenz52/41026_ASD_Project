@@ -74,6 +74,38 @@
       </div>
       <div id="calendar-grid" class="grid"></div>
 
+      <section class="agent agent--tools">
+        <div class="agent__label">ASK ABOUT MY CALENDAR (SHARED RAG)</div>
+        <p class="agent__text">
+          Ask a question about your calendar. The answer is grounded in your own
+          events, and shown with the records it came from and a confidence level.
+        </p>
+        <div class="input-row">
+          <input id="rag-question" class="input" type="text"
+                 placeholder="e.g. When is my assignment due?">
+          <button id="rag-ask" class="btn btn--primary">ASK</button>
+        </div>
+        <div id="rag-result" class="rag-result"></div>
+      </section>
+
+      <section class="agent agent--tools">
+        <div class="agent__label">SHARED MCP TOOLS</div>
+        <p class="agent__text">
+          Tools the team's shared MCP server registers, called through the
+          calendar backend.
+        </p>
+        <div class="input-row">
+          <select id="mcp-tool" class="input">
+            <option value="">Loading tools...</option>
+          </select>
+          <button id="mcp-run" class="btn btn--primary">RUN TOOL</button>
+        </div>
+        <p id="mcp-status" class="mcp-status"></p>
+        <p id="mcp-description" class="mcp-description"></p>
+        <div id="mcp-args" class="mcp-args"></div>
+        <div id="mcp-result" class="mcp-result"></div>
+      </section>
+
       <section class="agent agent--brief">
         <div class="agent__label">TODAY</div>
         <p class="agent__text" id="brief-text">

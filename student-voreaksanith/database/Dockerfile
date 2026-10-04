@@ -7,7 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-RUN python init_db.py
+RUN python init_db.py && python seed_october.py
 
 EXPOSE 5006
 

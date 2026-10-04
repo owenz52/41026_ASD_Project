@@ -421,3 +421,192 @@ body {
   .agent__list--wide { grid-template-columns: 1fr; }
   .agent--brief .btn--block { max-width: none; }
 }
+
+/* ------------------------------- shared MCP and RAG (Release 1) */
+/* Uses the same dark .agent panel as the study agent and briefing. */
+
+.agent--tools { margin-bottom: 12px; }
+.agent--tools .input-row { margin-top: 10px; gap: 6px; }
+
+.agent--tools .input {
+  background: #2A2A2A;
+  border-color: #4A4A4A;
+  color: #fff;
+  font-size: 12.5px;
+}
+
+.agent--tools .input::placeholder { color: #7A7A7A; }
+
+.rag-result:empty, .mcp-result:empty { display: none; }
+
+.rag-card {
+  margin-top: 10px;
+  padding: 11px 12px;
+  background: #2A2A2A;
+  border-left: 3px solid var(--red);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: #E0E0E0;
+}
+
+.rag-card--insufficient { border-left-color: #C8912B; }
+.rag-card--error { border-left-color: #8A8A8A; color: #B5B5B5; }
+
+.rag-card__badge {
+  display: inline-block;
+  margin-bottom: 7px;
+  padding: 2px 6px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.09em;
+  background: #3A3A3A;
+  color: #C9C9C9;
+}
+
+.rag-card__badge--high { background: #1D6F42; color: #fff; }
+.rag-card__badge--medium { background: #9A6412; color: #fff; }
+.rag-card__badge--low { background: #7A3B12; color: #fff; }
+.rag-card--insufficient .rag-card__badge { background: #C8912B; color: #1A1A1A; }
+
+.rag-card__answer { margin: 0; }
+.rag-card__why { margin: 7px 0 0; font-size: 11px; color: #9A9A9A; }
+
+.rag-card__sources {
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.rag-card__sources-label {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #8A8A8A;
+}
+
+.citations { list-style: none; margin: 6px 0 0; padding: 0; }
+.citation { display: block; margin-bottom: 5px; font-size: 11.5px; line-height: 1.45; }
+.citation__index { color: var(--red); font-weight: 700; margin-right: 5px; }
+.citation__source { color: #D6D6D6; font-family: Consolas, monospace; font-size: 11px; }
+
+.citation__snippet {
+  display: block;
+  color: #8A8A8A;
+  font-size: 10.5px;
+  margin-left: 17px;
+}
+
+.mcp-description { margin: 7px 0 0; font-size: 11px; color: #9A9A9A; line-height: 1.45; }
+
+.mcp-card {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #2A2A2A;
+  border-left: 3px solid #3366CC;
+  font-size: 12px;
+  color: #E0E0E0;
+}
+
+.mcp-card--error { border-left-color: #8A8A8A; color: #B5B5B5; }
+
+.mcp-card__tool {
+  display: block;
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+
+.mcp-card__result {
+  margin: 0;
+  max-height: 220px;
+  overflow: auto;
+  font-family: Consolas, monospace;
+  font-size: 10.5px;
+  line-height: 1.5;
+  color: #C9C9C9;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* One argument per row: name on the left, input on the right. A tool can
+   declare any number of arguments, so they stack rather than sitting on one
+   line where they would wrap unpredictably. */
+.mcp-args {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 10px;
+  padding-top: 9px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mcp-args:empty { display: none; }
+
+.mcp-arg {
+  display: grid;
+  /* A fixed label column keeps the inputs aligned down the list. */
+  grid-template-columns: 150px 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.mcp-arg__name {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #9A9A9A;
+  text-align: right;
+}
+
+.mcp-arg__input {
+  max-width: 220px;
+  font-size: 12px;
+}
+
+@media (max-width: 760px) {
+  .mcp-arg {
+    grid-template-columns: 1fr;
+    gap: 3px;
+  }
+
+  .mcp-arg__name { text-align: left; }
+  .mcp-arg__input { max-width: none; }
+}
+
+
+/* ----------------------------- MCP result view and status */
+.mcp-status { margin: 8px 0 0; font-size: 10.5px; letter-spacing: 0.04em; color: #9A9A9A; }
+.mcp-status::before {
+  content: ""; display: inline-block; width: 7px; height: 7px;
+  margin-right: 6px; border-radius: 50%; background: #8A8A8A;
+}
+.mcp-status--ok::before { background: #3FA66B; }
+.mcp-status--down::before { background: #DC3545; }
+.mcp-status:empty { display: none; }
+
+.mcp-arg__hint { font-size: 10px; color: #7A7A7A; white-space: nowrap; }
+
+.mcp-summary { margin: 0 0 8px; font-size: 11px; color: #B5B5B5; }
+.mcp-empty { margin: 0; font-size: 12px; color: #B5B5B5; }
+
+.mcp-events { list-style: none; margin: 0; padding: 0; }
+.mcp-event {
+  display: grid; grid-template-columns: 8px 92px 1fr;
+  gap: 8px; align-items: baseline; padding: 4px 0;
+}
+.mcp-event__dot { width: 8px; height: 8px; border-radius: 50%; align-self: center; }
+.mcp-event__time { font-family: Consolas, monospace; font-size: 10.5px; color: #9A9A9A; }
+.mcp-event__title { font-size: 12px; color: #E0E0E0; }
+.mcp-event__meta { display: block; font-size: 10px; color: #7A7A7A; }
+
+.mcp-conflict {
+  margin-bottom: 8px; padding: 6px 8px;
+  border-left: 3px solid #DC3545; background: #242424;
+}
+.mcp-conflict__note { font-size: 10px; color: #FF6B6B; }
+
+.mcp-raw { margin-top: 10px; }
+.mcp-raw summary { cursor: pointer; font-size: 10.5px; color: #9A9A9A; }
+.mcp-raw .mcp-card__result { margin-top: 6px; }

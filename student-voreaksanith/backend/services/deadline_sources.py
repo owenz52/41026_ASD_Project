@@ -63,11 +63,17 @@ def assessment_service_available():
 def list_exams(student_id=None):
     """Exams from the exam timetable service.
 
-    The service exposes /exams. It has no student filter, so filtering happens
-    here rather than in the query.
+    The service requires student_id as a query parameter and answers 400
+    without it, so it is always sent when known. The result is filtered again
+    here, because a service that ignored the parameter would otherwise return
+    another student's exams.
     """
+    params = {}
+    if student_id is not None:
+        params["student_id"] = student_id
+
     try:
-        body = _get(EXAM_SERVICE_URL, "/exams")
+        body = _get(EXAM_SERVICE_URL, "/exams", params or None)
         exams = body if isinstance(body, list) else body.get("exams", [])
     except (requests.RequestException, ValueError):
         return []
@@ -81,10 +87,17 @@ def list_exams(student_id=None):
     ]
 
 
-def exam_service_available():
-    """Whether the exam service answered successfully. See the note above."""
+def exam_service_available(student_id=None):
+    """Whether the exam service answered successfully.
+
+    student_id is included because the service rejects the request without it,
+    which would otherwise be reported as the service being unavailable.
+    """
+    params = {"student_id": student_id} if student_id is not None else None
+
     try:
-        response = requests.get(f"{EXAM_SERVICE_URL}/exams", timeout=TIMEOUT)
+        response = requests.get(f"{EXAM_SERVICE_URL}/exams", params=params,
+                                timeout=TIMEOUT)
         return response.status_code < 400
     except requests.RequestException:
         return False
@@ -157,7 +170,7 @@ def collect_deadlines(student_id):
             "count": len(assignments),
         },
         "exams": {
-            "available": bool(exams) or exam_service_available(),
+            "available": bool(exams) or exam_service_available(student_id),
             "count": len(exams),
         },
     }
