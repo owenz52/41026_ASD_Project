@@ -601,12 +601,6 @@ body {
 .mcp-event__title { font-size: 12px; color: #E0E0E0; }
 .mcp-event__meta { display: block; font-size: 10px; color: #7A7A7A; }
 
-.mcp-conflict {
-  margin-bottom: 8px; padding: 6px 8px;
-  border-left: 3px solid #DC3545; background: #242424;
-}
-.mcp-conflict__note { font-size: 10px; color: #FF6B6B; }
-
 .mcp-raw { margin-top: 10px; }
 .mcp-raw summary { cursor: pointer; font-size: 10.5px; color: #9A9A9A; }
 .mcp-raw .mcp-card__result { margin-top: 6px; }

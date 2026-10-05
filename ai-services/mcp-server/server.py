@@ -29,6 +29,11 @@ NOTEBOOK_BACKEND_URL = os.getenv(
     "http://127.0.0.1:5003",
 ).rstrip("/")
 
+CALENDAR_DATABASE_URL = os.getenv(
+    "CALENDAR_DATABASE_URL",
+    "http://127.0.0.1:5006",
+).rstrip("/")
+
 mcp = MCPServer("ASD Shared Tools")
 
 class AssessmentResult(TypedDict):
@@ -212,6 +217,86 @@ def notebooks_search_notes(
         "status": "success",
         "keyword": keyword,
         "notes": notes,
+    }
+
+
+# ----------------------------------------------------------------------
+# Calendar — Voreak Sanith
+#
+# READ-ONLY and student-scoped. The tool only ever GETs from the calendar
+# database service, the calendar's published data API. It does not call the
+# calendar backend, which requires a signed-in session that a service-to-
+# service call does not have. It never creates, changes or deletes an event,
+# and it drops any row that does not belong to the requested student_id.
+# ----------------------------------------------------------------------
+class CalendarEvent(TypedDict):
+    event_id: int
+    title: str
+    event_type: str
+    subject: str | None
+    start_time: str
+    end_time: str
+    location: str | None
+
+
+class UpcomingEventsResult(TypedDict):
+    status: str
+    as_of: str
+    days_ahead: int
+    count: int
+    events: list[CalendarEvent]
+
+
+@mcp.tool()
+def calendar_get_upcoming_events(
+    student_id: int,
+    days_ahead: int = 7,
+) -> UpcomingEventsResult:
+    """Return one student's calendar events starting within N days (1-60)."""
+    if student_id <= 0:
+        raise ValueError("student_id must be positive")
+
+    if not 1 <= days_ahead <= 60:
+        raise ValueError("days_ahead must be between 1 and 60")
+
+    today = date.today()
+
+    response = requests.get(
+        f"{CALENDAR_DATABASE_URL}/events",
+        params={
+            "student_id": student_id,
+            "start_date": today.isoformat(),
+            "end_date": (today + timedelta(days=days_ahead)).isoformat(),
+        },
+        timeout=10,
+    )
+    response.raise_for_status()
+
+    body = response.json()
+    # The database service returns a bare list; accept a wrapped one as well.
+    rows = body.get("events", []) if isinstance(body, dict) else body
+
+    events: list[CalendarEvent] = []
+    for row in rows:
+        # Defence in depth: never return another student's row.
+        if row.get("student_id") != student_id:
+            continue
+        events.append({
+            "event_id": row["event_id"],
+            "title": row["title"],
+            "event_type": row["event_type"],
+            "subject": row.get("subject"),
+            "start_time": row["start_time"],
+            "end_time": row["end_time"],
+            "location": row.get("location"),
+        })
+
+    return {
+        "status": "success",
+        "as_of": today.isoformat(),
+        "days_ahead": days_ahead,
+        "count": len(events),
+        "events": events,
     }
 
 

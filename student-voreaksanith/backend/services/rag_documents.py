@@ -13,6 +13,19 @@ returning insufficient context because the item was never imported.
 Each chunk's source_id names where the fact came from — calendar:12,
 assessment:4, exam:1 — so a citation points at the owning service.
 
+The question shapes what is sent. The shared server ranks by shared words and
+knows nothing about dates, so asked "when is my assignment" it can answer with
+one that was due last month. Two rules fix that before the server sees anything:
+
+  forward-looking   a question about what is due, next or upcoming is answered
+                    only from items that are still ahead and not completed
+  "next"            when it wants the single nearest match, only the soonest of
+                    the best-matching records is sent, so the server cannot
+                    choose a later one
+
+A question about the past ("when was my last quiz"), or one that is neither,
+gets everything, as before.
+
 The server validates strictly, and rejects the whole request if any document
 is wrong. Its rules, from ai-services/rag-server/rag_pipeline.py:
 
@@ -28,8 +41,10 @@ because retrieval matches words: "Assignment 2 due is a deadline starting at
 2026-09-25 23:59" matches "when is my assignment due" far better than a JSON
 object would.
 """
+from datetime import date, datetime, time as dtime
+
 from config import RAG_FEATURE, RAG_MAX_CHARS, RAG_MAX_DOCUMENTS
-from services import calendar_service, deadline_sources
+from services import calendar_service, deadline_sources, rag_text
 
 # The server reads authority_tier as metadata; tier_1 marks a record from the
 # student's own data rather than general material.
@@ -87,11 +102,25 @@ def _assessment_sentence(item):
     return " ".join(p for p in parts if p)[:RAG_MAX_CHARS]
 
 
-def build_documents(student_id, limit=None):
+COMPLETED = ("completed", "complete", "done")
+
+
+def _when(value):
+    """A timestamp as a datetime, or None if it cannot be read."""
+    try:
+        return datetime.strptime(str(value).replace("T", " ")[:16], "%Y-%m-%d %H:%M")
+    except (TypeError, ValueError):
+        return None
+
+
+def build_documents(student_id, limit=None, question=None, today=None):
     """Calendar documents for one student, ready to send to the RAG server.
 
-    Returns (documents, report). The report records how many events were read
-    and whether any were dropped, so the caller can say what was searched.
+    Returns (documents, report). The report records how many events were read,
+    how the question narrowed them, and whether the cap dropped any, so the
+    caller can say what was searched.
+
+    question is optional. Without one, every item is sent.
     """
     limit = min(int(limit or RAG_MAX_DOCUMENTS), RAG_MAX_DOCUMENTS)
 
@@ -114,6 +143,30 @@ def build_documents(student_id, limit=None):
         return [], {"events": len(events), "documents": 0,
                     "error": "student_id must be positive"}
 
+    upcoming = bool(question) and rag_text.wants_upcoming(question)
+    nearest = upcoming and rag_text.wants_nearest(question)
+    cutoff = datetime.combine(today or date.today(), dtime.min)
+    left_out = 0
+
+    def still_ahead(when, completed=False):
+        """Whether an item belongs in a forward-looking answer."""
+        if not upcoming:
+            return True
+        if completed:
+            return False
+        # An item whose time cannot be read cannot be shown to be in the past.
+        return when is None or when >= cutoff
+
+    def make(chunk_id, source_id, text):
+        return {
+            "chunk_id": chunk_id,
+            "source_id": source_id,
+            "text": text,
+            "feature": RAG_FEATURE,
+            "student_id": sid,
+            "authority_tier": AUTHORITY_TIER,
+        }
+
     # Deadlines and exams first, so that when the cap truncates the list the
     # most-asked-about events are the ones that survive.
     def priority(event):
@@ -121,25 +174,25 @@ def build_documents(student_id, limit=None):
         return (order.get(event.get("event_type"), 2),
                 event.get("start_time") or "")
 
-    documents = []
+    entries = []           # (document, when) in the order they will be sent
+    capped = False
+
     for event in sorted(events, key=priority):
+        when = _when(event.get("start_time"))
+        if not still_ahead(when):
+            left_out += 1
+            continue
+
         text = _sentence(event)
         if not text.strip():
             continue
 
-        documents.append({
-            "chunk_id": f"calendar-event-{event.get('event_id')}",
-            "source_id": f"calendar:{event.get('event_id')}",
-            "text": text,
-            "feature": RAG_FEATURE,
-            "student_id": sid,
-            "authority_tier": AUTHORITY_TIER,
-        })
-
-        if len(documents) >= limit:
+        if len(entries) >= limit:
+            capped = True
             break
 
-    calendar_count = len(documents)
+        entries.append((make(f"calendar-event-{event.get('event_id')}",
+                             f"calendar:{event.get('event_id')}", text), when))
 
     # Assessments and exams, read from the services that own them. A failure
     # there reduces what can be answered; it never fails the request.
@@ -150,35 +203,67 @@ def build_documents(student_id, limit=None):
     except Exception:                              # noqa: BLE001
         sources = {}
 
-    seen = {d["chunk_id"] for d in documents}
+    seen = {doc["chunk_id"] for doc, _ in entries}
 
     for item in external:
-        if len(documents) >= limit:
-            break
-
         chunk_id = f"{item.get('source')}-{item.get('source_id')}"
         if chunk_id in seen:
             continue
-        seen.add(chunk_id)
+
+        when = _when(item.get("due"))
+        completed = str(item.get("status") or "").lower() in COMPLETED
+        if not still_ahead(when, completed):
+            left_out += 1
+            continue
 
         text = _assessment_sentence(item)
         if not text.strip():
             continue
 
-        documents.append({
-            "chunk_id": chunk_id,
-            "source_id": f"{item.get('source')}:{item.get('source_id')}",
-            "text": text,
-            "feature": RAG_FEATURE,
-            "student_id": sid,
-            "authority_tier": AUTHORITY_TIER,
-        })
+        if len(entries) >= limit:
+            capped = True
+            break
+
+        seen.add(chunk_id)
+        entries.append((make(chunk_id, f"{item.get('source')}:{item.get('source_id')}",
+                             text), when))
+
+    # "Next": among the records that match the question best, keep only the
+    # soonest. The shared server ranks equal matches by a hash distance, which
+    # has nothing to do with dates, so left alone it would pick any of them.
+    narrowed = 0
+    if nearest:
+        terms = {stem for stem, _ in rag_text.question_terms(question)}
+
+        if terms:
+            scored = [(len(terms & rag_text.word_stems(doc["text"])), when, doc)
+                      for doc, when in entries]
+            best = max(score for score, _, _ in scored)
+
+            if best > 0:
+                dated = [when for score, when, _ in scored
+                         if score == best and when is not None]
+
+                if dated:
+                    soonest = min(dated)
+                    kept = [(doc, when) for score, when, doc in scored
+                            if not (score == best and when is not None
+                                    and when != soonest)]
+                    narrowed = len(entries) - len(kept)
+                    entries = kept
+
+    documents = [doc for doc, _ in entries]
+    from_calendar = sum(1 for d in documents if d["source_id"].startswith("calendar:"))
 
     return documents, {
         "events": len(events),
-        "calendar_documents": calendar_count,
-        "assessment_documents": len(documents) - calendar_count,
+        "calendar_documents": from_calendar,
+        "assessment_documents": len(documents) - from_calendar,
         "documents": len(documents),
-        "truncated": (len(events) + len(external)) > len(documents),
+        "truncated": capped,
+        "upcoming_only": upcoming,
+        "nearest_only": nearest,
+        "left_out": left_out,
+        "narrowed_to_next": narrowed,
         "sources": sources,
     }

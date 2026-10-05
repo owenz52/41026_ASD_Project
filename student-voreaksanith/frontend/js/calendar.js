@@ -57,6 +57,7 @@ async function api(path, options = {}) {
     ...options,
   });
   const body = await response.json().catch(() => ({}));
+
   if (!response.ok) {
     throw new Error(body.error || `Request failed (${response.status})`);
   }
@@ -668,17 +669,35 @@ function renderRagResult(data) {
 
   const searched = data.searched || {};
 
+  // Say what was searched, including what a forward-looking question left out,
+  // so an answer that skips something old is not a mystery.
+  let searchedLine = "";
+  if (searched.documents) {
+    if (searched.upcoming_only) {
+      searchedLine = `Searched ${searched.documents} upcoming record(s)`;
+      if (searched.left_out) {
+        searchedLine += `; ${searched.left_out} past or completed item(s) left out`;
+      }
+      if (searched.narrowed_to_next) {
+        searchedLine += `; narrowed to the soonest match`;
+      }
+      searchedLine += ".";
+    } else {
+      searchedLine = `Searched ${searched.documents} calendar record(s).`;
+    }
+  }
+
   box.innerHTML = `
     <div class="rag-card">
       <span class="rag-card__badge rag-card__badge--${escapeHtml(data.confidence)}">
         CONFIDENCE: ${escapeHtml(String(data.confidence).toUpperCase())}
       </span>
       <p class="rag-card__answer">${escapeHtml(data.answer)}</p>
+      ${data.confidence_basis ? `<p class="rag-card__why">${escapeHtml(data.confidence_basis)}</p>` : ""}
       <div class="rag-card__sources">
         <span class="rag-card__sources-label">Sources</span>
         <ul class="citations">${citations}</ul>
-        ${searched.documents ? `<p class="rag-card__why">Searched ${
-          searched.documents} calendar record(s).</p>` : ""}
+        ${searchedLine ? `<p class="rag-card__why">${escapeHtml(searchedLine)}</p>` : ""}
       </div>
     </div>`;
 }
@@ -819,21 +838,6 @@ function renderMcpResult(result) {
       <p class="mcp-summary">${result.count} event${result.count === 1 ? "" : "s"}
         in the next ${result.days_ahead} days (from ${escapeHtml(result.as_of)})</p>
       <ul class="mcp-events">${result.events.map(mcpEventRow).join("")}</ul>`;
-  }
-
-  if (result && Array.isArray(result.conflicts)) {
-    if (!result.conflicts.length) {
-      return `<p class="mcp-empty">No clashes on ${escapeHtml(result.day)}
-        (${result.events_checked} events checked).</p>`;
-    }
-    return `
-      <p class="mcp-summary">${result.conflict_count} clash${result.conflict_count === 1 ? "" : "es"}
-        on ${escapeHtml(result.day)}</p>
-      <ul class="mcp-events">${result.conflicts.map((c) => `
-        <li class="mcp-conflict">
-          <ul class="mcp-events">${mcpEventRow(c.first)}${mcpEventRow(c.second)}</ul>
-          <span class="mcp-conflict__note">overlap ${c.overlap_minutes} min</span>
-        </li>`).join("")}</ul>`;
   }
 
   return "";

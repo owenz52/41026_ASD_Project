@@ -13,6 +13,7 @@ import sys
 import tempfile
 import threading
 import time
+from datetime import date, timedelta
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
 import requests
@@ -37,19 +38,33 @@ def check(label, ok, detail=""):
     print(f"  {'PASS' if ok else 'FAIL'}  {label}" + (f"  -- {detail}" if detail else ""))
 
 
+def ahead(days):
+    """A date this many days from today. Negative is the past."""
+    return (date.today() + timedelta(days=days)).isoformat()
+
+
 EXAMS = [
     {"exam_id": 1, "student_id": 1, "course_id": 101,
-     "exam_name": "ASD101 Final Examination", "exam_date": "2026-10-20",
+     "exam_name": "ASD101 Final Examination", "exam_date": ahead(21),
      "exam_time": "09:00", "status": "Uncompleted"},
 ]
 
 ASSIGNMENTS = [
     {"assignment_id": 1, "student_id": 1, "course_id": 41026,
-     "title": "Software Architecture Report", "due_date": "2026-10-05",
+     "title": "Software Architecture Report", "due_date": ahead(5),
      "weighting": 35, "status": "in_progress"},
     {"assignment_id": 2, "student_id": 1, "course_id": 31271,
-     "title": "Finished Already", "due_date": "2026-10-02",
+     "title": "Finished Already", "due_date": ahead(-2),
      "weighting": 10, "status": "completed"},
+    {"assignment_id": 3, "student_id": 1, "course_id": 48024,
+     "title": "Overdue Integration Task", "due_date": ahead(-18),
+     "weighting": 20, "status": "not_started"},
+    {"assignment_id": 4, "student_id": 1, "course_id": 31271,
+     "title": "Peer Review Submission", "due_date": ahead(12),
+     "weighting": 10, "status": "not_started"},
+    {"assignment_id": 5, "student_id": 1, "course_id": 41026,
+     "title": "Quiz Completed Early", "due_date": ahead(8),
+     "weighting": 5, "status": "completed"},
 ]
 
 MODE = {"ollama": "ok"}
@@ -147,7 +162,7 @@ if os.path.exists(db):
 # The team's real MCP server.
 start([sys.executable, "server.py"], MCP_DIR,
       {"ASSESSMENT_BACKEND_URL": f"http://127.0.0.1:{ASSESS_PORT}",
-       "CALENDAR_BACKEND_URL": BASE}, "mcp")
+       "CALENDAR_DATABASE_URL": f"http://127.0.0.1:{APP_PORT}/db"}, "mcp")
 
 # The team's real RAG server. Its Ollama URL is hard-coded to 127.0.0.1:11434,
 # so the stub is reached by patching that module attribute at startup.
@@ -196,9 +211,8 @@ try:
 
     body = requests.get(f"{BASE}/ai/mcp/tools", timeout=40).json()
     names = [t["name"] for t in body.get("tools", [])]
-    check("both calendar tools are listed",
-          {"calendar_get_upcoming_events", "calendar_find_conflicts"} <= set(names),
-          str(names))
+    check("the calendar tool is listed",
+          names == ["calendar_get_upcoming_events"], str(names))
     check("other features' tools are hidden from the calendar",
           "assessments_get_upcoming" not in names, str(names))
     tools = body.get("tools") or []
@@ -209,7 +223,7 @@ try:
     check("argument limits sent to the frontend",
           all(t.get("limits") for t in tools), str([t.get("limits") for t in tools]))
 
-    print("\n--- Invoking the calendar tools through the calendar backend ---")
+    print("\n--- Invoking the calendar tool through the calendar backend ---")
     r = requests.post(f"{BASE}/ai/mcp/invoke",
                       json={"tool": "calendar_get_upcoming_events",
                             "student_id": 1,
@@ -221,12 +235,6 @@ try:
           {"status", "as_of", "count", "events"} <= set(result), str(list(result)))
     check("count matches the events returned",
           result.get("count") == len(result.get("events", [])))
-    r = requests.post(f"{BASE}/ai/mcp/invoke",
-                      json={"tool": "calendar_find_conflicts", "student_id": 1,
-                            "arguments": {"day": "2026-10-01"}}, timeout=40)
-    result = r.json().get("result") or {}
-    check("conflict tool returned structured content",
-          "conflicts" in result, str(r.json())[:80])
 
     print("\n--- Tool boundaries ---")
     r = requests.post(f"{BASE}/ai/mcp/invoke",
@@ -252,9 +260,10 @@ try:
     check("unexpected argument rejected (400)", r.status_code == 400,
           str(r.json().get("error")))
     r = requests.post(f"{BASE}/ai/mcp/invoke",
-                      json={"tool": "calendar_find_conflicts", "student_id": 1,
-                            "arguments": {"day": "next tuesday"}}, timeout=40)
-    check("malformed date rejected (400)", r.status_code == 400,
+                      json={"tool": "calendar_get_upcoming_events",
+                            "student_id": 1,
+                            "arguments": {"days_ahead": "soon"}}, timeout=40)
+    check("non-numeric argument rejected (400)", r.status_code == 400,
           str(r.json().get("error")))
     r = requests.post(f"{BASE}/ai/mcp/invoke",
                       json={"tool": "calendar_get_upcoming_events"}, timeout=40)
@@ -277,8 +286,14 @@ try:
           str(body.get("answer") or body.get("error"))[:70])
     check("citations returned", len(body.get("citations", [])) > 0,
           str(len(body.get("citations", []))))
-    check("citation names a calendar record",
-          body["citations"][0]["source"].startswith("calendar:"),
+    # A "when is my assignment due" question is forward-looking, so it is
+    # answered from what is still ahead. That is an assessment record, not the
+    # past "Assignment 2 due" calendar event the old behaviour could pick.
+    check("citation names a real record the calendar supplied",
+          body["citations"][0]["source"].split(":")[0] in ("calendar", "assessment", "exam"),
+          body["citations"][0]["source"])
+    check("and it is not the overdue or completed one",
+          body["citations"][0]["source"] not in ("assessment:2", "assessment:3", "assessment:5"),
           body["citations"][0]["source"])
     check("citation carries its supporting text",
           len(body["citations"][0]["snippet"]) > 20,
@@ -307,6 +322,76 @@ try:
     check("documents drawn from more than the calendar",
           searched.get("assessment_documents", 0) > 0,
           str({k: v for k, v in searched.items() if k != "sources"}))
+
+    print("\n--- Questions about the future are answered from what is still ahead ---")
+    # The shared server ranks by shared words and knows nothing about dates, so
+    # the calendar decides what it is shown. The model stub cites the first
+    # record the server offers, so the cited record is the server's top choice.
+    def add_lecture(days):
+        r = requests.post(f"{BASE}/events", json={
+            "student_id": 1, "subject": "30001", "title": "Statistics Lecture",
+            "event_type": "lecture", "start_time": f"{ahead(days)} 10:00",
+            "end_time": f"{ahead(days)} 11:30", "location": "CB02.01"}, timeout=20)
+        return r.json().get("event_id")
+
+    past_lecture, soon_lecture, later_lecture = add_lecture(-10), add_lecture(3), add_lecture(10)
+
+    body = requests.post(f"{BASE}/ai/rag/ask",
+                         json={"question": "When is my next lecture?",
+                               "student_id": 1}, timeout=120).json()
+    cited = [c["source"] for c in body.get("citations", [])]
+    check("'next lecture' cites the soonest lecture still ahead",
+          cited == [f"calendar:{soon_lecture}"],
+          f"cited {cited}, soonest is calendar:{soon_lecture}")
+    check("the later lecture was never offered to the server",
+          f"calendar:{later_lecture}" not in cited and f"calendar:{past_lecture}" not in cited)
+    searched = body.get("searched", {})
+    check("the report says it was narrowed to the soonest match",
+          searched.get("nearest_only") is True and searched.get("narrowed_to_next", 0) >= 1,
+          str({k: v for k, v in searched.items() if k != "sources"}))
+
+    body = requests.post(f"{BASE}/ai/rag/ask",
+                         json={"question": "When is my assignment?",
+                               "student_id": 1}, timeout=120).json()
+    cited = [c["source"] for c in body.get("citations", [])]
+    check("an assignment question cites an upcoming assignment",
+          bool(cited) and set(cited) <= {"assessment:1", "assessment:4"}, str(cited))
+    check("never the overdue one",
+          "assessment:3" not in cited, str(cited))
+    check("never one already completed",
+          not ({"assessment:2", "assessment:5"} & set(cited)), str(cited))
+    searched = body.get("searched", {})
+    check("the report says what was left out",
+          searched.get("upcoming_only") is True and searched.get("left_out", 0) >= 3,
+          f"upcoming_only={searched.get('upcoming_only')} left_out={searched.get('left_out')}")
+
+    body = requests.post(f"{BASE}/ai/rag/ask",
+                         json={"question": "When was my last lecture?",
+                               "student_id": 1}, timeout=120).json()
+    check("a question about the past is not narrowed to the future",
+          body.get("searched", {}).get("upcoming_only") is False,
+          str(body.get("searched", {}).get("upcoming_only")))
+
+    print("\n--- Confidence reflects how much of the question was covered ---")
+    body = requests.post(f"{BASE}/ai/rag/ask",
+                         json={"question": "When is my next lecture?",
+                               "student_id": 1}, timeout=120).json()
+    check("one cited record that covers the question is HIGH, not low",
+          body.get("confidence") == "high", str(body.get("confidence")))
+    check("the basis says why",
+          "1 of 1 words" in (body.get("confidence_basis") or ""),
+          str(body.get("confidence_basis")))
+    check("the coverage is returned for the interface",
+          body.get("coverage", {}).get("matched") == ["lecture"], str(body.get("coverage")))
+
+    body = requests.post(f"{BASE}/ai/rag/ask",
+                         json={"question": "When is my chemistry lecture?",
+                               "student_id": 1}, timeout=120).json()
+    check("a record that covers half of it is MEDIUM",
+          body.get("confidence") == "medium", str(body.get("confidence")))
+    check("and says what was not found",
+          "not found: chemistry" in (body.get("confidence_basis") or ""),
+          str(body.get("confidence_basis")))
 
     print("\n--- Insufficient context, not a guess ---")
     body = requests.post(f"{BASE}/ai/rag/ask",

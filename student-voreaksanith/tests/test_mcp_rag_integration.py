@@ -1,10 +1,4 @@
-"""Release 1 tests: calendar access to the shared MCP and RAG servers.
 
-Stub MCP and RAG servers stand in for the shared ones, so every path can be
-exercised — including the cases that matter most for marking: a grounded
-answer with citations and a confidence category, and an insufficient-context
-response when nothing relevant was retrieved.
-"""
 import json
 import os
 import signal

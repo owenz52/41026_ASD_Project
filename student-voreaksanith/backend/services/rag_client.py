@@ -23,7 +23,11 @@ the same check on the calendar's side, because an answer presented as
 grounded when nothing supports it is the one failure worth guarding twice.
 
 The server's two confidence labels are mapped onto the four categories the
-frontend uses, derived from how many sources were actually cited.
+frontend uses. The server only says whether context was available, so the level
+is worked out here from how much of the student's question the cited record
+covers (see rag_text). It used to count the cited sources, but an answer is
+nearly always drawn from one record, so nearly every answer read "low" whether
+or not it was right.
 """
 import requests
 
@@ -34,7 +38,7 @@ from config import (
     RAG_TIMEOUT_SECONDS,
     RAG_TOP_K,
 )
-from services import rag_documents
+from services import rag_documents, rag_text
 
 INSUFFICIENT_MESSAGE = (
     "There is not enough relevant material in your calendar to answer this "
@@ -74,23 +78,28 @@ def _unavailable(error, searched=None):
     }
 
 
-def _confidence(server_label, citation_count):
-    """Map the server's two labels onto the four categories the UI shows.
+def _cited_texts(body):
+    """The full text of every record the answer cited."""
+    cited = set(body.get("citations") or [])
+    return [source.get("text") or ""
+            for source in (body.get("sources") or [])
+            if source.get("source_id") in cited]
 
-    The server reports only whether context was available. How much of it was
-    actually cited is a better signal of how well supported the answer is, so
-    that is what separates high from low.
+
+def _assess(server_label, question, body, citation_count):
+    """(level, basis, coverage) for an answer.
+
+    The level reflects how much of the question the cited record covers, not
+    how many records were cited. The basis is the same fact in words, so the
+    student can see why the label is what it is.
     """
     if str(server_label).strip().lower().startswith("insufficient"):
-        return "insufficient"
+        return "insufficient", None, None
 
-    if citation_count >= 3:
-        return "high"
-    if citation_count == 2:
-        return "medium"
-    if citation_count == 1:
-        return "low"
-    return "insufficient"
+    coverage = rag_text.coverage(question, _cited_texts(body))
+    return (rag_text.level(coverage),
+            rag_text.basis(coverage, citation_count),
+            coverage)
 
 
 def _citations(body):
@@ -148,7 +157,8 @@ def ask_for_student(question, student_id, top_k=None):
 
 
 def _ask_for(question, student_id, top_k):
-    documents, report = rag_documents.build_documents(student_id)
+    documents, report = rag_documents.build_documents(
+        student_id, question=question)
 
     if report.get("error"):
         return _unavailable(report["error"], report)
@@ -156,8 +166,12 @@ def _ask_for(question, student_id, top_k):
     # With nothing to search there is no grounded answer to be had, and the
     # server would return insufficient_context anyway.
     if not documents:
-        return _insufficient(
-            "there are no calendar events to search", searched=report)
+        if report.get("upcoming_only") and report.get("left_out"):
+            reason = (f"there is nothing upcoming to search; "
+                      f"{report['left_out']} past or completed item(s) were left out")
+        else:
+            reason = "there are no calendar events to search"
+        return _insufficient(reason, searched=report)
 
     payload = {
         "query": question,
@@ -186,7 +200,8 @@ def _ask_for(question, student_id, top_k):
 
     citations = _citations(body)
     answer = (body.get("answer") or "").strip()
-    confidence = _confidence(body.get("confidence"), len(citations))
+    confidence, basis, coverage = _assess(
+        body.get("confidence"), question, body, len(citations))
 
     if body.get("status") == "insufficient_context":
         return _insufficient(
@@ -209,6 +224,8 @@ def _ask_for(question, student_id, top_k):
         "citations": citations,
         "citation_count": len(citations),
         "confidence": confidence,
+        "confidence_basis": basis,
+        "coverage": coverage,
         "server_confidence": body.get("confidence"),
         "question": question,
         "searched": report,

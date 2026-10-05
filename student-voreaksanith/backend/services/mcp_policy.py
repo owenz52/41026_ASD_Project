@@ -9,20 +9,14 @@ backend, because the browser is not trusted: it could otherwise name any tool
     filter_tools    hides every other tool from /ai/mcp/tools
     validate        checks one call; returns (arguments, None) or (None, error)
 
-student_id is never taken from the arguments. The route supplies it and
-validate() writes it over anything the client sent.
+student_id is never taken from the arguments. The route supplies it from the
+request body, and validate() writes it over anything the client sent inside the
+arguments. The request body itself is not authenticated (see Known Issues).
 """
-import re
-from datetime import date
-
-DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 ALLOWED_TOOLS = {
     "calendar_get_upcoming_events": {
         "days_ahead": {"type": "int", "min": 1, "max": 60, "default": 7},
-    },
-    "calendar_find_conflicts": {
-        "day": {"type": "date", "default": ""},
     },
 }
 
@@ -33,13 +27,10 @@ def is_allowed(tool):
 
 def _limits(tool):
     """Human-readable argument limits, shown next to the inputs."""
-    limits = {}
-    for name, rule in ALLOWED_TOOLS[tool].items():
-        if rule["type"] == "int":
-            limits[name] = f"{rule['min']} to {rule['max']}"
-        elif rule["type"] == "date":
-            limits[name] = "YYYY-MM-DD, blank for today"
-    return limits
+    return {
+        name: f"{rule['min']} to {rule['max']}"
+        for name, rule in ALLOWED_TOOLS[tool].items()
+    }
 
 
 def filter_tools(listing):
@@ -72,21 +63,13 @@ def validate(tool, arguments, student_id):
     for name, rule in rules.items():
         value = arguments.get(name, rule["default"])
 
-        if rule["type"] == "int":
-            if isinstance(value, bool) or not isinstance(value, (int, float)) \
-                    or int(value) != value:
-                return None, f"{name} must be a whole number"
-            value = int(value)
-            if not rule["min"] <= value <= rule["max"]:
-                return None, f"{name} must be between {rule['min']} and {rule['max']}"
+        if isinstance(value, bool) or not isinstance(value, (int, float)) \
+                or int(value) != value:
+            return None, f"{name} must be a whole number"
 
-        elif rule["type"] == "date" and value != "":
-            if not isinstance(value, str) or not DATE_PATTERN.match(value):
-                return None, f"{name} must be a date in YYYY-MM-DD format"
-            try:
-                date.fromisoformat(value)
-            except ValueError:
-                return None, f"{name} is not a real calendar date"
+        value = int(value)
+        if not rule["min"] <= value <= rule["max"]:
+            return None, f"{name} must be between {rule['min']} and {rule['max']}"
 
         clean[name] = value
 
