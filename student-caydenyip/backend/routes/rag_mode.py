@@ -1,4 +1,5 @@
 from flask import Blueprint, request
+import os
 import requests
 
 from services.rag_api import call_rag_service
@@ -9,6 +10,28 @@ from services.database_api import (
 
 
 rag_bp = Blueprint("rag_mode", __name__)
+
+
+# ==================================================
+# RAG MODE CONFIGURATION
+# ==================================================
+
+# RAG is enabled by default.
+# Set RAG_ENABLED=false in Docker/CI to disable RAG mode.
+RAG_ENABLED = os.getenv(
+    "RAG_ENABLED",
+    "true"
+).lower() == "true"
+
+
+def rag_disabled_response():
+    """
+    Return the standard response when RAG mode is disabled.
+    """
+    return {
+        "status": "disabled",
+        "message": "RAG mode is disabled",
+    }, 503
 
 
 # ==================================================
@@ -299,6 +322,11 @@ def run_rag_request(path: str, payload: dict):
 @rag_bp.post("/rag/retrieve")
 def rag_retrieve():
 
+    # Stop here if RAG mode is disabled.
+    # This prevents database/RAG service calls.
+    if not RAG_ENABLED:
+        return rag_disabled_response()
+
     payload, error, status = build_rag_payload()
 
     if error:
@@ -316,6 +344,11 @@ def rag_retrieve():
 
 @rag_bp.post("/rag/answer")
 def rag_answer():
+
+    # Stop here if RAG mode is disabled.
+    # This prevents database/RAG service calls.
+    if not RAG_ENABLED:
+        return rag_disabled_response()
 
     payload, error, status = build_rag_payload()
 

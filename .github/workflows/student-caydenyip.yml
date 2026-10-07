@@ -34,12 +34,24 @@ jobs:
             exam-backend \
             exam-database
 
-      - name: Start Docker services
+      - name: Start Database
         run: |
           docker compose -f docker-compose.yml up -d \
-            exam-frontend \
-            exam-backend \
             exam-database
+
+      - name: Start Backend with AI, MCP and RAG disabled
+        run: |
+          docker compose -f docker-compose.yml run -d \
+            --name cayden-exam-backend-ci \
+            -e AI_ENABLED=false \
+            -e MCP_ENABLED=false \
+            -e RAG_ENABLED=false \
+            exam-backend
+
+      - name: Start Frontend
+        run: |
+          docker compose -f docker-compose.yml up -d \
+            exam-frontend
 
       - name: Check service status
         run: docker compose -f docker-compose.yml ps

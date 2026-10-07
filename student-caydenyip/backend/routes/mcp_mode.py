@@ -36,6 +36,19 @@ AVAILABLE_TOOLS = {
 # ==================================================
 
 def mcp_mode_is_enabled(req) -> bool:
+    """
+    Check whether MCP mode is enabled.
+
+    MCP is enabled by default.
+
+    Set:
+        MCP_ENABLED=false
+
+    to disable MCP globally through Docker/CI.
+
+    The X-MCP-Mode header can also be used to
+    enable/disable MCP for an individual request.
+    """
 
     enabled = os.getenv(
         "MCP_ENABLED",
@@ -47,9 +60,11 @@ def mcp_mode_is_enabled(req) -> bool:
         "on",
     )
 
+    # Global MCP switch is OFF.
     if not enabled:
         return False
 
+    # Request-level MCP switch.
     mode_header = req.headers.get(
         "X-MCP-Mode",
         "on",
@@ -64,10 +79,14 @@ def mcp_mode_is_enabled(req) -> bool:
 
 
 def mcp_disabled_response():
+    """
+    Standard response returned when MCP mode is disabled.
+    """
 
     return jsonify({
-        "error": "MCP Mode is disabled.",
-    }), 403
+        "status": "disabled",
+        "message": "MCP mode is disabled.",
+    }), 503
 
 
 # ==================================================
@@ -86,16 +105,25 @@ def serialize_mcp_result(result):
                 output.append(
                     json.loads(content.text)
                 )
-            except (json.JSONDecodeError, TypeError):
-                output.append(content.text)
+            except (
+                json.JSONDecodeError,
+                TypeError,
+            ):
+                output.append(
+                    content.text
+                )
 
         elif hasattr(content, "data"):
 
-            output.append(content.data)
+            output.append(
+                content.data
+            )
 
         else:
 
-            output.append(str(content))
+            output.append(
+                str(content)
+            )
 
     return output
 
@@ -173,6 +201,8 @@ def mcp_test():
     # Check MCP mode
     # ------------------------------------------
 
+    # If MCP_ENABLED=false, return immediately.
+    # The MCP server will NOT be contacted.
     if not mcp_mode_is_enabled(request):
         return mcp_disabled_response()
 
@@ -244,7 +274,10 @@ def mcp_test():
             student_id
         )
 
-    except (TypeError, ValueError):
+    except (
+        TypeError,
+        ValueError,
+    ):
 
         return jsonify({
             "error": "student_id must be an integer.",
