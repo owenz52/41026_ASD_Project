@@ -10,6 +10,13 @@ on:
       - "student-voreaksanith/**"
       - ".github/workflows/student-voreaksanith.yml"
 
+# The shared MCP and RAG servers are not containerised and are not running
+# in CI, so the integration is compiled and its tests run against the real
+# servers started by the test itself, never against a live shared server.
+env:
+  MCP_ENABLED: "0"
+  RAG_ENABLED: "0"
+
 jobs:
   build-and-validate:
     runs-on: ubuntu-latest
@@ -31,6 +38,14 @@ jobs:
         run: |
           pip install -r student-voreaksanith/database/requirements.txt
 
+      # The Release 1 integration test starts the team's real shared MCP and
+      # RAG servers in-process, so their dependencies are needed here. The
+      # servers are never reached over the network during CI.
+      - name: Install shared MCP and RAG server dependencies
+        run: |
+          pip install -r ai-services/mcp-server/requirements.txt
+          pip install -r ai-services/rag-server/requirements.txt
+
       - name: Initialise calendar database
         run: |
           python student-voreaksanith/database/init_db.py
@@ -46,6 +61,10 @@ jobs:
           python -m py_compile student-voreaksanith/backend/services/deadline_sources.py
           python -m py_compile student-voreaksanith/backend/services/deadline_service.py
           python -m py_compile student-voreaksanith/backend/services/schedule_agent.py
+          python -m py_compile student-voreaksanith/backend/services/rag_documents.py
+          python -m py_compile student-voreaksanith/backend/services/rag_client.py
+          python -m py_compile student-voreaksanith/backend/services/mcp_client.py
+          python -m py_compile student-voreaksanith/backend/services/mcp_policy.py
           python -m py_compile student-voreaksanith/backend/services/llm_client.py
           python -m py_compile student-voreaksanith/backend/services/prompt_loader.py
 
@@ -76,6 +95,9 @@ jobs:
       - name: Run calendar test suite
         run: |
           python student-voreaksanith/tests/test_calendar_features.py
+          # The shared MCP and RAG servers are started by the test itself,
+          # so this does not depend on them running in CI.
+          MCP_ENABLED=1 RAG_ENABLED=1 python student-voreaksanith/tests/test_shared_mcp_rag.py
 
       - name: Build backend Docker image
         run: |

@@ -1,0 +1,14 @@
+Answer the student's question using only the context passages below.
+
+Question:
+{{QUESTION}}
+
+Context passages:
+{{CONTEXT}}
+
+Rules for your answer:
+- Use only facts that appear in the context passages above.
+- Do not add dates, times, subject codes, marks or names that are not in the context.
+- Keep the answer to one to three sentences of plain prose.
+- Do not use headings, bullet points or markdown.
+- If the context passages do not answer the question, reply with exactly INSUFFICIENT_CONTEXT and nothing else.

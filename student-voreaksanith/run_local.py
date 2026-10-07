@@ -18,7 +18,22 @@ import sys
 from pathlib import Path
 
 CAL_DIR = Path(__file__).resolve().parent
-PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8000
+def _arg(flag, default=None):
+    """Read an optional --flag value from the command line.
+
+    Service URLs can be passed explicitly as well as through the environment.
+    Inheriting them through the environment is not reliable on every platform,
+    and an explicit argument removes any doubt about what the backend used.
+    """
+    if flag in sys.argv:
+        i = sys.argv.index(flag)
+        if i + 1 < len(sys.argv):
+            return sys.argv[i + 1]
+    return default
+
+
+_ports = [a for a in sys.argv[1:] if a.isdigit()]
+PORT = int(_ports[0]) if _ports else 8000
 
 
 def load_module(name, path):
@@ -39,6 +54,17 @@ def main():
 
     base = f"http://127.0.0.1:{PORT}"
     os.environ["DATABASE_SERVICE_URL"] = f"{base}/db"
+
+    # Anything passed explicitly wins over the environment. Set before the
+    # backend is imported, because config.py reads these at import time.
+    for flag, name in [("--mcp-url", "MCP_SERVER_URL"),
+                       ("--rag-url", "RAG_SERVER_URL"),
+                       ("--assessment-url", "ASSESSMENT_SERVICE_URL"),
+                       ("--exam-url", "EXAM_SERVICE_URL"),
+                       ("--ollama-url", "OLLAMA_BASE_URL")]:
+        value = _arg(flag)
+        if value:
+            os.environ[name] = value
 
     sys.path.insert(0, str(CAL_DIR / "backend"))
 
@@ -89,6 +115,8 @@ def main():
     print("=" * 56)
     print(f"  page  http://localhost:{PORT}/")
     print(f"  API   http://localhost:{PORT}/calendar/events?student_id=1001")
+    print(f"  MCP   {os.environ.get('MCP_SERVER_URL', '(default)')}")
+    print(f"  RAG   {os.environ.get('RAG_SERVER_URL', '(default)')}")
     print("  Press CTRL+C to stop")
     print()
 
