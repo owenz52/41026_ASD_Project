@@ -48,6 +48,38 @@ jobs:
             -e RAG_ENABLED=false \
             exam-backend
 
+      - name: Verify AI, MCP and RAG are disabled
+        run: |
+          echo "Checking backend feature flags..."
+
+          AI_ENABLED=$(docker exec cayden-exam-backend-ci printenv AI_ENABLED)
+          MCP_ENABLED=$(docker exec cayden-exam-backend-ci printenv MCP_ENABLED)
+          RAG_ENABLED=$(docker exec cayden-exam-backend-ci printenv RAG_ENABLED)
+
+          echo "AI_ENABLED=$AI_ENABLED"
+          echo "MCP_ENABLED=$MCP_ENABLED"
+          echo "RAG_ENABLED=$RAG_ENABLED"
+
+          if [ "$AI_ENABLED" != "false" ]; then
+            echo "ERROR: AI_ENABLED is not false"
+            exit 1
+          fi
+
+          if [ "$MCP_ENABLED" != "false" ]; then
+            echo "ERROR: MCP_ENABLED is not false"
+            exit 1
+          fi
+
+          if [ "$RAG_ENABLED" != "false" ]; then
+            echo "ERROR: RAG_ENABLED is not false"
+            exit 1
+          fi
+
+          echo "AI is disabled."
+          echo "MCP is disabled."
+          echo "RAG is disabled."
+          echo "All AI, MCP and RAG features are disabled for CI."
+
       - name: Start Frontend
         run: |
           docker compose -f docker-compose.yml up -d \
