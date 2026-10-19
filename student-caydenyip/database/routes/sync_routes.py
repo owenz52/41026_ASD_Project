@@ -101,20 +101,20 @@ def sync_exams():
             )
 
             cursor = conn.execute(
-                f"""
+                f""" 
                 DELETE FROM student_exams
 
                 WHERE student_id = ?
 
-                  AND course_id NOT IN ({placeholders})
+                  AND course_id NOT IN ({placeholders}) 
 
                   AND course_exam_id IS NOT NULL
-                """,
+                """, # noqa: S608
                 (
                     student_id,
                     *course_ids
                 )
-            )
+            ) 
 
             removed = cursor.rowcount
 
