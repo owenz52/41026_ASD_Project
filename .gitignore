@@ -65,3 +65,4 @@ ai-services/multi-agent-server/logs/*.jsonl
 
 # Release 2 generated review reports
 ai-services/agentic-loop/reports/release2/*.md
+ai-services/agentic-loop/reports/release2/validation_log.jsonl

@@ -1,4 +1,5 @@
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -8,6 +9,7 @@ from llm_client import OLLAMA_BASE_URL, OLLAMA_MODEL
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 REPORTS_DIR = BASE_DIR / "reports" / "release2"
+VALIDATION_LOG = REPORTS_DIR / "validation_log.jsonl"
 
 VALID_MODES = {
     "multi_agent",
@@ -97,6 +99,10 @@ EVIDENCE:
             "stream": False,
             "options": {
                 "num_predict": 500,
+                # Multi-agent evidence embeds every agent's full output, which
+                # can exceed Ollama's default context and silently truncate
+                # the review instructions.
+                "num_ctx": int(os.getenv("REVIEW_NUM_CTX", "8192")),
                 "temperature": 0.1,
                 "repeat_penalty": 1.2,
             },
@@ -150,10 +156,44 @@ def save_review(mode, evidence, review):
     return report_path
 
 
-def execute_review(mode, evidence, instructions):
-    review = generate_review(mode, evidence, instructions)
+def append_validation_log(entry):
+    """Append one review outcome to the persistent validation log."""
+
+    REPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+    with VALIDATION_LOG.open("a", encoding="utf-8") as file:
+        file.write(json.dumps(entry) + "\n")
+
+
+def execute_review(mode, evidence, instructions, validation=None):
+    """Generate, save and log a review.
+
+    The deterministic validation result is logged even when the AI review
+    fails, so a failed or truncated LLM call never loses the evidence outcome.
+    """
+
+    entry = {
+        "timestamp": timestamp(),
+        "mode": mode,
+        "evidence_source": (
+            evidence.get("source") if isinstance(evidence, dict) else None
+        ),
+        "validation": validation,
+    }
+
+    try:
+        review = generate_review(mode, evidence, instructions)
+    except Exception as exc:
+        entry["review_status"] = "failed"
+        entry["error"] = str(exc)
+        append_validation_log(entry)
+        raise
 
     report_path = save_review(mode, evidence, review)
+
+    entry["review_status"] = "completed"
+    entry["report"] = str(report_path)
+    append_validation_log(entry)
 
     return {
         "status": "completed",
@@ -161,4 +201,5 @@ def execute_review(mode, evidence, instructions):
         "generated_at": timestamp(),
         "review": review,
         "report": str(report_path),
+        "validation_log": str(VALIDATION_LOG),
     }
