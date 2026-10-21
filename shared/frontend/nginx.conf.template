@@ -1,0 +1,41 @@
+server {
+    listen 80;
+
+    root /usr/share/nginx/html;
+    index index.html home.html;
+
+    proxy_set_header Host $proxy_host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Host $host;
+    proxy_set_header X-Forwarded-Proto $http_x_forwarded_proto;
+
+    # Needed if a URL is https:// (e.g. an internal FQDN)
+    proxy_ssl_server_name on;
+
+    # Shared portal pages
+    location = /              { try_files /index.html =404; }
+    location = /home.html     { try_files /home.html =404; }
+    location = /login.html    { try_files /login.html =404; }
+    location = /register.html { try_files /register.html =404; }
+    location /css/            { try_files $uri =404; }
+    location /js/             { try_files $uri =404; }
+    location = /auth.js       { try_files /auth.js =404; }
+
+    location ~ ^/(enrolment|assessments|calendar|notes|exams)$ { return 301 /$1/; }
+
+    # Frontends
+    location /enrolment/   { proxy_pass ${ENROLMENT_FRONTEND_URL}/; }
+    location /assessments/ { proxy_pass ${ASSESSMENT_FRONTEND_URL}/; }
+    location /calendar/    { proxy_pass ${CALENDAR_FRONTEND_URL}/; }
+    location /notes/       { proxy_pass ${NOTES_FRONTEND_URL}/; }
+    location /exams/       { proxy_pass ${EXAMS_FRONTEND_URL}/; }
+
+    # APIs
+    location /auth-api/        { proxy_pass ${AUTH_SERVICE_URL}/; }
+    location /enrolment-api/   { proxy_pass ${ENROLMENT_SERVICE_URL}/; }
+    location /assessments-api/ { proxy_pass ${ASSESSMENT_SERVICE_URL}/; }
+    location /calendar-api/    { proxy_pass ${CALENDAR_SERVICE_URL}/; }
+    location /notes-api/       { proxy_pass ${NOTES_SERVICE_URL}/; }
+    location /exams-api/       { proxy_pass ${EXAMS_SERVICE_URL}/; }
+}

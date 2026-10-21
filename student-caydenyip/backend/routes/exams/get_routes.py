@@ -69,10 +69,7 @@ def get_exams_route():
         # Manual exams will have course_exam_id = NULL.
         # --------------------------------------------------
 
-        response = sync_exams_response(
-            student_id,
-            course_ids
-        )
+        response = sync_exams_response(student_id, course_ids)
 
         response.raise_for_status()
 
@@ -90,9 +87,7 @@ def get_exams_route():
         # status
         # --------------------------------------------------
 
-        exams = get_exams(
-            student_id
-        )
+        exams = get_exams(student_id)
 
         return jsonify(
             exams

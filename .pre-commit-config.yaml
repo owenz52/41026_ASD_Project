@@ -19,6 +19,6 @@
           name: pip-audit Scan
           entry: python pre_commit_pytest.py tests/pre_commit/test_dependency_audit.py -v
           language: python
-          additional_dependencies: ["pytest==9.1.1", "pip-audit==2.10.1"]
+          additional_dependencies: ["pytest==9.1.1", "pip-audit==2.10.1", "certifi>=2026.10.19"]
           pass_filenames: false
           stages: [pre-commit]
