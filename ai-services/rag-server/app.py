@@ -33,7 +33,7 @@ from retrieval import confidence_from
 app = Flask(__name__)
 
 PORT = int(os.getenv("RAG_PORT", 5200))
-OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://host.docker.internal:11434")
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434",)
 OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:0.5b")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT_SECONDS", 45))
 DEFAULT_TOP_K = int(os.getenv("RAG_TOP_K", 4))
