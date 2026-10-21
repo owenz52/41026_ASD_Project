@@ -42,7 +42,19 @@ jobs:
           docker build -t yulin-backend-ci \
             -f student-yulinzhu/backend/Dockerfile student-yulinzhu
           docker build -t yulin-frontend-ci student-yulinzhu/frontend
-
+      - name: Test Enrolment endpoint functions
+        run: |
+          docker run --rm \
+            --network none \
+            -e AI_ENABLED=false \
+            -e MCP_ENABLED=false \
+            -e RAG_ENABLED=false \
+            -e PYTHONPATH=/app \
+            yulin-backend-ci \
+            python -m unittest discover \
+              -s tests \
+              -p 'test_enrolment_endpoints.py' \
+              -v
       - name: Start isolated CI containers
         run: |
           docker network create yulin-ci

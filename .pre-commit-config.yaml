@@ -2,6 +2,38 @@
 repos:
   - repo: local
     hooks:
+      # Yulin - Ruff security testing
+      - id: yulin-ruff-security
+        name: Yulin Python security scan
+        entry: ruff check --select S student-yulinzhu
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Yulin - Secret scanning
+      - id: yulin-detect-secrets
+        name: Yulin secret scan
+        entry: detect-secrets-hook
+        language: system
+        files: ^(student-yulinzhu/|\.github/workflows/student-yulinzhu\.yml$)
+
+      # Yulin - Backend dependency audit
+      - id: yulin-backend-audit
+        name: Yulin backend dependency audit
+        entry: pip-audit -r student-yulinzhu/backend/requirements.txt
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Yulin - Database dependency audit
+      - id: yulin-database-audit
+        name: Yulin database dependency audit
+        entry: pip-audit -r student-yulinzhu/database/requirements.txt
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      # Shared Release 2 - Ruff
       - id: ruff-release2
         name: Ruff - Shared Release 2
         entry: ruff check
@@ -9,12 +41,14 @@ repos:
         types: [python]
         files: ^ai-services/(multi-agent-server/|shared_llm/|agentic-loop/release2/)
 
+      # Shared Release 2 - Secret scanning
       - id: detect-secrets
         name: Detect Secrets
         entry: detect-secrets-hook --baseline .secrets.baseline
         language: system
         types: [text]
 
+      # Shared Release 2 - Dependency auditing
       - id: pip-audit-shared
         name: pip-audit - Shared Requirements
         entry: python scripts/audit_shared_dependencies.py
