@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Multi-Agent | ASD Student Portal</title>
+
+    <link rel="stylesheet" href="css/asd-shell.css">
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/multi-agent.css">
+</head>
+
+<body>
+<div class="layout">
+
+    <aside class="sidebar">
+        <a class="brand" href="/home.html">
+            <span class="brand__mark"></span>
+            <div>
+                <div class="brand__name">ASD STUDENT PORTAL</div>
+                <div class="brand__sub">41026</div>
+            </div>
+        </a>
+
+        <nav class="nav">
+            <a class="nav__item" href="/home.html">HOME</a>
+            <a class="nav__item" href="/enrolment/">ENROLMENT</a>
+            <a class="nav__item" href="/assessments/">ASSESSMENTS</a>
+            <a class="nav__item" href="/calendar/">CALENDAR</a>
+            <a class="nav__item" href="/notes/">NOTES</a>
+            <a class="nav__item" href="/exams/">EXAMS</a>
+            <a class="nav__item nav__item--active"
+               href="/multi-agent.html">MULTI-AGENT</a>
+        </nav>
+
+        <div class="side-note">
+            <div class="side-note__label">SIGNED IN AS</div>
+            <p class="side-note__text" id="user-name">Guest</p>
+            <button id="auth-action" class="btn btn--block">
+                SIGN OUT
+            </button>
+        </div>
+    </aside>
+
+    <main class="main">
+
+        <header class="page-header">
+            <div>
+                <h1 class="page-title">Multi-Agent Workflows</h1>
+                <p class="page-subtitle">
+                    Planner → Worker → Reviewer → Human Review
+                </p>
+            </div>
+        </header>
+
+        <section class="agent-panel">
+            <h2>Start Workflow</h2>
+
+            <label for="workflow-request">Request</label>
+            <textarea
+                id="workflow-request"
+                rows="4"
+                placeholder="Describe the task..."
+            ></textarea>
+
+            <label for="workflow-evidence">
+                Evidence (JSON)
+            </label>
+
+            <textarea
+                id="workflow-evidence"
+                rows="8"
+                placeholder='{"assignments": []}'
+            ></textarea>
+
+            <button id="start-workflow" class="btn">
+                RUN WORKFLOW
+            </button>
+
+            <p id="workflow-message" role="status"
+               aria-live="polite"></p>
+        </section>
+
+        <section class="agent-panel" id="workflow-results" hidden>
+            <h2>Workflow Results</h2>
+
+            <p>
+                <strong>Workflow ID:</strong>
+                <span id="workflow-id"></span>
+            </p>
+
+            <p>
+                <strong>Status:</strong>
+                <span id="workflow-status"></span>
+            </p>
+
+            <div class="agent-results">
+                <article>
+                    <h3>Planner</h3>
+                    <pre id="planner-output"></pre>
+                </article>
+
+                <article>
+                    <h3>Worker</h3>
+                    <pre id="worker-output"></pre>
+                </article>
+
+                <article>
+                    <h3>Reviewer</h3>
+                    <pre id="reviewer-output"></pre>
+                </article>
+            </div>
+        </section>
+
+        <section class="agent-panel" id="human-review" hidden>
+            <h2>Human Review</h2>
+
+            <label for="review-decision">Decision</label>
+            <select id="review-decision">
+                <option value="approved">Approve</option>
+                <option value="partially_accepted">
+                    Partially Accept
+                </option>
+                <option value="rejected">Reject</option>
+            </select>
+
+            <label for="review-comments">Comments</label>
+            <textarea
+                id="review-comments"
+                rows="3"
+                placeholder="Explain your decision..."
+            ></textarea>
+
+            <button id="submit-review" class="btn">
+                SUBMIT REVIEW
+            </button>
+        </section>
+
+        <section class="agent-panel">
+            <h2>Retrieve Workflow</h2>
+
+            <label for="lookup-id">Workflow ID</label>
+            <input
+                type="text"
+                id="lookup-id"
+                placeholder="Enter workflow UUID"
+            >
+
+            <button id="lookup-workflow" class="btn">
+                FIND WORKFLOW
+            </button>
+            <p id="lookup-message" role="status" aria-live="polite"></p>
+        </section>
+
+    </main>
+</div>
+
+<script src="js/multi-agent.js"></script>
+</body>
+</html>

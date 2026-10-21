@@ -1,0 +1,19 @@
+target-version = "py312"
+line-length = 100
+
+[lint]
+select = [
+    "E4",
+    "E7",
+    "E9",
+    "F",
+    "S",
+]
+
+[lint.per-file-ignores]
+"**/test_*.py" = ["S101"]
+"**/tests/**" = ["S101"]
+"**/multi-agent-server/agents/*.py" = ["E402"]
+
+[lint.flake8-bandit]
+check-typed-exception = true

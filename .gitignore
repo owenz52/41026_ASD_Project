@@ -56,3 +56,12 @@ docker-compose.override.yml
 #Other
 ai-services/agentic-loop/data/
 ai-services/agentic-loop/reports/*.md
+
+# Ruff generated cache
+.ruff_cache/
+
+# Multi-Agent generated workflow logs
+ai-services/multi-agent-server/logs/*.jsonl
+
+# Release 2 generated review reports
+ai-services/agentic-loop/reports/release2/*.md
