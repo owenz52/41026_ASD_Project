@@ -1,0 +1,29 @@
+repos:
+  - repo: local
+    hooks:
+      - id: yulin-ruff-security
+        name: Yulin Python security scan
+        entry: ruff check --select S student-yulinzhu
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: yulin-detect-secrets
+        name: Yulin secret scan
+        entry: detect-secrets-hook
+        language: system
+        files: ^(student-yulinzhu/|\.github/workflows/student-yulinzhu\.yml$)
+
+      - id: yulin-backend-audit
+        name: Yulin backend dependency audit
+        entry: pip-audit -r student-yulinzhu/backend/requirements.txt
+        language: system
+        pass_filenames: false
+        always_run: true
+
+      - id: yulin-database-audit
+        name: Yulin database dependency audit
+        entry: pip-audit -r student-yulinzhu/database/requirements.txt
+        language: system
+        pass_filenames: false
+        always_run: true
