@@ -204,9 +204,11 @@ def collect_workflow_tests(workflow_file, branch="main"):
     }
 
     try:
+        # Filter for completed runs here rather than with the API's status
+        # filter, which can lag behind a run that has only just finished.
         data, warning = _github_get(
             f"/actions/workflows/{workflow_file}/runs",
-            {"branch": branch, "status": "completed", "per_page": 1},
+            {"branch": branch, "per_page": 10},
         )
     except requests.RequestException as exc:
         record["error"] = f"Could not query GitHub Actions: {exc}"
@@ -215,7 +217,11 @@ def collect_workflow_tests(workflow_file, branch="main"):
     if warning:
         record["warning"] = warning
 
-    runs = data.get("workflow_runs", [])
+    runs = [
+        run
+        for run in data.get("workflow_runs", [])
+        if run.get("status") == "completed"
+    ]
 
     if not runs:
         record["error"] = f"No completed run found on branch {branch}"

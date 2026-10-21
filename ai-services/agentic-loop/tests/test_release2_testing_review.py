@@ -103,7 +103,12 @@ def fake_github(monkeypatch, steps, runs=True):
             data = {"workflow_runs": []}
             if runs:
                 data["workflow_runs"] = [{
+                    "id": 2,
+                    "status": "in_progress",
+                    "conclusion": None,
+                }, {
                     "id": 1,
+                    "status": "completed",
                     "html_url": "https://github.com/x/y/actions/runs/1",
                     "head_sha": "abc123",
                     "event": "push",
@@ -130,6 +135,7 @@ def test_endpoint_test_step_success_is_pass(monkeypatch):
     record = evidence_collectors.collect_workflow_tests("student-a.yml")
 
     assert record["status"] == "pass"
+    assert record["run_id"] == 1  # the in-progress run is skipped
     assert [s["step"] for s in record["test_steps"]] == [
         "Test Assessment Tracker endpoints"
     ]
