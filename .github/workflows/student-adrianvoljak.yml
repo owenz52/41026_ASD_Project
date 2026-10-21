@@ -1,3 +1,4 @@
+
 name: Adrian Microservices CI
 
 on:
@@ -38,6 +39,10 @@ jobs:
         run: |
           python -m pip install -r student-adrianvoljak/database/requirements.txt
 
+      - name: Install pytest
+        run: |
+          python -m pip install pytest
+
       - name: Initialise assessment database
         run: |
           python student-adrianvoljak/database/init_db.py
@@ -49,6 +54,21 @@ jobs:
       - name: Validate database Python
         run: |
           python -m compileall -q student-adrianvoljak/database
+
+      - name: Test Assessment Tracker endpoints
+        run: |
+          python -m pytest \
+            student-adrianvoljak/backend/tests/test_endpoints.py \
+            -v \
+            --junitxml=assessment-test-results.xml
+
+      - name: Upload endpoint test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: adrian-endpoint-test-results
+          path: assessment-test-results.xml
+          if-no-files-found: warn
 
       - name: Verify AI, MCP and RAG are disabled
         working-directory: student-adrianvoljak/backend
@@ -69,7 +89,10 @@ jobs:
                       client.get("/mcp/assessments/upcoming?student_id=1"),
                       client.post(
                           "/rag/assessments/answer",
-                          json={"student_id": 1, "query": "When is my report due?"},
+                          json={
+                              "student_id": 1,
+                              "query": "When is my report due?"
+                          },
                       ),
                   ]
 
