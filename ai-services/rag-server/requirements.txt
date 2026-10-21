@@ -1,2 +1,2 @@
 chromadb==1.5.9
-requests==2.32.3
+requests>=2.33.0,<3

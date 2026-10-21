@@ -1,0 +1,23 @@
+
+repos:
+  - repo: local
+    hooks:
+      - id: ruff-release2
+        name: Ruff - Shared Release 2
+        entry: ruff check
+        language: system
+        types: [python]
+        files: ^ai-services/(multi-agent-server/|shared_llm/|agentic-loop/release2/)
+
+      - id: detect-secrets
+        name: Detect Secrets
+        entry: detect-secrets-hook --baseline .secrets.baseline
+        language: system
+        types: [text]
+
+      - id: pip-audit-shared
+        name: pip-audit - Shared Requirements
+        entry: python scripts/audit_shared_dependencies.py
+        language: system
+        pass_filenames: false
+        always_run: true
