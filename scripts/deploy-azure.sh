@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -15,19 +14,41 @@ set -Eeuo pipefail
 #   2. scripts/create-acr.sh
 #   3. scripts/build-images.sh
 #   4. scripts/deploy-azure-env.sh
+#   5. scripts/preflight-check.sh   (recommended)
+#
+# Changes from the previous version:
+#   - Database apps use INTERNAL ingress (reachable by your APIs
+#     inside the environment, not from the internet). Apps with
+#     no ingress cannot receive any traffic, even internal.
+#   - Removed the invalid "--ingress disabled" flag from create.
+#   - Every update creates a new revision (--revision-suffix), so
+#     re-running with IMAGE_TAG=latest really pulls the new image.
+#   - Placeholder apps use port 80 (what the quickstart image uses).
+#   - System identity is assigned at creation time.
+#   - ACR image errors are shown instead of hidden.
+#   - Final status check fails the script if any app is not healthy.
+#   - project-auth keeps 1 replica warm to avoid cold-start logins.
+#
+# Optional environment variables:
+#   RESOURCE_GROUP, EXPECTED_SUBSCRIPTION_ID, IMAGE_TAG
+#   DB_TRANSPORT   auto (HTTP, default) or tcp. Use tcp only if the
+#                  database apps speak a raw TCP protocol rather than
+#                  HTTP (e.g. a real Postgres/MySQL server).
 #
 # WARNING:
 #   This script creates and modifies Azure resources.
-#   It does not configure database persistence, application
-#   secrets, database initialization, or application health.
+#   It does not configure application environment variables,
+#   secrets, database persistence, or database initialization.
 # ============================================================
-
-set -o pipefail
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
 EXPECTED_SUBSCRIPTION_ID="${EXPECTED_SUBSCRIPTION_ID:-4f004dab-3d26-4f85-bfd6-065fd3b81611}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
+DB_TRANSPORT="${DB_TRANSPORT:-auto}"
+
 PLACEHOLDER_IMAGE="mcr.microsoft.com/k8se/quickstart:latest"
+PLACEHOLDER_PORT=80
+REVISION_SUFFIX="r$(date +%s)"
 
 WAIT_SECONDS=8
 MAX_RETRIES=5
@@ -41,6 +62,10 @@ log() {
 die() {
     echo "ERROR: $*" >&2
     exit 1
+}
+
+nullish() {
+    [[ -z "${1:-}" || "$1" == "None" || "$1" == "null" ]]
 }
 
 retry_az() {
@@ -67,6 +92,9 @@ retry_az() {
 
     return 1
 }
+
+[[ "$DB_TRANSPORT" == "auto" || "$DB_TRANSPORT" == "tcp" ]] ||
+    die "DB_TRANSPORT must be 'auto' or 'tcp' (got '$DB_TRANSPORT')."
 
 # ------------------------------------------------------------
 # 1. Verify Azure CLI, login and subscription
@@ -112,14 +140,9 @@ REGISTRY_NAME="$(az group show \
     --query "tags.registryName" \
     --output tsv)"
 
-[[ -n "$LOCATION" && "$LOCATION" != "None" ]] ||
-    die "The resource group's location tag is missing."
-
-[[ -n "$ENV_NAME" && "$ENV_NAME" != "None" ]] ||
-    die "The resource group's envName tag is missing."
-
-[[ -n "$REGISTRY_NAME" && "$REGISTRY_NAME" != "None" ]] ||
-    die "The resource group's registryName tag is missing."
+nullish "$LOCATION"      && die "The resource group's location tag is missing."
+nullish "$ENV_NAME"      && die "The resource group's envName tag is missing."
+nullish "$REGISTRY_NAME" && die "The resource group's registryName tag is missing."
 
 REGISTRY_SERVER="${REGISTRY_NAME}.azurecr.io"
 
@@ -128,6 +151,8 @@ echo "Location       : $LOCATION"
 echo "Environment    : $ENV_NAME"
 echo "Registry       : $REGISTRY_NAME"
 echo "Image tag      : $IMAGE_TAG"
+echo "Revision suffix: $REVISION_SUFFIX"
+echo "DB transport   : $DB_TRANSPORT"
 
 # ------------------------------------------------------------
 # 3. Verify environment and registry
@@ -155,8 +180,7 @@ ACR_ID="$(az acr show \
     --query id \
     --output tsv)"
 
-[[ -n "$ACR_ID" && "$ACR_ID" != "None" && "$ACR_ID" != "null" ]] ||
-    die "Could not retrieve the ACR resource ID."
+nullish "$ACR_ID" && die "Could not retrieve the ACR resource ID."
 
 # ------------------------------------------------------------
 # 4. Define the 18 applications
@@ -166,22 +190,28 @@ ACR_ID="$(az acr show \
 #
 # ingress:
 # external = publicly reachable endpoint
-# internal = reachable inside the Container Apps environment
-# none     = ingress disabled
+# internal = reachable only inside the Container Apps environment
+# none     = ingress disabled (the app can receive NO traffic;
+#            only use for background workers)
 #
-# Review ports, resource allocations, and exposure settings
-# against each application's actual configuration.
+# Databases are "internal" so the APIs can reach them by name:
+#   http://project-user-db   (HTTP, port 80)
+# For DB_TRANSPORT=tcp use project-user-db:<port> instead.
+#
+# NOTE: project-user-db and project-notebook-api both use 5003.
+# That does not clash (different apps), but every other port is
+# unique, so double-check user-db's port is really 5003.
 # ------------------------------------------------------------
 
 APPS=(
-    "project-user-db|user-database|5003|0.25|0.5Gi|1|1|none"
-    "project-assessment-db|assessment-database|5008|0.25|0.5Gi|1|1|none"
-    "project-calendar-db|calendar-database|5006|0.25|0.5Gi|1|1|none"
-    "project-enrolment-db|enrolment-database|5002|0.25|0.5Gi|1|1|none"
-    "project-notebook-db|notebook-database|5004|0.25|0.5Gi|1|1|none"
-    "project-exam-db|exam-database|5010|0.25|0.5Gi|1|1|none"
+    "project-user-db|user-database|5003|0.25|0.5Gi|1|1|internal"
+    "project-assessment-db|assessment-database|5008|0.25|0.5Gi|1|1|internal"
+    "project-calendar-db|calendar-database|5006|0.25|0.5Gi|1|1|internal"
+    "project-enrolment-db|enrolment-database|5002|0.25|0.5Gi|1|1|internal"
+    "project-notebook-db|notebook-database|5004|0.25|0.5Gi|1|1|internal"
+    "project-exam-db|exam-database|5010|0.25|0.5Gi|1|1|internal"
 
-    "project-auth|auth-backend|5000|0.5|1Gi|0|2|external"
+    "project-auth|auth-backend|5000|0.5|1Gi|1|2|external"
     "project-assessment-api|assessment-backend|5007|0.5|1Gi|0|2|external"
     "project-calendar-api|calendar-backend|5005|0.5|1Gi|0|2|external"
     "project-enrolment-api|enrolment-backend|5001|0.5|1Gi|0|2|external"
@@ -200,17 +230,18 @@ APPS=(
 # 5. Verify all image tags BEFORE changing apps
 # ------------------------------------------------------------
 
-log "Verifying all 18 images in ACR..."
+log "Verifying all ${#APPS[@]} images in ACR..."
 
 for entry in "${APPS[@]}"; do
     IFS='|' read -r app image port cpu memory minrep maxrep ingress \
         <<< "$entry"
 
-    if ! az acr repository show \
+    if ! ACR_OUTPUT="$(az acr repository show \
         --name "$REGISTRY_NAME" \
         --image "${image}:${IMAGE_TAG}" \
-        --output none 2>/dev/null; then
-        die "Image ${REGISTRY_SERVER}/${image}:${IMAGE_TAG} is missing. Build and push images first."
+        --output none 2>&1)"; then
+        echo "$ACR_OUTPUT" >&2
+        die "Image ${REGISTRY_SERVER}/${image}:${IMAGE_TAG} could not be verified. Build and push images first, or check your ACR permissions."
     fi
 
     echo "OK: ${image}:${IMAGE_TAG}"
@@ -219,7 +250,7 @@ done
 log "All required image tags are present."
 
 # ------------------------------------------------------------
-# 6. Create missing apps and assign system identities
+# 6. Create missing apps (with a system identity)
 # ------------------------------------------------------------
 
 log "Creating missing apps and checking identities..."
@@ -237,32 +268,26 @@ for entry in "${APPS[@]}"; do
 
         log "Creating $app with a temporary placeholder image..."
 
-        if [[ "$ingress" == "none" ]]; then
-            retry_az az containerapp create \
-                --name "$app" \
-                --resource-group "$RESOURCE_GROUP" \
-                --environment "$ENV_NAME" \
-                --image "$PLACEHOLDER_IMAGE" \
-                --cpu "$cpu" \
-                --memory "$memory" \
-                --min-replicas "$minrep" \
-                --max-replicas "$maxrep" \
-                --ingress disabled \
-                --output none
-        else
-            retry_az az containerapp create \
-                --name "$app" \
-                --resource-group "$RESOURCE_GROUP" \
-                --environment "$ENV_NAME" \
-                --image "$PLACEHOLDER_IMAGE" \
-                --cpu "$cpu" \
-                --memory "$memory" \
-                --min-replicas "$minrep" \
-                --max-replicas "$maxrep" \
-                --ingress "$ingress" \
-                --target-port "$port" \
-                --output none
+        create_args=(
+            --name "$app"
+            --resource-group "$RESOURCE_GROUP"
+            --environment "$ENV_NAME"
+            --image "$PLACEHOLDER_IMAGE"
+            --cpu "$cpu"
+            --memory "$memory"
+            --min-replicas "$minrep"
+            --max-replicas "$maxrep"
+            --system-assigned
+            --output none
+        )
+
+        # The placeholder listens on port 80. The real port is applied
+        # in step 9 when the real image is deployed.
+        if [[ "$ingress" != "none" ]]; then
+            create_args+=(--ingress "$ingress" --target-port "$PLACEHOLDER_PORT")
         fi
+
+        retry_az az containerapp create "${create_args[@]}"
     else
         echo "Reusing existing app: $app"
     fi
@@ -273,7 +298,7 @@ for entry in "${APPS[@]}"; do
         --query identity.principalId \
         --output tsv)"
 
-    if [[ -z "$PRINCIPAL_ID" || "$PRINCIPAL_ID" == "None" || "$PRINCIPAL_ID" == "null" ]]; then
+    if nullish "$PRINCIPAL_ID"; then
         log "Assigning system identity to $app..."
 
         retry_az az containerapp identity assign \
@@ -288,8 +313,7 @@ for entry in "${APPS[@]}"; do
             --query identity.principalId \
             --output tsv)"
 
-        [[ -n "$PRINCIPAL_ID" && "$PRINCIPAL_ID" != "None" && "$PRINCIPAL_ID" != "null" ]] ||
-            die "Could not obtain managed identity for $app."
+        nullish "$PRINCIPAL_ID" && die "Could not obtain managed identity for $app."
     fi
 
     echo "Managed identity ready: $app"
@@ -311,15 +335,14 @@ for entry in "${APPS[@]}"; do
         --query identity.principalId \
         --output tsv)"
 
-    [[ -n "$PRINCIPAL_ID" && "$PRINCIPAL_ID" != "None" && "$PRINCIPAL_ID" != "null" ]] ||
-        die "No managed identity found for $app."
+    nullish "$PRINCIPAL_ID" && die "No managed identity found for $app."
 
     ASSIGNMENT_ID="$(az role assignment list \
         --scope "$ACR_ID" \
         --query "[?principalId=='${PRINCIPAL_ID}' && roleDefinitionName=='AcrPull'].id | [0]" \
         --output tsv)"
 
-    if [[ -z "$ASSIGNMENT_ID" || "$ASSIGNMENT_ID" == "None" || "$ASSIGNMENT_ID" == "null" ]]; then
+    if nullish "$ASSIGNMENT_ID"; then
         log "Granting AcrPull to $app..."
 
         retry_az az role assignment create \
@@ -358,13 +381,72 @@ sleep 30
 
 # ------------------------------------------------------------
 # 9. Deploy images and configure ingress
+#
+# Ingress is configured BEFORE the image update so the real
+# port is in place when the new revision starts. Otherwise the
+# new revision would probe the placeholder's port 80 and fail.
 # ------------------------------------------------------------
+
+configure_ingress() {
+    local app="$1" ingress="$2" port="$3"
+    local current_fqdn
+    local transport_args=(--transport auto)
+
+    current_fqdn="$(az containerapp show \
+        --name "$app" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query "properties.configuration.ingress.fqdn" \
+        --output tsv 2>/dev/null || true)"
+
+    case "$ingress" in
+        external|internal)
+            if [[ "$app" == *-db && "$DB_TRANSPORT" == "tcp" ]]; then
+                transport_args=(--transport tcp --exposed-port "$port")
+            fi
+
+            if nullish "$current_fqdn"; then
+                retry_az az containerapp ingress enable \
+                    --name "$app" \
+                    --resource-group "$RESOURCE_GROUP" \
+                    --type "$ingress" \
+                    --target-port "$port" \
+                    "${transport_args[@]}" \
+                    --output none
+            else
+                retry_az az containerapp ingress update \
+                    --name "$app" \
+                    --resource-group "$RESOURCE_GROUP" \
+                    --type "$ingress" \
+                    --target-port "$port" \
+                    "${transport_args[@]}" \
+                    --output none
+            fi
+            ;;
+        none)
+            if ! nullish "$current_fqdn"; then
+                log "Disabling ingress for $app..."
+                retry_az az containerapp ingress disable \
+                    --name "$app" \
+                    --resource-group "$RESOURCE_GROUP" \
+                    --output none
+            else
+                echo "No ingress configured for $app."
+            fi
+            ;;
+        *)
+            die "Unknown ingress setting '$ingress' for $app."
+            ;;
+    esac
+}
 
 log "Deploying application images..."
 
 for entry in "${APPS[@]}"; do
     IFS='|' read -r app image port cpu memory minrep maxrep ingress \
         <<< "$entry"
+
+    log "Configuring ingress for $app ($ingress, port $port)..."
+    configure_ingress "$app" "$ingress" "$port"
 
     log "Updating $app to ${REGISTRY_SERVER}/${image}:${IMAGE_TAG}..."
 
@@ -376,41 +458,8 @@ for entry in "${APPS[@]}"; do
         --memory "$memory" \
         --min-replicas "$minrep" \
         --max-replicas "$maxrep" \
+        --revision-suffix "$REVISION_SUFFIX" \
         --output none
-
-    case "$ingress" in
-        external|internal)
-            retry_az az containerapp ingress enable \
-                --name "$app" \
-                --resource-group "$RESOURCE_GROUP" \
-                --type "$ingress" \
-                --target-port "$port" \
-                --transport auto \
-                --output none
-            ;;
-        none)
-            # Explicitly disable ingress on database apps,
-            # including apps that already existed.
-            if az containerapp show \
-                --name "$app" \
-                --resource-group "$RESOURCE_GROUP" \
-                --query "properties.configuration.ingress.external" \
-                --output tsv 2>/dev/null | grep -qi '^true$'; then
-
-                log "Disabling external ingress for $app..."
-
-                retry_az az containerapp ingress disable \
-                    --name "$app" \
-                    --resource-group "$RESOURCE_GROUP" \
-                    --output none
-            else
-                echo "No external ingress detected for $app."
-            fi
-            ;;
-        *)
-            die "Unknown ingress setting '$ingress' for $app."
-            ;;
-    esac
 
     echo "Updated: $app"
 done
@@ -420,6 +469,8 @@ done
 # ------------------------------------------------------------
 
 log "Deployment commands completed. Checking app status..."
+
+UNHEALTHY=0
 
 for entry in "${APPS[@]}"; do
     IFS='|' read -r app image port cpu memory minrep maxrep ingress \
@@ -437,16 +488,29 @@ for entry in "${APPS[@]}"; do
         --query properties.configuration.ingress.fqdn \
         --output tsv 2>/dev/null || true)"
 
-    printf '%-32s state=%-15s' "$app" "$STATE"
+    [[ "$STATE" == "Succeeded" ]] || UNHEALTHY=$((UNHEALTHY + 1))
 
-    if [[ -n "$FQDN" && "$FQDN" != "None" && "$FQDN" != "null" ]]; then
-        printf ' URL=https://%s' "$FQDN"
+    printf '%-32s state=%-12s' "$app" "$STATE"
+
+    if ! nullish "$FQDN"; then
+        if [[ "$ingress" == "external" ]]; then
+            printf ' URL=https://%s' "$FQDN"
+        else
+            printf ' internal=%s' "$FQDN"
+        fi
     fi
 
     printf '\n'
 done
 
 log "Deployment script finished."
-echo "A successful command does not guarantee that every app is healthy."
+
+if (( UNHEALTHY > 0 )); then
+    echo "WARNING: $UNHEALTHY app(s) are not in the Succeeded state." >&2
+    echo "Check logs: az containerapp logs show -n <app> -g $RESOURCE_GROUP --type console --tail 100" >&2
+    exit 1
+fi
+
+echo "A Succeeded state does not guarantee that every app is healthy."
 echo "Check application logs, database connectivity, secrets, and persistence."
-echo "Run scripts/deployment-testing.sh after reviewing the deployed apps."
+echo "Run scripts/deployment-testing.sh next."
