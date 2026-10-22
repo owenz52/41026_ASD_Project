@@ -1,11 +1,16 @@
 import os
 import sqlite3
+import sys
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"),)
 DATABASE_NAME = os.path.join(DATA_DIR, "enrolment.db")
 
 os.makedirs(DATA_DIR, exist_ok=True)
 
+if os.path.exists(DATABASE_NAME):
+    print(f"Database already exists, initialization skipped: {DATABASE_NAME}")
+    sys.exit(0)
+    
 conn = sqlite3.connect(
     DATABASE_NAME
 )
