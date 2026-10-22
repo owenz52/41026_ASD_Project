@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# Git Bash / MSYS2 rewrites arguments that start with "/" (such as
+# /subscriptions/...) into Windows paths before az sees them, which
+# silently breaks --scope and similar options. Disable that.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL='*'
+
 # ============================================================
 # Project: Deploy 18 services to Azure Container Apps
 #
@@ -31,6 +37,13 @@ set -Eeuo pipefail
 #
 # Optional environment variables:
 #   RESOURCE_GROUP, EXPECTED_SUBSCRIPTION_ID, IMAGE_TAG
+#   ACR_AUTH       identity (default) or admin.
+#                  identity = managed identity + AcrPull role (needs
+#                             Owner / User Access Administrator on the
+#                             registry to create the role assignments).
+#                  admin    = registry admin username/password. Works
+#                             with Contributor only. Less secure: the
+#                             password is stored as a secret in each app.
 #   DB_TRANSPORT   auto (HTTP, default) or tcp. Use tcp only if the
 #                  database apps speak a raw TCP protocol rather than
 #                  HTTP (e.g. a real Postgres/MySQL server).
@@ -45,6 +58,7 @@ RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
 EXPECTED_SUBSCRIPTION_ID="${EXPECTED_SUBSCRIPTION_ID:-4f004dab-3d26-4f85-bfd6-065fd3b81611}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 DB_TRANSPORT="${DB_TRANSPORT:-auto}"
+ACR_AUTH="${ACR_AUTH:-identity}"
 
 PLACEHOLDER_IMAGE="mcr.microsoft.com/k8se/quickstart:latest"
 PLACEHOLDER_PORT=80
@@ -93,6 +107,9 @@ retry_az() {
     return 1
 }
 
+[[ "$ACR_AUTH" == "identity" || "$ACR_AUTH" == "admin" ]] ||
+    die "ACR_AUTH must be 'identity' or 'admin' (got '$ACR_AUTH')."
+
 [[ "$DB_TRANSPORT" == "auto" || "$DB_TRANSPORT" == "tcp" ]] ||
     die "DB_TRANSPORT must be 'auto' or 'tcp' (got '$DB_TRANSPORT')."
 
@@ -104,6 +121,12 @@ log "Checking prerequisites..."
 
 command -v az >/dev/null 2>&1 ||
     die "Azure CLI is not installed or not on PATH."
+
+# Some Azure CLI installs (Git Bash/Windows, some wrappers) emit CRLF line
+# endings, which silently corrupts values read with $(...) or read.
+# Strip carriage returns from everything az prints. Defined AFTER the
+# "az is installed" check so that check still works.
+az() { command az "$@" | tr -d '\r'; }
 
 if ! az account show --output none 2>/dev/null; then
     die "Not logged in to Azure. Run: az login"
@@ -153,6 +176,7 @@ echo "Registry       : $REGISTRY_NAME"
 echo "Image tag      : $IMAGE_TAG"
 echo "Revision suffix: $REVISION_SUFFIX"
 echo "DB transport   : $DB_TRANSPORT"
+echo "ACR auth        : $ACR_AUTH"
 
 # ------------------------------------------------------------
 # 3. Verify environment and registry
@@ -323,6 +347,7 @@ done
 # 7. Grant AcrPull to each managed identity
 # ------------------------------------------------------------
 
+if [[ "$ACR_AUTH" == "identity" ]]; then
 log "Configuring ACR pull permissions..."
 
 for entry in "${APPS[@]}"; do
@@ -355,6 +380,9 @@ for entry in "${APPS[@]}"; do
         echo "AcrPull already assigned: $app"
     fi
 done
+else
+    log "ACR_AUTH=admin: skipping AcrPull role assignments."
+fi
 
 # ------------------------------------------------------------
 # 8. Configure managed-identity registry authentication
@@ -362,22 +390,59 @@ done
 
 log "Configuring ACR authentication for each app..."
 
+ACR_USER=""
+ACR_PASS=""
+
+if [[ "$ACR_AUTH" == "admin" ]]; then
+    log "Enabling ACR admin user and reading credentials..."
+
+    retry_az az acr update \
+        --name "$REGISTRY_NAME" \
+        --admin-enabled true \
+        --output none
+
+    ACR_USER="$(az acr credential show \
+        --name "$REGISTRY_NAME" \
+        --query username \
+        --output tsv)"
+
+    ACR_PASS="$(az acr credential show \
+        --name "$REGISTRY_NAME" \
+        --query "passwords[0].value" \
+        --output tsv)"
+
+    nullish "$ACR_USER" && die "Could not read ACR admin username. Admin user may be blocked by policy."
+    nullish "$ACR_PASS" && die "Could not read ACR admin password."
+fi
+
 for entry in "${APPS[@]}"; do
     IFS='|' read -r app image port cpu memory minrep maxrep ingress \
         <<< "$entry"
 
-    retry_az az containerapp registry set \
-        --name "$app" \
-        --resource-group "$RESOURCE_GROUP" \
-        --server "$REGISTRY_SERVER" \
-        --identity system \
-        --output none
+    if [[ "$ACR_AUTH" == "admin" ]]; then
+        retry_az az containerapp registry set \
+            --name "$app" \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$REGISTRY_SERVER" \
+            --username "$ACR_USER" \
+            --password "$ACR_PASS" \
+            --output none
+    else
+        retry_az az containerapp registry set \
+            --name "$app" \
+            --resource-group "$RESOURCE_GROUP" \
+            --server "$REGISTRY_SERVER" \
+            --identity system \
+            --output none
+    fi
 
     echo "Registry authentication configured: $app"
 done
 
-log "Waiting for role assignments to propagate..."
-sleep 30
+if [[ "$ACR_AUTH" == "identity" ]]; then
+    log "Waiting for role assignments to propagate..."
+    sleep 30
+fi
 
 # ------------------------------------------------------------
 # 9. Deploy images and configure ingress

@@ -5,7 +5,7 @@ import requests
 
 
 BACKEND_SERVICE_URL = os.getenv(
-    "BACKEND_SERVICE_URL",
+    "DATABASE_SERVICE_URL",
     "http://localhost:5009"
 )
 

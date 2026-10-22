@@ -1,110 +1,89 @@
-#!/bin/bash
-set -euo pipefail
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Validates the deployed portal frontend and writes a deployment report.
+# Lightweight deployment test:
+#   1. finds the deployed frontend Container App
+#   2. checks its public URL returns HTTP 200
+#   3. writes deployment-results.md
+#
+# For the full 18-app check, use scripts/deployment-testing-full.sh.
+#
+# Optional environment variables:
+#   RESOURCE_GROUP   default: project-rg
+#   FRONTEND_APP     default: the resource group's frontendAppName tag,
+#                    else project-portal
+#   REPORT_FILE      default: reports/deployment-results.md
+
+# Git Bash / MSYS2 rewrites arguments that start with "/" into Windows paths.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL='*'
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
-APP_NAME="${APP_NAME:-project-portal}"
 REPORT_FILE="${REPORT_FILE:-reports/deployment-results.md}"
-TIMEOUT="${TIMEOUT:-15}"
+APP_NAME="${FRONTEND_APP:-}"
 
-echo "=== Project Deployment Testing ==="
+# Some Azure CLI installs print Windows line endings (\r) that corrupt values.
+az() { command az "$@" | tr -d '\r'; }
 
-# Step 1: Check Azure CLI and authentication
-if ! command -v az >/dev/null 2>&1; then
-  echo "ERROR: Azure CLI (az) is not installed or is not on PATH." >&2
-  exit 1
+echo "=== Deployment Testing ==="
+
+# Step 1: Find the deployed frontend Container App name
+if [[ -z "$APP_NAME" ]]; then
+  APP_NAME=$(az group show --name "$RESOURCE_GROUP" --query "tags.frontendAppName" -o tsv)
+  if [[ -z "$APP_NAME" || "$APP_NAME" == "None" ]]; then
+    APP_NAME="project-portal"
+  fi
 fi
 
-if ! az account show >/dev/null 2>&1; then
-  echo "ERROR: You are not logged in to Azure. Run: az login" >&2
-  exit 1
-fi
-
-# Step 2: Verify the resource group exists
-if ! az group show --name "$RESOURCE_GROUP" >/dev/null 2>&1; then
-  echo "ERROR: Resource group '$RESOURCE_GROUP' was not found or is inaccessible." >&2
-  exit 1
-fi
-
-# Step 3: Read the deployed portal's FQDN
-echo "Checking Container App: $APP_NAME"
-
-if ! APP_URL=$(az containerapp show \
+# Step 2: Get the Container App FQDN
+APP_URL=$(az containerapp show \
   --name "$APP_NAME" \
   --resource-group "$RESOURCE_GROUP" \
-  --query "properties.configuration.ingress.fqdn" \
-  --output tsv); then
-  echo "ERROR: Could not find Container App '$APP_NAME' in '$RESOURCE_GROUP'." >&2
-  exit 1
-fi
+  --query properties.configuration.ingress.fqdn -o tsv)
 
 if [[ -z "$APP_URL" || "$APP_URL" == "None" ]]; then
-  echo "ERROR: The portal has no ingress FQDN. Check its ingress configuration." >&2
+  echo "No public URL found for $APP_NAME in $RESOURCE_GROUP." >&2
   exit 1
 fi
 
-# Step 4: Validate the public HTTPS endpoint
-if ! command -v curl >/dev/null 2>&1; then
-  echo "ERROR: curl is required to test the deployed portal." >&2
-  exit 1
-fi
-
-APP_HTTPS_URL="https://${APP_URL}"
-echo "Validating ${APP_HTTPS_URL} ..."
-
-HTTP_STATUS=$(curl \
-  --silent \
-  --show-error \
-  --output /dev/null \
-  --write-out "%{http_code}" \
-  --connect-timeout "$TIMEOUT" \
-  --max-time 60 \
-  "$APP_HTTPS_URL" 2>/dev/null || true)
+# Step 3: Validate the frontend (retries cover a cold start from zero replicas)
+echo "Validating https://$APP_URL ..."
+HTTP_STATUS="000"
+for attempt in 1 2 3 4 5; do
+  HTTP_STATUS=$(curl -s -L -o /dev/null -w "%{http_code}" --max-time 60 "https://$APP_URL" || true)
+  [[ "$HTTP_STATUS" == "200" ]] && break
+  sleep 10
+done
 
 if [[ "$HTTP_STATUS" == "200" ]]; then
   STATUS="Success"
-  VALIDATION="HTTP ${HTTP_STATUS} OK"
+  VALIDATION="HTTP $HTTP_STATUS OK"
 else
   STATUS="Failed"
-  VALIDATION="HTTP ${HTTP_STATUS:-000} - portal did not return HTTP 200"
+  VALIDATION="HTTP $HTTP_STATUS"
 fi
 
-# Step 5: Write the deployment report
+# Step 4: Write deployment-results.md
 mkdir -p "$(dirname "$REPORT_FILE")"
-
 cat > "$REPORT_FILE" <<EOF
-# Project Deployment Report
+# Deployment Report
 
 ## Azure Container Apps
 
-- Resource Group: ${RESOURCE_GROUP}
-- Portal App Name: ${APP_NAME}
-- Deployment Status: ${STATUS}
-- Portal URL: ${APP_HTTPS_URL}
-- Validation Result: ${VALIDATION}
-- Timestamp (UTC): $(date -u +%Y-%m-%dT%H:%M:%SZ)
+Deployment Status: $STATUS
 
-## Validation Scope
+Frontend App Name: $APP_NAME
 
-This test checks whether the deployed portal's HTTPS endpoint returns HTTP 200.
-It does not independently verify login, API routing, database connectivity,
-or the availability of AI services.
+Frontend URL: https://$APP_URL
 
-## Reviewer Notes
+Validation Result: $VALIDATION
 
-Pending review.
+Timestamp: $(date -u +%Y-%m-%dT%H:%M:%SZ)
+
+Reviewer Notes: (pending Section 7 AI review)
 EOF
 
-echo
 echo "=== Deployment Testing Complete ==="
-echo "Status:     $STATUS"
-echo "Portal URL: $APP_HTTPS_URL"
-echo "Report:     $REPORT_FILE"
-echo
 cat "$REPORT_FILE"
 
-# Return a failure exit code if the endpoint check failed.
-if [[ "$STATUS" != "Success" ]]; then
-  exit 1
-fi
+[[ "$STATUS" == "Success" ]]

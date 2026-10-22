@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -Euo pipefail
 
+# Git Bash / MSYS2 rewrites arguments that start with "/" (such as
+# /subscriptions/...) into Windows paths before az sees them, which
+# silently breaks --scope and similar options. Disable that.
+export MSYS_NO_PATHCONV=1
+export MSYS2_ARG_CONV_EXCL='*'
+
 # ============================================================
 # Pre-flight check for the 18-service Container Apps deployment
 #
@@ -23,6 +29,7 @@ set -Euo pipefail
 # ============================================================
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
+ACR_AUTH="${ACR_AUTH:-identity}"   # identity | admin (match your deploy run)
 EXPECTED_SUBSCRIPTION_ID="${EXPECTED_SUBSCRIPTION_ID:-4f004dab-3d26-4f85-bfd6-065fd3b81611}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
 
@@ -41,14 +48,14 @@ nullish() { [[ -z "${1:-}" || "$1" == "null" || "$1" == "None" ]]; }
 # ------------------------------------------------------------
 
 APPS=(
-    "project-user-db|user-database|5003|0.25|0.5Gi|1|1|none"
-    "project-assessment-db|assessment-database|5008|0.25|0.5Gi|1|1|none"
-    "project-calendar-db|calendar-database|5006|0.25|0.5Gi|1|1|none"
-    "project-enrolment-db|enrolment-database|5002|0.25|0.5Gi|1|1|none"
-    "project-notebook-db|notebook-database|5004|0.25|0.5Gi|1|1|none"
-    "project-exam-db|exam-database|5010|0.25|0.5Gi|1|1|none"
+    "project-user-db|user-database|5003|0.25|0.5Gi|1|1|internal"
+    "project-assessment-db|assessment-database|5008|0.25|0.5Gi|1|1|internal"
+    "project-calendar-db|calendar-database|5006|0.25|0.5Gi|1|1|internal"
+    "project-enrolment-db|enrolment-database|5002|0.25|0.5Gi|1|1|internal"
+    "project-notebook-db|notebook-database|5004|0.25|0.5Gi|1|1|internal"
+    "project-exam-db|exam-database|5010|0.25|0.5Gi|1|1|internal"
 
-    "project-auth|auth-backend|5000|0.5|1Gi|0|2|external"
+    "project-auth|auth-backend|5000|0.5|1Gi|1|2|external"
     "project-assessment-api|assessment-backend|5007|0.5|1Gi|0|2|external"
     "project-calendar-api|calendar-backend|5005|0.5|1Gi|0|2|external"
     "project-enrolment-api|enrolment-backend|5001|0.5|1Gi|0|2|external"
@@ -77,6 +84,12 @@ else
     err "Azure CLI is not installed or not on PATH"
     echo; echo "Cannot continue without Azure CLI."; exit 1
 fi
+
+# Some Azure CLI installs (Git Bash/Windows, some wrappers) emit CRLF line
+# endings, which silently corrupts values read with $(...) or read.
+# Strip carriage returns from everything az prints. Defined AFTER the
+# "az is installed" check so that check still works.
+az() { command az "$@" | tr -d '\r'; }
 
 if ! az account show --output none 2>/dev/null; then
     err "Not logged in. Run: az login"
@@ -150,6 +163,10 @@ elif [[ -z "$ENV_STATE" ]]; then
     err "Environment '$ENV_NAME' does not exist. Run scripts/deploy-azure-env.sh first"
 else
     err "Environment '$ENV_NAME' is in state '$ENV_STATE' (expected Succeeded)"
+    echo "         Diagnose with:"
+    echo "           az containerapp env show -n $ENV_NAME -g $RESOURCE_GROUP --query properties -o jsonc"
+    echo "           az monitor activity-log list -g $RESOURCE_GROUP --offset 2d \\"
+    echo "             --query \"[?status.value=='Failed'].{op:operationName.localizedValue,msg:properties.statusMessage}\" -o json"
 fi
 
 section "Container registry"
@@ -177,32 +194,45 @@ fi
 
 section "Permissions"
 
+# Uses Azure's effective-permissions API for YOUR signed-in identity. Unlike
+# listing role names, this correctly accounts for group-based roles,
+# inherited roles, classic administrators and custom roles.
+perm_count() {
+    # $1 = resource id, $2 = JMESPath expression returning a number
+    az rest --method get \
+        --url "https://management.azure.com${1}/providers/Microsoft.Authorization/permissions?api-version=2022-04-01" \
+        --query "$2" --output tsv 2>/dev/null || true
+}
+
+CAN_ASSIGN_FILTER="length(value[?(contains(actions,'*') || contains(actions,'Microsoft.Authorization/*') || contains(actions,'Microsoft.Authorization/roleAssignments/write')) && !contains(notActions,'Microsoft.Authorization/*') && !contains(notActions,'Microsoft.Authorization/*/Write') && !contains(notActions,'Microsoft.Authorization/roleAssignments/write')])"
+CAN_MANAGE_FILTER="length(value[?contains(actions,'*')])"
+
 if [[ -n "$ACR_ID" ]]; then
-    ME="$(az ad signed-in-user show --query id --output tsv 2>/dev/null || true)"
+    N="$(perm_count "$ACR_ID" "$CAN_ASSIGN_FILTER")"
 
-    if nullish "$ME"; then
-        warn "Could not resolve your identity (service principal or no Graph access); verify manually that you can create role assignments"
+    if [[ ! "$N" =~ ^[0-9]+$ ]]; then
+        warn "Could not read your effective permissions; verify manually that you can create role assignments on the registry"
+    elif (( N > 0 )); then
+        ok "You can create role assignments on the registry (needed for AcrPull)"
+    elif [[ "$ACR_AUTH" == "admin" ]]; then
+        ok "No role-assignment rights, but ACR_AUTH=admin does not need them"
     else
-        ROLES="$(az role assignment list \
-            --assignee "$ME" --scope "$ACR_ID" --include-inherited \
-            --query "[].roleDefinitionName" --output tsv 2>/dev/null || true)"
-
-        if grep -qiE '^(Owner|User Access Administrator|Role Based Access Control Administrator)$' <<< "$ROLES"; then
-            ok "You can create role assignments on the registry"
-        else
-            err "You lack Owner / User Access Administrator on the registry; granting AcrPull will fail"
-        fi
-
-        if grep -qiE '^(Owner|Contributor)$' <<< "$(az role assignment list \
-                --assignee "$ME" --resource-group "$RESOURCE_GROUP" --include-inherited \
-                --query "[].roleDefinitionName" --output tsv 2>/dev/null || true)"; then
-            ok "You have Contributor/Owner on the resource group"
-        else
-            warn "No Contributor/Owner found on the resource group; creating apps may fail"
-        fi
+        err "Your effective permissions on the registry do not allow creating role assignments; granting AcrPull will fail"
+        echo "         Either get Owner/User Access Administrator, or deploy with:  ACR_AUTH=admin ./scripts/deploy-azure-apps.sh"
     fi
 else
-    warn "Skipped permission check (registry not found)"
+    warn "Skipped registry permission check (registry not found)"
+fi
+
+RG_ID="/subscriptions/${CURRENT_SUB}/resourceGroups/${RESOURCE_GROUP}"
+N="$(perm_count "$RG_ID" "$CAN_MANAGE_FILTER")"
+
+if [[ ! "$N" =~ ^[0-9]+$ ]]; then
+    warn "Could not read your effective permissions on the resource group"
+elif (( N > 0 )); then
+    ok "You can manage resources in the resource group"
+else
+    warn "No full-management role found on the resource group; creating apps may fail"
 fi
 
 # ------------------------------------------------------------
@@ -326,8 +356,8 @@ if [[ "$ENV_STATE" == "Succeeded" ]]; then
             err "$app exists in a different environment ($ENV_ID)"
         fi
 
-        if [[ "$ingress" == "none" && "$EXT" == "true" ]]; then
-            warn "$app currently has EXTERNAL ingress; the deploy will disable it"
+        if [[ "$ingress" != "external" && "$EXT" == "true" ]]; then
+            warn "$app currently has EXTERNAL ingress; the deploy will switch it to $ingress"
         fi
     done
     ok "$NEW app(s) will be created, $EXISTING already exist and will be updated"
