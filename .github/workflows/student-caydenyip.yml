@@ -77,10 +77,9 @@ jobs:
 
       - name: Run Exam Backend Tests
         run: |
-          docker exec \
-            -e BACKEND_SERVICE_URL=http://exam-database:5009 \
-            cayden-exam-backend-ci \
-            pytest -v /app/tests/post_commit/test_api.py
+          pip install pytest requests
+          BACKEND_SERVICE_URL=http://localhost:5009 \
+          pytest -v tests/post_commit/test_api.py
 
 
       - name: Show logs if build or services fail
