@@ -23,15 +23,38 @@ fi
 
 echo "Azure CLI authentication verified."
 
-# Step 2: Register required resource providers
-echo "Registering Azure resource providers..."
 
-az provider register --namespace Microsoft.App --wait
-az provider register --namespace Microsoft.OperationalInsights --wait
-az provider register --namespace Microsoft.ContainerRegistry --wait
-az provider register --namespace Microsoft.Storage --wait
+# Step 2: Verify resource providers are already registered.
+# Registration is a subscription-level operation performed during
+# initial setup by an administrator, not by GitHub Actions.
 
-echo "Azure resource providers registered."
+echo "Checking Azure resource providers..."
+
+REQUIRED_PROVIDERS=(
+    "Microsoft.App"
+    "Microsoft.OperationalInsights"
+    "Microsoft.ContainerRegistry"
+    "Microsoft.Storage"
+    "Microsoft.ManagedIdentity"
+)
+
+for PROVIDER in "${REQUIRED_PROVIDERS[@]}"; do
+    STATE="$(az provider show \
+        --namespace "$PROVIDER" \
+        --query registrationState \
+        -o tsv)"
+
+    if [[ "$STATE" != "Registered" ]]; then
+        echo "ERROR: $PROVIDER is not registered (status: $STATE)." >&2
+        echo "Register this provider using an authorized Azure account." >&2
+        exit 1
+    fi
+
+    echo "PASS: $PROVIDER"
+done
+
+echo "Azure resource providers verified."
+
 
 # Step 3: Create or reuse resource group
 echo "Checking resource group: $RESOURCE_GROUP"
@@ -54,15 +77,20 @@ ENV_NAME=$(az group show \
     --query "tags.envName" \
     --output tsv)
 
-# Step 5: Generate missing resource names
+
+# Step 5: Require the existing deployment resource names.
+# Infrastructure was provisioned during initial Azure setup.
 
 if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" ]]; then
-    REGISTRY_NAME="asdr2registry${RANDOM}${RANDOM}"
+    echo "ERROR: Missing registryName resource group tag." >&2
+    exit 1
 fi
 
 if [[ -z "$ENV_NAME" || "$ENV_NAME" == "None" ]]; then
-    ENV_NAME="asd-r2-env-${RANDOM}"
+    echo "ERROR: Missing envName resource group tag." >&2
+    exit 1
 fi
+
 
 # Step 6: Store deployment names as resource group tags
 echo "Saving deployment configuration..."
