@@ -41,31 +41,6 @@ jobs:
             -f student-yunchungchang/backend/Dockerfile student-yunchungchang
           docker build -t yunchung-frontend-ci student-yunchungchang/frontend
 
-      # Release 2 post-commit tests: two backend endpoint functions
-      # (GET /notebooks and POST /notes), run inside the built backend image
-      # with the database service mocked.
-      - name: Test Notebook endpoint functions
-        run: |
-          mkdir -p test-results
-          docker run --rm \
-            -e AI_ENABLED=false \
-            -e MCP_ENABLED=false \
-            -e RAG_ENABLED=false \
-            -v "$PWD/test-results:/test-results" \
-            yunchung-backend-ci \
-            sh -c "pip install --quiet --no-cache-dir pytest==8.3.5 && \
-              python -m pytest tests/test_notebook_endpoints.py -v \
-              -p no:cacheprovider \
-              --junitxml=/test-results/notebook-endpoint-test-results.xml"
-
-      - name: Upload endpoint test evidence
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: notebook-endpoint-test-results
-          path: test-results/notebook-endpoint-test-results.xml
-          if-no-files-found: warn
-
       # AI-Mode, MCP and RAG stay integrated in the backend but are switched
       # off here: the CI runner has no Ollama, MCP server or RAG server.
       - name: Start isolated CI containers

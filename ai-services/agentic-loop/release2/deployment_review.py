@@ -70,7 +70,6 @@ Recommend corrective actions for failures and missing checks.
         mode="deployment",
         evidence=review_evidence,
         instructions=instructions,
-        validation=validation,
     )
 
     result["validation"] = validation
