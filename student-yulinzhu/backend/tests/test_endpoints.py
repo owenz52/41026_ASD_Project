@@ -1,8 +1,17 @@
+import sys
+from pathlib import Path
 import unittest
 from unittest.mock import patch
+
 import requests
 from flask import Flask
-from routes.normal_ui import normal_ui_bp
+
+# Allow tests to import the existing Flask backend modules.
+BACKEND_DIR = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(BACKEND_DIR))
+
+from routes.normal_ui import normal_ui_bp  # noqa: E402
+
 
 class EnrolmentEndpointTests(unittest.TestCase):
     def setUp(self):

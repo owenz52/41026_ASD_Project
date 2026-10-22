@@ -3,7 +3,7 @@ const API_BASE = window.CALENDAR_API || "/calendar-api";
 // The login page lives on the portal, not in this container. Redirecting to a
 // bare "/login.html" here hits nginx's try_files, which serves index.html and
 // runs this guard again — an endless reload for anyone not signed in.
-const LOGIN_URL = window.PORTAL_LOGIN_URL || "http://localhost:8000/login.html";
+const LOGIN_URL = window.PORTAL_LOGIN_URL || "/login.html";
 
 let currentUser = null;
 let STUDENT_ID = null;

@@ -98,27 +98,37 @@ echo "Fetched subscription ID, tenant ID, and client ID from Azure."
 # is configured to use an immutable-ID subject format, this must be
 # changed to match the actual subject emitted by GitHub Actions.
 
-SUBJECT="repo:${REPO_SLUG}:ref:refs/heads/${BRANCH}"
 
-FED_CRED_PARAMS="{\"name\":\"${FED_CRED_NAME}\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${SUBJECT}\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+# Configure GitHub OIDC authentication for both deployment branches.
+# Each branch requires its own federated credential.
 
-EXISTING_FED_CRED=$(az ad app federated-credential list \
-    --id "$CLIENT_ID" \
-    --query "[?name=='$FED_CRED_NAME'].name | [0]" \
-    -o tsv 2>/dev/null || true)
+for DEPLOY_BRANCH in release-2-azure main; do
+    CREDENTIAL_NAME="asd-release2-${DEPLOY_BRANCH}"
+    SUBJECT="repo:${REPO_SLUG}:ref:refs/heads/${DEPLOY_BRANCH}"
 
-if [ -z "$EXISTING_FED_CRED" ] || [ "$EXISTING_FED_CRED" = "None" ]; then
-    az ad app federated-credential create \
+    FED_CRED_PARAMS="{\"name\":\"${CREDENTIAL_NAME}\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${SUBJECT}\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
+
+    EXISTING_FED_CRED=$(az ad app federated-credential list \
         --id "$CLIENT_ID" \
-        --parameters "$FED_CRED_PARAMS"
-    echo "Created federated credential with subject '$SUBJECT'."
-else
-    az ad app federated-credential update \
-        --id "$CLIENT_ID" \
-        --federated-credential-id "$FED_CRED_NAME" \
-        --parameters "$FED_CRED_PARAMS"
-    echo "Synced federated credential to subject '$SUBJECT'."
-fi
+        --query "[?name=='$CREDENTIAL_NAME'].name | [0]" \
+        -o tsv)
+
+    if [[ -z "$EXISTING_FED_CRED" || "$EXISTING_FED_CRED" == "None" ]]; then
+        az ad app federated-credential create \
+            --id "$CLIENT_ID" \
+            --parameters "$FED_CRED_PARAMS"
+
+        echo "Created OIDC credential for $DEPLOY_BRANCH."
+    else
+        az ad app federated-credential update \
+            --id "$CLIENT_ID" \
+            --federated-credential-id "$CREDENTIAL_NAME" \
+            --parameters "$FED_CRED_PARAMS"
+
+        echo "Updated OIDC credential for $DEPLOY_BRANCH."
+    fi
+done
+
 
 # Assign Contributor at the project resource group scope, not the
 # entire subscription. This still requires authorization to create
@@ -150,21 +160,28 @@ REGISTRY_ID=$(az acr show \
     --resource-group "$RESOURCE_GROUP" \
     --query id -o tsv)
 
-EXISTING_ACRPULL=$(az role assignment list \
+
+# GitHub Actions needs registry push access because
+# build-images.sh uses docker build and docker push.
+# This registry uses legacy RBAC permissions.
+
+EXISTING_ACRPUSH=$(az role assignment list \
     --assignee "$CLIENT_ID" \
-    --role "AcrPull" \
+    --role "AcrPush" \
     --scope "$REGISTRY_ID" \
     --query "[0].id" -o tsv 2>/dev/null || true)
 
-if [ -z "$EXISTING_ACRPULL" ] || [ "$EXISTING_ACRPULL" = "None" ]; then
+if [ -z "$EXISTING_ACRPUSH" ] || [ "$EXISTING_ACRPUSH" = "None" ]; then
     az role assignment create \
         --assignee "$CLIENT_ID" \
-        --role "AcrPull" \
+        --role "AcrPush" \
         --scope "$REGISTRY_ID"
-    echo "Granted AcrPull role at registry scope."
+
+    echo "Granted AcrPush role at registry scope."
 else
-    echo "AcrPull role already assigned."
+    echo "AcrPush role already assigned."
 fi
+
 
 # User Access Administrator is deliberately NOT granted automatically.
 # If deployment needs to create role assignments, an authorized Azure

@@ -1,8 +1,13 @@
+import os
 import sqlite3
 from pathlib import Path
 
+DATA_DIR = Path(
+    os.getenv("DATA_DIR", str(Path(__file__).resolve().parent / "data"))
+)
+DATA_DIR.mkdir(parents=True, exist_ok=True)
 
-DATABASE_PATH = Path(__file__).parent / "assessment_tracker.db"
+DATABASE_PATH = DATA_DIR / "assessment_tracker.db"
 
 
 
@@ -30,7 +35,7 @@ def create_database():
     ).fetchone()[0]
 
     # Creates sample data to test
-    if existing_count == 0:
+    if os.getenv("SEED_SAMPLE_DATA", "false").lower() == "true" and existing_count == 0:
         cursor.executemany("""
             INSERT INTO assignments (
                 student_id,

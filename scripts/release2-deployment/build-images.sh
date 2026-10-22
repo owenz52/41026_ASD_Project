@@ -8,7 +8,7 @@ cd "$PROJECT_ROOT"
 RESOURCE_GROUP="${RESOURCE_GROUP:-asd-release2-rg}"
 IMAGE_TAG="${IMAGE_TAG:-$(git rev-parse HEAD)}"
 
-for tool in az python3; do
+for tool in az python3 docker; do
     if ! command -v "$tool" >/dev/null 2>&1; then
         echo "ERROR: Required tool not found: $tool" >&2
         exit 1
@@ -130,24 +130,33 @@ for attempt in range(24):
         time.sleep(5)
 PY
 
+echo "Authenticating Docker to Azure Container Registry..."
+az acr login --name "$REGISTRY_NAME"
+
+docker info >/dev/null
+
 COUNT=0
+
 
 while IFS=$'\t' read -r NAME CONTEXT DOCKERFILE; do
     echo ""
     echo "Building and pushing: ${LOGIN_SERVER}/${NAME}:${IMAGE_TAG}"
+
     (
         cd "$CONTEXT"
-        az acr build \
-            --resource-group "$RESOURCE_GROUP" \
-            --registry "$REGISTRY_NAME" \
+
+        docker build \
             --platform linux/amd64 \
-            --image "${NAME}:${IMAGE_TAG}" \
+            --tag "${LOGIN_SERVER}/${NAME}:${IMAGE_TAG}" \
             --file "$DOCKERFILE" \
             .
+
+        docker push "${LOGIN_SERVER}/${NAME}:${IMAGE_TAG}"
     )
 
     COUNT=$((COUNT + 1))
 done < "$SERVICE_LIST"
+
 
 if [[ "$COUNT" -ne 18 ]]; then
     echo "ERROR: Expected 18 completed builds; got $COUNT." >&2

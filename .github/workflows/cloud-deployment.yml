@@ -1,112 +1,194 @@
 name: cloud-deployment
- 
+
 on:
   workflow_dispatch:
- 
+  #push:
+    #branches:
+      #- main
+
 permissions:
   id-token: write
   contents: read
- 
+
+concurrency:
+  group: azure-release2
+  cancel-in-progress: false
+
 jobs:
   post_commit_tests:
-    name: Run Post-Commit Tests
+    name: Validate All Student Endpoints
     runs-on: ubuntu-latest
-    timeout-minutes: 20
- 
-    defaults:
-      run:
-        shell: bash
-        working-directory: 41026_ASD_Project
- 
+    timeout-minutes: 35
+
+    env:
+      AI_ENABLED: "false"
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
+      MULTI_AGENT_ENABLED: "false"
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
-      - name: Install test dependencies
-        working-directory: .
-        run: python -m pip install pytest requests "PyJWT>=2.11.0"
- 
-      - name: Start services
-        run: docker compose up -d --build
- 
-      - name: Run post-commit tests
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Run all student endpoint tests
+        shell: bash
         run: |
-          mkdir -p reports
- 
-          if python -m pytest tests/lab11/post_commit/ -v \
-            > reports/test-results.md 2>&1; then
-            status="PASS"
-            exit_code=0
-          else
-            exit_code=$?
-            status="FAIL"
+          set -uo pipefail
+
+          mkdir -p reports/release2
+          REPORT="reports/release2/test-results.md"
+          AUDIT="reports/release2/test-audit.jsonl"
+
+          echo "# Release 2 Endpoint Testing" > "$REPORT"
+          echo "" >> "$REPORT"
+
+          overall_status=0
+
+          students=(
+            "student-adrianvoljak"
+            "student-yulinzhu"
+            "student-caydenyip"
+            "student-voreaksanith"
+            "student-yunchungchang"
+          )
+
+          for student in "${students[@]}"; do
+            echo "=== Testing $student ==="
+
+            backend="$student/backend"
+            test_file="$backend/tests/test_endpoints.py"
+
+            echo "" >> "$REPORT"
+            echo "## $student" >> "$REPORT"
+            echo '```text' >> "$REPORT"
+
+            if [[ ! -f "$test_file" ]]; then
+              echo "FAIL: Missing $test_file" | tee -a "$REPORT"
+              result="FAIL"
+            else
+              venv="/tmp/release2-tests-$student"
+
+              if ! python -m venv "$venv"; then
+                echo "FAIL: Could not create test environment" \
+                  | tee -a "$REPORT"
+                result="FAIL"
+              elif ! "$venv/bin/python" -m pip install \
+                  pytest -r "$backend/requirements.txt" \
+                  >> "$REPORT" 2>&1; then
+                echo "FAIL: Dependency installation failed" \
+                  | tee -a "$REPORT"
+                result="FAIL"
+              elif PYTHONPATH="$backend" \
+                  "$venv/bin/python" -m pytest \
+                  "$test_file" -v \
+                  >> "$REPORT" 2>&1; then
+                echo "PASS: $student" | tee -a "$REPORT"
+                result="PASS"
+              else
+                echo "FAIL: $student" | tee -a "$REPORT"
+                result="FAIL"
+              fi
+            fi
+
+            echo '```' >> "$REPORT"
+
+            STUDENT="$student" RESULT="$result" \
+              python - <<'PY' >> "$AUDIT"
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          print(json.dumps({
+              "student": os.environ["STUDENT"],
+              "status": os.environ["RESULT"],
+              "timestamp": datetime.now(timezone.utc).isoformat()
+          }))
+          PY
+
+            if [[ "$result" != "PASS" ]]; then
+              overall_status=1
+            fi
+          done
+
+          cat "$REPORT"
+
+          if [[ "$overall_status" -ne 0 ]]; then
+            echo "One or more student test suites failed."
+            exit 1
           fi
- 
-          printf '{"status":"%s","timestamp":"%s"}\n' \
-            "$status" \
-            "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            >> reports/test-audit.jsonl
- 
-          cat reports/test-results.md
-          exit "$exit_code"
- 
-      - name: Stop test services
-        if: always()
-        run: docker compose down -v
- 
+
+          echo "All five student test suites passed."
+
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cloud-deployment-test-evidence
           path: |
-            41026_ASD_Project/reports/test-results.md
-            41026_ASD_Project/reports/test-audit.jsonl
-          if-no-files-found: warn
+            reports/release2/test-results.md
+            reports/release2/test-audit.jsonl
+          if-no-files-found: error
           retention-days: 30
- 
+
   deploy_azure:
     name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
     needs: post_commit_tests
-    timeout-minutes: 60
- 
-    defaults:
-      run:
-        shell: bash
-        working-directory: 41026_ASD_Project
- 
+    timeout-minutes: 90
+
+    env:
+      RESOURCE_GROUP: asd-release2-rg
+      LOCATION: australiaeast
+      IMAGE_TAG: ${{ github.sha }}
+      ACR_PULL_IDENTITY_ID: ${{ secrets.ACR_PULL_IDENTITY_ID }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
- 
+
       - name: Azure login
         uses: azure/login@v2
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
- 
-      - name: Set up cloud environment
+
+      - name: Validate deployment configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          : "${IMAGE_TAG:?Missing IMAGE_TAG}"
+          : "${ACR_PULL_IDENTITY_ID:?Missing ACR_PULL_IDENTITY_ID}"
+
+          echo "Image tag: $IMAGE_TAG"
+          echo "Resource group: $RESOURCE_GROUP"
+
+      - name: Set up cloud infrastructure
         run: bash scripts/release2-deployment/env-setup.sh
- 
+
       - name: Build and push images
         run: bash scripts/release2-deployment/build-images.sh
- 
+
       - name: Create Container Apps environment
         run: bash scripts/release2-deployment/deploy-azure-env.sh
- 
+
       - name: Deploy cloud services
         run: bash scripts/release2-deployment/deploy-azure.sh
- 
+
       - name: Validate cloud deployment
         run: bash scripts/release2-deployment/deployment-testing.sh
- 
+
       - name: Upload deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: cloud-deployment-evidence
-          path: 41026_ASD_Project/reports/release2-deployment/deployment-results.md
+          path: reports/release2-deployment/deployment-results.md
           if-no-files-found: warn
           retention-days: 30

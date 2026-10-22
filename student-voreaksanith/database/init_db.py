@@ -30,11 +30,11 @@ def init_db():
     # Dropped and recreated rather than CREATE TABLE IF NOT EXISTS: a database
     # left over from an earlier schema would otherwise survive and every insert
     # would fail on the missing column. This runs at build/seed time only.
-    conn.execute("DROP TABLE IF EXISTS events")
+
 
     conn.execute(
         """
-        CREATE TABLE events (
+        CREATE TABLE IF NOT EXISTS events (
             event_id    INTEGER PRIMARY KEY,
             student_id  INTEGER NOT NULL,
             subject     TEXT,
@@ -59,10 +59,9 @@ def init_db():
         "CREATE INDEX IF NOT EXISTS idx_events_subject ON events (subject)"
     )
 
-    conn.execute("DELETE FROM events")
     conn.executemany(
         """
-        INSERT INTO events (
+        INSERT OR IGNORE INTO events (
             event_id, student_id, subject, title,
             event_type, start_time, end_time, location
         )

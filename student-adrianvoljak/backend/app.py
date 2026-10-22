@@ -17,6 +17,6 @@ if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
         port=int(getenv("BACKEND_PORT", 5007)),
-        debug=True,
+        debug=False,
         use_reloader=False
     )

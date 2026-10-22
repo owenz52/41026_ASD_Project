@@ -46,6 +46,10 @@ services:
       dockerfile: Dockerfile
     environment:
       DATABASE_PORT: 5008
+      DATA_DIR: /app/data
+      SEED_SAMPLE_DATA: "true"
+    volumes:
+      - assessment-data:/app/data
     ports:
       - "5008:5008"
 
@@ -106,6 +110,8 @@ services:
     environment:
       DATABASE_PORT: 5006
       TZ: Australia/Sydney
+    volumes:
+      - calendar_data:/app/data
     ports:
       - "5006:5006"
 
@@ -246,10 +252,12 @@ services:
         ports:
             - "5010:5010"
         volumes:
-            - ./data:/app/data
+            - exam_data:/app/data
         restart: unless-stopped
 volumes:
+  user_database_data:
+  assessment-data:
+  calendar_data:
   enrolment_database_data:
   notebook_data:
   exam_data:
-  user_database_data:

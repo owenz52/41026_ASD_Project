@@ -7,8 +7,7 @@ cd "$PROJECT_ROOT"
 
 export RESOURCE_GROUP="${RESOURCE_GROUP:-asd-release2-rg}"
 : "${IMAGE_TAG:?Set IMAGE_TAG to the tag used when building images}"
-: "${ACR_PULL_IDENTITY_ID:?Set the user-assigned managed identity resource ID}"
-export IMAGE_TAG ACR_PULL_IDENTITY_ID
+export IMAGE_TAG
 
 command -v az >/dev/null || {
     echo "ERROR: Azure CLI is required." >&2
@@ -19,6 +18,58 @@ command -v python3 >/dev/null || {
     echo "ERROR: Python 3 is required." >&2
     exit 1
 }
+
+# Provision or reuse a dedicated identity for Container Apps image pulls.
+# This is intentionally separate from the GitHub OIDC deployment identity.
+IDENTITY_NAME="${ACR_PULL_IDENTITY_NAME:-asd-r2-acr-pull}"
+REGISTRY_NAME="$(az group show --name "$RESOURCE_GROUP" --query 'tags.registryName' -o tsv)"
+if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" ]]; then
+    echo "ERROR: Resource group is missing registryName tag. Run env-setup.sh first." >&2
+    exit 1
+fi
+REGISTRY_ID="$(az acr show --name "$REGISTRY_NAME" --resource-group "$RESOURCE_GROUP" --query id -o tsv)"
+REGISTRY_MODE="$(az acr show --name "$REGISTRY_NAME" --resource-group "$RESOURCE_GROUP" --query roleAssignmentMode -o tsv)"
+
+if [[ -z "${ACR_PULL_IDENTITY_ID:-}" ]]; then
+    if ! az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" -o none 2>/dev/null; then
+        echo "Creating ACR pull identity: $IDENTITY_NAME"
+        az identity create --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" \
+            --location "${LOCATION:-australiaeast}" -o none
+    fi
+    ACR_PULL_IDENTITY_ID="$(az identity show --name "$IDENTITY_NAME" \
+        --resource-group "$RESOURCE_GROUP" --query id -o tsv)"
+fi
+IDENTITY_PRINCIPAL_ID="$(az identity show --ids "$ACR_PULL_IDENTITY_ID" --query principalId -o tsv)"
+if [[ -z "$IDENTITY_PRINCIPAL_ID" || "$IDENTITY_PRINCIPAL_ID" == "None" ]]; then
+    echo "ERROR: The managed identity has no principal ID." >&2
+    exit 1
+fi
+
+case "$REGISTRY_MODE" in
+    rbac-abac)
+        PULL_ROLE="Container Registry Repository Reader"
+        ;;
+    rbac|LegacyRegistryPermissions|None|"")
+        PULL_ROLE="AcrPull"
+        ;;
+    *)
+        echo "ERROR: Unknown ACR role assignment mode: $REGISTRY_MODE" >&2
+        exit 1
+        ;;
+esac
+
+ASSIGNMENT_COUNT="$(az role assignment list \
+    --assignee "$IDENTITY_PRINCIPAL_ID" --scope "$REGISTRY_ID" \
+    --role "$PULL_ROLE" --query 'length(@)' -o tsv)"
+
+if [[ "$ASSIGNMENT_COUNT" == "0" ]]; then
+    echo "ERROR: Managed identity is missing the $PULL_ROLE role on ACR." >&2
+    echo "Assign this role using an Azure account with role-assignment permissions before deployment." >&2
+    exit 1
+fi
+
+export ACR_PULL_IDENTITY_ID
+printf 'ACR identity ready: %s (role: %s)\n' "$ACR_PULL_IDENTITY_ID" "$PULL_ROLE"
 
 python3 - <<'PY'
 import json
@@ -222,7 +273,7 @@ def deploy():
             template["containers"] = [container]
             template["scale"] = {
                 "minReplicas": 1,
-                "maxReplicas": 1 if is_database else 3,
+                "maxReplicas": 1,
             }
             configuration["activeRevisionsMode"] = "Single"
             configuration["ingress"] = {

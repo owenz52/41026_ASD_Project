@@ -1,14 +1,15 @@
+import os
 import sqlite3
-from os import getenv
 from datetime import date
 from pathlib import Path
-
 from flask import Flask, jsonify, request
-
 
 app = Flask(__name__)
 
-DATABASE_PATH = Path(__file__).parent / "assessment_tracker.db"
+DATA_DIR = Path(os.getenv("DATA_DIR", "/app/data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+
+DATABASE_PATH = DATA_DIR / "assessment_tracker.db"
 
 
 def get_db_connection():
@@ -414,7 +415,7 @@ def update_assignment_status(assignment_id):
 if __name__ == "__main__":
     app.run(
         host="0.0.0.0",
-        port=int(getenv("DATABASE_PORT", 5008)),
-        debug=True,
+        port=int(os.getenv("DATABASE_PORT", 5008)),
+        debug=False,
         use_reloader=False
     )
