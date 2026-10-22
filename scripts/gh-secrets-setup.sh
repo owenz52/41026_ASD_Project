@@ -1,103 +1,154 @@
-#!/bin/bash
-set -e
 
-# One-time, local-only: 
-# - creates the Azure OIDC app registration (if missing) 
-# - pushes its identifiers to GitHub Actions secrets.
+#!/usr/bin/env bash
+set -Eeuo pipefail
 
-# Prevents Git Bash on Windows from rewriting --scope "/subscriptions/..." into a local file path.
+# Project GitHub Actions OIDC setup
+# Configures the federated credential and GitHub Actions secrets.
+# Does NOT grant Azure subscription roles automatically.
+
 export MSYS_NO_PATHCONV=1
 
 APP_DISPLAY_NAME="Project-github-oidc"
+EXPECTED_SUBSCRIPTION_ID="4f004dab-3d26-4f85-bfd6-065fd3b81611"
+EXPECTED_TENANT_ID="38f98f9c-0f30-4c61-9211-4560f70cb0f4"
+EXPECTED_CLIENT_ID="ecd04639-59cb-49ea-bb1d-816d86f1b2aa"
+FED_CRED_NAME="project-github-actions"
+EXPECTED_REPO="owenz52/41026_ASD_Project"
+EXPECTED_BRANCH="Cayden-pre/post-commit-update"
 
-echo "===Release 2 GitHub Secrets Setup ==="
+# Use "legacy" for the traditional GitHub OIDC subject.
+# Use "immutable" only if this repository uses GitHub's immutable
+# owner/repository ID subject format.
+OIDC_SUBJECT_MODE="legacy"
 
-az login
-echo "Logged in to Azure."
+echo "=== GitHub Actions OIDC Setup ==="
 
-if ! gh auth status >/dev/null 2>&1; then
-    gh auth login
-    echo "Logged in to GitHub."
-fi
+# Check required tools.
+for cmd in az gh git sed cut; do
+    if ! command -v "$cmd" >/dev/null 2>&1; then
+        echo "ERROR: Required command not found: $cmd"
+        exit 1
+    fi
+done
 
-REPO_URL=$(git config --get remote.origin.url)
-REPO_SLUG=$(echo "$REPO_URL" | sed -E 's#(git@github.com:|https://github.com/)##; s#\.git$##')
-BRANCH=$(git rev-parse --abbrev-ref HEAD)
+# Sign in to the intended Azure tenant.
+az login --tenant "$EXPECTED_TENANT_ID" --output none
+
+az account set --subscription "$EXPECTED_SUBSCRIPTION_ID"
 
 SUBSCRIPTION_ID=$(az account show --query id -o tsv)
 TENANT_ID=$(az account show --query tenantId -o tsv)
-CLIENT_ID=$(az ad app list --display-name "$APP_DISPLAY_NAME" --query "[0].appId" -o tsv)
 
-if [ -z "$SUBSCRIPTION_ID" ]; then
-    echo "No active subscription found on the current Azure login."
-    echo "Run 'az account list --output table' to see available subscriptions, then 'az account set --subscription <id>' and re-run this script."
+if [[ "$SUBSCRIPTION_ID" != "$EXPECTED_SUBSCRIPTION_ID" ]]; then
+    echo "ERROR: Active Azure subscription does not match."
     exit 1
 fi
 
-if [ -z "$CLIENT_ID" ]; then
-    echo "No app registration named '$APP_DISPLAY_NAME' found. Creating it..."
-    CLIENT_ID=$(az ad app create --display-name "$APP_DISPLAY_NAME" --query appId -o tsv)
-    az ad sp create --id "$CLIENT_ID"
-    echo "Created app registration."
-else
-    echo "Found existing app registration '$APP_DISPLAY_NAME'."
-fi
-echo "Fetched subscription ID, tenant ID, and client ID from Azure."
-
-# Re-synced on every run (not just at app creation) because GitHub's OIDC subject claim
-# changes if the repo/owner is renamed or transferred, which would otherwise silently
-# break login until this credential is brought back in line with the current repo identity.
-# Repos renamed/transferred (or created) after 2026-07-15 use GitHub's immutable subject
-# format (owner/repo IDs instead of names), so the IDs are fetched live rather than assumed.
-OWNER_NAME=$(echo "$REPO_SLUG" | cut -d/ -f1)
-REPO_NAME=$(echo "$REPO_SLUG" | cut -d/ -f2)
-OWNER_ID=$(gh api "repos/${REPO_SLUG}" --jq '.owner.id')
-REPO_ID=$(gh api "repos/${REPO_SLUG}" --jq '.id')
-SUBJECT="repo:${OWNER_NAME}@${OWNER_ID}/${REPO_NAME}@${REPO_ID}:ref:refs/heads/${BRANCH}"
-
-FED_CRED_NAME="project-github-actions"
-EXISTING_FED_CRED=$(az ad app federated-credential list --id "$CLIENT_ID" --query "[?name=='$FED_CRED_NAME'].id" -o tsv 2>/dev/null || true)
-
-FED_CRED_PARAMS="{\"name\":\"${FED_CRED_NAME}\",\"issuer\":\"https://token.actions.githubusercontent.com\",\"subject\":\"${SUBJECT}\",\"audiences\":[\"api://AzureADTokenExchange\"]}"
-
-if [ -z "$EXISTING_FED_CRED" ]; then
-    az ad app federated-credential create --id "$CLIENT_ID" --parameters "$FED_CRED_PARAMS"
-    echo "Created federated credential with subject '$SUBJECT'."
-else
-    az ad app federated-credential update --id "$CLIENT_ID" --federated-credential-id "$FED_CRED_NAME" --parameters "$FED_CRED_PARAMS"
-    echo "Synced federated credential to subject '$SUBJECT'."
+if [[ "$TENANT_ID" != "$EXPECTED_TENANT_ID" ]]; then
+    echo "ERROR: Active Azure tenant does not match."
+    exit 1
 fi
 
-# Checked independently of app creation above: an earlier run may have created the app but
-# failed before granting roles, so re-check/grant on every run rather than assuming it's done.
-EXISTING_CONTRIBUTOR=$(az role assignment list --assignee "$CLIENT_ID" --role "Contributor" --scope "/subscriptions/$SUBSCRIPTION_ID" --query "[0].id" -o tsv 2>/dev/null || true)
+echo "Azure subscription and tenant verified."
 
-if [ -z "$EXISTING_CONTRIBUTOR" ]; then
-    az role assignment create \
-      --assignee "$CLIENT_ID" \
-      --role Contributor \
-      --scope "/subscriptions/$SUBSCRIPTION_ID"
-    echo "Granted Contributor role."
-else
-    echo "Contributor role already assigned."
+# Preserve the existing GitHub CLI account if already authenticated.
+if ! gh auth status >/dev/null 2>&1; then
+    gh auth login
 fi
 
-# Contributor alone isn't enough for AcrPull auto-grant — see Purpose above.
-EXISTING_UAA=$(az role assignment list --assignee "$CLIENT_ID" --role "User Access Administrator" --scope "/subscriptions/$SUBSCRIPTION_ID" --query "[0].id" -o tsv 2>/dev/null || true)
+# Verify repository and branch.
+REPO_URL=$(git remote get-url origin)
+REPO_SLUG=$(printf '%s\n' "$REPO_URL" |
+    sed -E 's#^(git@github\.com:|https://github\.com/)##; s#\.git$##')
+BRANCH=$(git branch --show-current)
 
-if [ -z "$EXISTING_UAA" ]; then
-    az role assignment create \
-      --assignee "$CLIENT_ID" \
-      --role "User Access Administrator" \
-      --scope "/subscriptions/$SUBSCRIPTION_ID"
-    echo "Granted User Access Administrator role (needed for AcrPull role assignments in deploy-azure.sh)."
-else
-    echo "User Access Administrator role already assigned."
+if [[ "$REPO_SLUG" != "$EXPECTED_REPO" ]]; then
+    echo "ERROR: Unexpected repository: $REPO_SLUG"
+    exit 1
 fi
 
-gh secret set AZURE_SUBSCRIPTION_ID --body "$SUBSCRIPTION_ID"
-gh secret set AZURE_TENANT_ID --body "$TENANT_ID"
-gh secret set AZURE_CLIENT_ID --body "$CLIENT_ID"
-echo "Pushed AZURE_SUBSCRIPTION_ID, AZURE_TENANT_ID, and AZURE_CLIENT_ID to GitHub Actions secrets."
+if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
+    echo "ERROR: Unexpected branch: $BRANCH"
+    echo "Switch to $EXPECTED_BRANCH and rerun."
+    exit 1
+fi
 
-echo "=== GitHub Secrets Setup Complete ==="
+# Confirm GitHub can access the repository.
+REPO_JSON=$(gh api "repos/$REPO_SLUG")
+OWNER_ID=$(printf '%s' "$REPO_JSON" | python -c \
+    'import json,sys; print(json.load(sys.stdin)["owner"]["id"])')
+REPO_ID=$(printf '%s' "$REPO_JSON" | python -c \
+    'import json,sys; print(json.load(sys.stdin)["id"])')
+
+# Confirm the app registration exists in the active tenant.
+CLIENT_ID=$(az ad app show \
+    --id "$EXPECTED_CLIENT_ID" \
+    --query appId -o tsv)
+
+if [[ "$CLIENT_ID" != "$EXPECTED_CLIENT_ID" ]]; then
+    echo "ERROR: The expected app registration was not found."
+    exit 1
+fi
+
+# Ensure its service principal exists in this tenant.
+if ! az ad sp show --id "$CLIENT_ID" >/dev/null 2>&1; then
+    echo "Creating the app's service principal..."
+    az ad sp create --id "$CLIENT_ID" --output none
+fi
+
+# Build the GitHub OIDC subject.
+if [[ "$OIDC_SUBJECT_MODE" == "immutable" ]]; then
+    SUBJECT="repo:owenz52@$OWNER_ID/41026_ASD_Project@$REPO_ID:ref:refs/heads/$BRANCH"
+else
+    SUBJECT="repo:$REPO_SLUG:ref:refs/heads/$BRANCH"
+fi
+
+echo "Repository: $REPO_SLUG"
+echo "Branch: $BRANCH"
+echo "OIDC subject: $SUBJECT"
+
+# Create or update the federated credential.
+FED_CRED_PARAMS=$(printf \
+    '{"name":"%s","issuer":"https://token.actions.githubusercontent.com","subject":"%s","description":"GitHub Actions deployment for %s","audiences":["api://AzureADTokenExchange"]}' \
+    "$FED_CRED_NAME" "$SUBJECT" "$BRANCH")
+
+EXISTING_FED_CRED=$(az ad app federated-credential list \
+    --id "$CLIENT_ID" \
+    --query "[?name=='$FED_CRED_NAME'].name | [0]" \
+    -o tsv)
+
+if [[ -z "$EXISTING_FED_CRED" || "$EXISTING_FED_CRED" == "None" ]]; then
+    az ad app federated-credential create \
+        --id "$CLIENT_ID" \
+        --parameters "$FED_CRED_PARAMS" \
+        --output none
+    echo "Created federated credential."
+else
+    az ad app federated-credential update \
+        --id "$CLIENT_ID" \
+        --federated-credential-id "$FED_CRED_NAME" \
+        --parameters "$FED_CRED_PARAMS" \
+        --output none
+    echo "Updated federated credential."
+fi
+
+# Set GitHub Actions secrets in the intended repository.
+gh secret set AZURE_SUBSCRIPTION_ID \
+    --repo "$REPO_SLUG" --body "$SUBSCRIPTION_ID"
+
+gh secret set AZURE_TENANT_ID \
+    --repo "$REPO_SLUG" --body "$TENANT_ID"
+
+gh secret set AZURE_CLIENT_ID \
+    --repo "$REPO_SLUG" --body "$CLIENT_ID"
+
+echo "GitHub Actions secrets configured:"
+echo "  AZURE_SUBSCRIPTION_ID"
+echo "  AZURE_TENANT_ID"
+echo "  AZURE_CLIENT_ID"
+
+echo
+echo "NOTE: Azure role assignments have NOT been changed."
+echo "You must grant the app only the Azure permissions required"
+echo "by your deployment workflow."
+echo "=== Setup Complete ==="
