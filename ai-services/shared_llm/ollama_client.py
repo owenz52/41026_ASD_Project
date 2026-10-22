@@ -25,6 +25,10 @@ class OllamaClient:
                 "model": model or self.model,
                 "prompt": prompt,
                 "stream": False,
+                "options": {
+                    "temperature": 0,
+                    "num_predict": 256,
+                },
             },
             timeout=timeout,
         )
