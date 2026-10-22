@@ -1,7 +1,10 @@
 import os
 import sqlite3
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.getenv(
+    "DATA_DIR",
+    os.path.join(os.path.dirname(__file__), "data")
+)
 DATABASE_NAME = os.path.join(DATA_DIR, "notebook.db")
 
 os.makedirs(DATA_DIR, exist_ok=True)

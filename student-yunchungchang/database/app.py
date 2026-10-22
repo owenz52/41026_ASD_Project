@@ -1,11 +1,14 @@
 import sqlite3
 from datetime import date
 from pathlib import Path
-
+import os
 from flask import Flask, jsonify, request
 
 
-DATABASE_NAME = Path(__file__).resolve().parent / "data" / "notebook.db"
+DATABASE_NAME = (
+    Path(os.getenv("DATA_DIR", str(Path(__file__).resolve().parent / "data")))
+    / "notebook.db"
+)
 
 app = Flask(__name__)
 

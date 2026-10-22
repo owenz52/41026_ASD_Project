@@ -1,8 +1,10 @@
 import sqlite3
+import os
 
-
-DATABASE_NAME = "/app/data/exam.db"
-
+DATABASE_NAME = os.path.join(
+    os.getenv("DATA_DIR", "/app/data"),
+    "exam.db"
+)
 
 def get_db_connection():
 

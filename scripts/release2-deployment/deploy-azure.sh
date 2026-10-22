@@ -235,7 +235,10 @@ def deploy():
             container = containers[0] if containers else {}
             variables = {}
             if is_database:
-                variables["DATA_DIR"] = "/app/data"
+                variables["DATA_DIR"] = os.getenv(
+                    "SQLITE_DATA_DIR",
+                    "/tmp/sqlite"
+                )
             if name in backends:
                 settings = backend_config["backends"][name]
                 if settings["feature_backend"]:

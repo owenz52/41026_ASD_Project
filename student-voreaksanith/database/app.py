@@ -6,7 +6,10 @@ from flask import Flask, jsonify, request
 
 app = Flask(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.getenv(
+    "DATA_DIR",
+    os.path.join(os.path.dirname(__file__), "data")
+)
 DATABASE_NAME = os.path.join(DATA_DIR, "calendar.db")
 DATABASE_PORT = int(os.getenv("DATABASE_PORT", 5006))
 

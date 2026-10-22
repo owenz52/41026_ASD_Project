@@ -2,7 +2,7 @@ import os
 import sqlite3
 
 
-DATA_DIR = "/app/data"
+DATA_DIR = os.getenv("DATA_DIR", "/app/data")
 DATABASE_NAME = os.path.join(
     DATA_DIR,
     "exam.db"

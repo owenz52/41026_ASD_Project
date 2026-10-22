@@ -55,7 +55,7 @@ CHECKS=(
     "Authentication Backend|/auth-api/health"
     "Enrolment Backend|/enrolment-api/courses"
     "Assessment Backend|/assessments-api/assignments"
-    "Calendar Backend|/calendar-api/events"
+    "Calendar Backend|/calendar-api/events?student_id=1"
     "Notebook Backend|/notes-api/notebooks"
     "Exam Backend|/exams-api/"
 )

@@ -13,7 +13,11 @@ Idempotent: events use fixed ids (101+) and are replaced on every run.
 import os
 import sqlite3
 
-DB = os.path.join(os.path.dirname(__file__), "data", "calendar.db")
+DATA_DIR = os.getenv(
+    "DATA_DIR",
+    os.path.join(os.path.dirname(__file__), "data")
+)
+DB = os.path.join(DATA_DIR, "calendar.db")
 STUDENT_ID = 1
 
 # (subject, title, event_type, start_time, end_time, location)
