@@ -16,7 +16,7 @@
         },
         {
             "name": "portal-frontend",
-            "context": "shared/frontend",
+            "context": ".",
             "dockerfile": "deploy/azure/portal.Dockerfile",
             "port": 80,
             "external": true
