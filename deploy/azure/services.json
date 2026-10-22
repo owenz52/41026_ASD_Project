@@ -43,21 +43,21 @@
             "external": false
         },
         {
-            "name": "calender-database",
+            "name": "calendar-database",
             "context": "student-voreaksanith/database",
             "dockerfile": "Dockerfile",
             "port": 5006,
             "external": false
         },
         {
-            "name": "calender-backend",
+            "name": "calendar-backend",
             "context": "student-voreaksanith",
             "dockerfile": "backend/Dockerfile",
             "port": 5005,
             "external": false
         },
         {
-            "name": "calender-frontend",
+            "name": "calendar-frontend",
             "context": "student-voreaksanith/frontend",
             "dockerfile": "Dockerfile",
             "port": 80,
