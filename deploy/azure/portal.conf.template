@@ -1,20 +1,16 @@
 server {
     listen 80;
-
     root /usr/share/nginx/html;
     index index.html home.html;
-
     location = /health {
         default_type application/json;
         return 200 '{"status":"ok","service":"portal"}';
     }
 
-    # Shared static pages and assets.
     location / {
         try_files $uri $uri/ =404;
     }
 
-    # Cloud deployment does not run the shared Multi-Agent service.
     location = /multi-agent.html {
         default_type text/plain;
         return 503 "Multi-Agent is disabled in the cloud.";
@@ -25,7 +21,6 @@ server {
         return 503 '{"status":"disabled","error":"Multi-Agent is disabled in the cloud"}';
     }
 
-    # Feature frontends.
     location /enrolment/ {
         proxy_pass https://${ENROLMENT_FRONTEND_HOST}/;
         proxy_set_header Host ${ENROLMENT_FRONTEND_HOST};
@@ -56,14 +51,12 @@ server {
         proxy_ssl_server_name on;
     }
 
-    # Authentication API.
     location /auth-api/ {
         proxy_pass https://${AUTH_BACKEND_HOST}/;
         proxy_set_header Host ${AUTH_BACKEND_HOST};
         proxy_ssl_server_name on;
     }
 
-    # Feature APIs.
     location /enrolment-api/ {
         proxy_pass https://${ENROLMENT_BACKEND_HOST}/;
         proxy_set_header Host ${ENROLMENT_BACKEND_HOST};

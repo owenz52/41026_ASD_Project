@@ -41,7 +41,6 @@ def main():
                 raise ValueError(
                     f"{target}: use a hostname without scheme, port or path"
                 )
-
             environment[variable] = f"https://{host}"
         result[name] = environment
     print(json.dumps(result, indent=2))

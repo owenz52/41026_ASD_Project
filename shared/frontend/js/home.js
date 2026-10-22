@@ -73,8 +73,12 @@ async function isUp(url, timeoutMs = 3000) {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
 
     try {
-        await fetch(url, { mode: "no-cors", signal: controller.signal });
-        return true;
+        const response = await fetch(url, {
+            signal: controller.signal,
+            cache: "no-store"
+        });
+
+        return response.ok;
     } catch (error) {
         return false;
     } finally {
