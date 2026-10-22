@@ -170,7 +170,6 @@ Use the deterministic validation results as evidence.
         mode="multi_agent",
         evidence=evidence,
         instructions=instructions,
-        validation=validation,
     )
 
     result["validation"] = validation

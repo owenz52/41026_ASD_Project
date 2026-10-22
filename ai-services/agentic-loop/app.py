@@ -121,16 +121,7 @@ def review_testing_endpoint():
         return jsonify({"error": "JSON object required"}), 400
 
     try:
-        if "checks" in data:
-            # Results reported by the caller; labelled as supplied evidence.
-            result = review_testing(data)
-        else:
-            # No results supplied: run pre-commit hooks and read GitHub
-            # Actions endpoint tests. Optional: "workflows", "branch".
-            result = review_testing(
-                workflows=data.get("workflows"),
-                branch=data.get("branch", "main"),
-            )
+        result = review_testing(data)
         return jsonify(result), 200
     except ValueError as exc:
         return jsonify({"error": str(exc)}), 400
