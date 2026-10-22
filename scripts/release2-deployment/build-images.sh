@@ -89,23 +89,20 @@ if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" \
     exit 1
 fi
 
-EXISTING_REGISTRY="$(az acr list \
-    --resource-group "$RESOURCE_GROUP" \
-    --query "[?name=='${REGISTRY_NAME}'].name | [0]" \
-    --output tsv)"
 
-if [[ -z "$EXISTING_REGISTRY" || "$EXISTING_REGISTRY" == "None" ]]; then
-    echo "Creating ACR: $REGISTRY_NAME"
-    az acr create \
-        --resource-group "$RESOURCE_GROUP" \
-        --name "$REGISTRY_NAME" \
-        --location "$LOCATION" \
-        --sku Basic \
-        --admin-enabled false \
-        --output none
-else
-    echo "Reusing ACR: $REGISTRY_NAME"
+# Verify the existing registry rather than creating infrastructure.
+echo "Checking Container Registry: $REGISTRY_NAME"
+
+if ! az acr show \
+    --name "$REGISTRY_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --output none; then
+    echo "ERROR: Container Registry $REGISTRY_NAME was not found." >&2
+    exit 1
 fi
+
+echo "Container Registry verified."
+
 
 LOGIN_SERVER="$(az acr show \
     --resource-group "$RESOURCE_GROUP" \

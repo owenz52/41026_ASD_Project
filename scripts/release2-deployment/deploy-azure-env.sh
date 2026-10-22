@@ -1,12 +1,11 @@
+
 #!/usr/bin/env bash
 set -euo pipefail
 
 # Release 2 - Azure Container Apps environment and database storage setup.
-# Requires az login (or GitHub Actions azure/login), storage account key access, and permission to manage Azure resources in the resource group.
+# Reuses existing infrastructure to protect persistent SQLite data.
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-asd-release2-rg}"
-STORAGE_SKU="${STORAGE_SKU:-Standard_LRS}"
-STORAGE_SHARE_QUOTA_GB="${STORAGE_SHARE_QUOTA_GB:-5}"
 
 DATABASES=(
   user-database
@@ -17,120 +16,174 @@ DATABASES=(
   exam-database
 )
 
-fail() { echo "ERROR: $*" >&2; exit 1; }
-valid_tag() { [[ -n "$1" && "$1" != "None" && "$1" != "null" ]]; }
+fail() {
+  echo "ERROR: $*" >&2
+  exit 1
+}
+
+valid_tag() {
+  [[ -n "$1" && "$1" != "None" && "$1" != "null" ]]
+}
+
+# Step 1: Verify Azure authentication.
 
 command -v az >/dev/null 2>&1 || fail "Azure CLI is required"
-az account show --output none >/dev/null 2>&1 || fail "Not authenticated to Azure (run az login)"
-
-if [[ "$(az group exists --name "$RESOURCE_GROUP" --output tsv)" != "true" ]]; then
-  fail "Resource group $RESOURCE_GROUP does not exist. Run env-setup.sh first."
+# Select a working Python 3 executable.
+# Windows Git Bash may resolve python3 to the Microsoft Store alias.
+if command -v python3 >/dev/null 2>&1 &&
+   python3 -c 'import sys; sys.exit(sys.version_info.major != 3)' >/dev/null 2>&1; then
+  PYTHON=python3
+elif command -v python >/dev/null 2>&1 &&
+     python -c 'import sys; sys.exit(sys.version_info.major != 3)' >/dev/null 2>&1; then
+  PYTHON=python
+else
+  fail "A working Python 3 installation is required."
 fi
 
-ENV_NAME="$(az group show --name "$RESOURCE_GROUP" --query 'tags.envName' -o tsv)"
-LOCATION="$(az group show --name "$RESOURCE_GROUP" --query 'tags.location' -o tsv)"
-valid_tag "$ENV_NAME" || fail "Resource group tag envName missing; run env-setup.sh"
-valid_tag "$LOCATION" || fail "Resource group tag location missing; run env-setup.sh"
+echo "Using Python: $PYTHON"
 
-# Persist generated storage account name in resource group tags to ensure
-# subsequent runs reuse the same account and do not risk data loss.
-STORAGE_ACCOUNT="$(az group show --name "$RESOURCE_GROUP" --query 'tags.storageAccountName' -o tsv)"
-if ! valid_tag "$STORAGE_ACCOUNT"; then
-  if [[ -n "${AZURE_STORAGE_ACCOUNT:-}" ]]; then
-    STORAGE_ACCOUNT="$AZURE_STORAGE_ACCOUNT"
-  else
-    # Global uniqueness, lowercase alphanumeric, <=24 chars.
-    STORAGE_ACCOUNT="asdr2data$(python -c 'import secrets; print(secrets.token_hex(6))')"
-  fi
-  [[ "$STORAGE_ACCOUNT" =~ ^[a-z0-9]{3,24}$ ]] || fail "Invalid storage account name: $STORAGE_ACCOUNT"
-  az group update --name "$RESOURCE_GROUP" \
-    --set "tags.storageAccountName=$STORAGE_ACCOUNT" --output none
+az account show --output none >/dev/null 2>&1 ||
+  fail "Not authenticated to Azure"
+
+# Step 2: Verify the existing resource group.
+
+if ! az group show \
+    --name "$RESOURCE_GROUP" \
+    --output none; then
+  fail "Resource group '$RESOURCE_GROUP' does not exist."
 fi
 
-[[ "$STORAGE_ACCOUNT" =~ ^[a-z0-9]{3,24}$ ]] || fail "Invalid storage account name: $STORAGE_ACCOUNT"
+# Step 3: Read the existing infrastructure configuration.
+
+ENV_NAME="$(az group show \
+  --name "$RESOURCE_GROUP" \
+  --query 'tags.envName' -o tsv)"
+
+LOCATION="$(az group show \
+  --name "$RESOURCE_GROUP" \
+  --query 'tags.location' -o tsv)"
+
+STORAGE_ACCOUNT="$(az group show \
+  --name "$RESOURCE_GROUP" \
+  --query 'tags.storageAccountName' -o tsv)"
+
+valid_tag "$ENV_NAME" ||
+  fail "Missing envName resource group tag."
+
+valid_tag "$LOCATION" ||
+  fail "Missing location resource group tag."
+
+valid_tag "$STORAGE_ACCOUNT" ||
+  fail "Missing storageAccountName resource group tag."
+
+[[ "$STORAGE_ACCOUNT" =~ ^[a-z0-9]{3,24}$ ]] ||
+  fail "Invalid storage account name: $STORAGE_ACCOUNT"
 
 printf '\n=== Release 2 Container Apps Environment and Storage ===\n'
-printf 'Resource group: %s\nEnvironment: %s\nStorage account: %s\n' "$RESOURCE_GROUP" "$ENV_NAME" "$STORAGE_ACCOUNT"
+printf 'Resource group: %s\n' "$RESOURCE_GROUP"
+printf 'Environment: %s\n' "$ENV_NAME"
+printf 'Storage account: %s\n' "$STORAGE_ACCOUNT"
 
-if az containerapp env show --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
-  echo 'Reusing Container Apps environment.'
-else
-  az containerapp env create --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" \
-    --location "$LOCATION" \
-    --environment-mode WorkloadProfiles \
-    --output none
+# Step 4: Verify the existing Container Apps environment.
+
+echo "Checking Container Apps environment: $ENV_NAME"
+
+if ! az containerapp env show \
+    --name "$ENV_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --output none; then
+  fail "Container Apps environment '$ENV_NAME' does not exist."
 fi
 
-STATE="$(az containerapp env show --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" \
+STATE="$(az containerapp env show \
+  --name "$ENV_NAME" \
+  --resource-group "$RESOURCE_GROUP" \
   --query 'properties.provisioningState' -o tsv)"
-[[ "$STATE" == 'Succeeded' ]] || fail "Container Apps environment not ready: $STATE"
 
-# Do not overwrite an existing storage account or change its security settings.
-if az storage account show --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" --output none 2>/dev/null; then
-  echo 'Reusing storage account.'
-else
-  az storage account create \
-    --name "$STORAGE_ACCOUNT" --resource-group "$RESOURCE_GROUP" \
-    --location "$LOCATION" --sku "$STORAGE_SKU" --kind StorageV2 \
-    --https-only true --min-tls-version TLS1_2 \
-    --allow-blob-public-access false --output none
+[[ "$STATE" == "Succeeded" ]] ||
+  fail "Container Apps environment not ready: $STATE"
+
+echo "Container Apps environment verified."
+
+# Step 5: Verify the existing storage account.
+
+echo "Checking storage account: $STORAGE_ACCOUNT"
+
+if ! az storage account show \
+    --name "$STORAGE_ACCOUNT" \
+    --resource-group "$RESOURCE_GROUP" \
+    --output none; then
+  fail "Storage account '$STORAGE_ACCOUNT' does not exist."
 fi
 
-# Container Apps Azure Files registration requires a storage account key.
-# Never print the key or persist it to the repository or GitHub Actions logs.
-ACCOUNT_KEY="$(az storage account keys list --account-name "$STORAGE_ACCOUNT" \
-  --resource-group "$RESOURCE_GROUP" --query '[0].value' -o tsv)"
-[[ -n "$ACCOUNT_KEY" && "$ACCOUNT_KEY" != 'None' ]] || fail 'Could not retrieve Azure Files credentials'  # pragma: allowlist secret
+STORAGE_STATE="$(az storage account show \
+  --name "$STORAGE_ACCOUNT" \
+  --resource-group "$RESOURCE_GROUP" \
+  --query 'provisioningState' -o tsv)"
+
+[[ "$STORAGE_STATE" == "Succeeded" ]] ||
+  fail "Storage account not ready: $STORAGE_STATE"
+
+echo "Storage account verified."
+
+# Step 6: Verify all six Azure Files shares and their registrations.
 
 for DATABASE in "${DATABASES[@]}"; do
-  echo "Configuring database storage: $DATABASE"
+  echo "Checking database storage: $DATABASE"
 
-  if az storage share-rm show --resource-group "$RESOURCE_GROUP" \
-      --storage-account "$STORAGE_ACCOUNT" --name "$DATABASE" --output none 2>/dev/null; then
-    echo '  Existing file share found.'
-  else
-    az storage share-rm create \
-      --resource-group "$RESOURCE_GROUP" --storage-account "$STORAGE_ACCOUNT" \
-      --name "$DATABASE" --quota "$STORAGE_SHARE_QUOTA_GB" \
-      --enabled-protocols SMB --output none
-    echo '  File share created.'
+  # Never create a new, empty share during deployment.
+  if ! az storage share-rm show \
+      --resource-group "$RESOURCE_GROUP" \
+      --storage-account "$STORAGE_ACCOUNT" \
+      --name "$DATABASE" \
+      --output none; then
+    fail "Required Azure Files share '$DATABASE' does not exist."
   fi
 
-  if az containerapp env storage show \
-      --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" \
-      --storage-name "$DATABASE" --output none 2>/dev/null; then
-    # Avoid silently repointing an existing persistent mount to a new share.
-    EXISTING="$(az containerapp env storage show \
-      --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" \
-      --storage-name "$DATABASE" --output json)"
-    if ! EXISTING="$EXISTING" EXPECTED_ACCOUNT="$STORAGE_ACCOUNT" \
-        EXPECTED_SHARE="$DATABASE" python - <<'PY'
-import json, os, sys
-item = json.loads(os.environ['EXISTING'])
-file = (item.get('properties') or {}).get('azureFile') or {}
+  echo "  Existing file share verified."
+
+  # Never silently repoint a persistent mount.
+  if ! az containerapp env storage show \
+      --name "$ENV_NAME" \
+      --resource-group "$RESOURCE_GROUP" \
+      --storage-name "$DATABASE" \
+      --output none; then
+    fail "Environment storage registration '$DATABASE' does not exist."
+  fi
+
+  EXISTING="$(az containerapp env storage show \
+    --name "$ENV_NAME" \
+    --resource-group "$RESOURCE_GROUP" \
+    --storage-name "$DATABASE" \
+    --output json)"
+
+  if ! EXISTING="$EXISTING" \
+      EXPECTED_ACCOUNT="$STORAGE_ACCOUNT" \
+      EXPECTED_SHARE="$DATABASE" \
+      "$PYTHON" - <<'PY'
+import json
+import os
+import sys
+
+item = json.loads(os.environ["EXISTING"])
+azure_file = (item.get("properties") or {}).get("azureFile") or {}
+
 valid = (
-    file.get('accessMode') == 'ReadWrite'
-    and file.get('accountName', '').lower() == os.environ['EXPECTED_ACCOUNT']
-    and file.get('shareName', '') == os.environ['EXPECTED_SHARE']
+    azure_file.get("accessMode") == "ReadWrite"
+    and azure_file.get("accountName", "").lower()
+        == os.environ["EXPECTED_ACCOUNT"]
+    and azure_file.get("shareName") == os.environ["EXPECTED_SHARE"]
 )
+
 sys.exit(0 if valid else 1)
 PY
-    then
-      fail "Existing environment storage '$DATABASE' points elsewhere or is not ReadWrite; review manually to protect existing data"
-    fi
-    echo '  Environment storage registration already correct.'
-  else
-    az containerapp env storage set \
-      --name "$ENV_NAME" --resource-group "$RESOURCE_GROUP" \
-      --storage-name "$DATABASE" --access-mode ReadWrite \
-      --azure-file-account-name "$STORAGE_ACCOUNT" \
-      --azure-file-account-key "$ACCOUNT_KEY" \
-      --azure-file-share-name "$DATABASE" --output none
-    echo '  Environment storage registered.'
+  then
+    fail "Storage registration '$DATABASE' has an unexpected configuration."
   fi
 
+  echo "  Environment storage registration verified."
 done
 
-unset ACCOUNT_KEY
-printf '\nReady: Container Apps environment and six database Azure Files shares.\n'
-printf 'Remember: database code must write its SQLite files under /app/data.\n'
+printf '\n=== Environment Verification Complete ===\n'
+printf 'Container Apps environment and all six Azure Files shares verified.\n'
+printf 'SQLite databases must write their files under /app/data.\n'

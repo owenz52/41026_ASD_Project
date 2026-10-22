@@ -56,15 +56,17 @@ done
 echo "Azure resource providers verified."
 
 
-# Step 3: Create or reuse resource group
+# Step 3: Verify the existing resource group.
+# Do not recreate it because deployment configuration is stored in its tags.
+
 echo "Checking resource group: $RESOURCE_GROUP"
 
-az group create \
-    --name "$RESOURCE_GROUP" \
-    --location "$LOCATION" \
-    --output none
+if ! az group show --name "$RESOURCE_GROUP" --output none; then
+    echo "ERROR: Resource group $RESOURCE_GROUP does not exist." >&2
+    exit 1
+fi
 
-echo "Resource group ready."
+echo "Resource group verified."
 
 # Step 4: Retrieve existing deployment resource names
 REGISTRY_NAME=$(az group show \
@@ -91,17 +93,6 @@ if [[ -z "$ENV_NAME" || "$ENV_NAME" == "None" ]]; then
     exit 1
 fi
 
-
-# Step 6: Store deployment names as resource group tags
-echo "Saving deployment configuration..."
-
-az group update \
-    --name "$RESOURCE_GROUP" \
-    --set \
-        "tags.registryName=$REGISTRY_NAME" \
-        "tags.envName=$ENV_NAME" \
-        "tags.location=$LOCATION" \
-    --output none
 
 # Step 7: Display deployment configuration
 echo ""

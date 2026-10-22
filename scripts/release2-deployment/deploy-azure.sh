@@ -14,13 +14,22 @@ command -v az >/dev/null || {
     exit 1
 }
 
-command -v python3 >/dev/null || {
-    echo "ERROR: Python 3 is required." >&2
+# Select a working Python 3 interpreter on Ubuntu or Windows Git Bash.
+# WindowsApps/python3 can be a non-functional Microsoft Store alias.
+if command -v python3 >/dev/null 2>&1 &&
+   python3 -c 'import sys; sys.exit(sys.version_info.major != 3)' >/dev/null 2>&1; then
+    PYTHON=python3
+elif command -v python >/dev/null 2>&1 &&
+     python -c 'import sys; sys.exit(sys.version_info.major != 3)' >/dev/null 2>&1; then
+    PYTHON=python
+else
+    echo "ERROR: A working Python 3 interpreter is required." >&2
     exit 1
-}
+fi
+printf 'Using Python: %s\n' "$PYTHON"
 
-# Provision or reuse a dedicated identity for Container Apps image pulls.
-# This is intentionally separate from the GitHub OIDC deployment identity.
+# Reuse the existing ACR pull identity; never create identities during deployment.
+# The GitHub OIDC deployment identity is separate and cannot assign Azure roles.
 IDENTITY_NAME="${ACR_PULL_IDENTITY_NAME:-asd-r2-acr-pull}"
 REGISTRY_NAME="$(az group show --name "$RESOURCE_GROUP" --query 'tags.registryName' -o tsv)"
 if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" ]]; then
@@ -31,13 +40,18 @@ REGISTRY_ID="$(az acr show --name "$REGISTRY_NAME" --resource-group "$RESOURCE_G
 REGISTRY_MODE="$(az acr show --name "$REGISTRY_NAME" --resource-group "$RESOURCE_GROUP" --query roleAssignmentMode -o tsv)"
 
 if [[ -z "${ACR_PULL_IDENTITY_ID:-}" ]]; then
-    if ! az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" -o none 2>/dev/null; then
-        echo "Creating ACR pull identity: $IDENTITY_NAME"
-        az identity create --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" \
-            --location "${LOCATION:-australiaeast}" -o none
+    # Local runs can resolve the existing identity by its fixed name.
+    # GitHub Actions supplies ACR_PULL_IDENTITY_ID through its repository secret.
+    if ! az identity show --name "$IDENTITY_NAME" --resource-group "$RESOURCE_GROUP" -o none; then
+        echo "ERROR: Existing ACR pull identity $IDENTITY_NAME was not found." >&2
+        exit 1
     fi
     ACR_PULL_IDENTITY_ID="$(az identity show --name "$IDENTITY_NAME" \
         --resource-group "$RESOURCE_GROUP" --query id -o tsv)"
+fi
+if [[ -z "$ACR_PULL_IDENTITY_ID" || "$ACR_PULL_IDENTITY_ID" == "None" ]]; then
+    echo "ERROR: ACR_PULL_IDENTITY_ID is missing." >&2
+    exit 1
 fi
 IDENTITY_PRINCIPAL_ID="$(az identity show --ids "$ACR_PULL_IDENTITY_ID" --query principalId -o tsv)"
 if [[ -z "$IDENTITY_PRINCIPAL_ID" || "$IDENTITY_PRINCIPAL_ID" == "None" ]]; then
@@ -71,7 +85,7 @@ fi
 export ACR_PULL_IDENTITY_ID
 printf 'ACR identity ready: %s (role: %s)\n' "$ACR_PULL_IDENTITY_ID" "$PULL_ROLE"
 
-python3 - <<'PY'
+"$PYTHON" - <<'PY'
 import json
 import os
 import re
@@ -180,7 +194,7 @@ def deploy():
             "--resource-group", GROUP,
             "--storage-name", name,
         )
-        file_share = storage.get("properties", {}).get("azureFile", {})
+        file_share = (storage.get("properties") or {}).get("azureFile") or {}
         if file_share.get("accessMode") != "ReadWrite":
             raise ValueError(f"Missing ReadWrite Azure Files storage: {name}")
     existing_names = {
@@ -251,8 +265,8 @@ def deploy():
             if is_database:
                 mounts = [
                     item for item in container.get("volumeMounts", [])
-                    if item["mountPath"] != "/app/data"
-                    and item["volumeName"] != "database-data"
+                    if item.get("mountPath") != "/app/data"
+                    and item.get("volumeName") != "database-data"
                 ]
                 mounts.append({
                     "volumeName": "database-data",
@@ -261,7 +275,7 @@ def deploy():
                 container["volumeMounts"] = mounts
                 volumes = [
                     item for item in template.get("volumes", [])
-                    if item["name"] != "database-data"
+                    if item.get("name") != "database-data"
                 ]
                 volumes.append({
                     "name": "database-data",
