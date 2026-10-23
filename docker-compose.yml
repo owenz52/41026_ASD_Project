@@ -1,4 +1,5 @@
 services:
+
   # Shared - login and register
   user-database:
     build:
@@ -23,20 +24,36 @@ services:
 
   #Shared - Portal homepage
   portal-frontend:
-    build:
-      context: ./shared/frontend
-      dockerfile: Dockerfile
-    container_name: portal-frontend
+    build: ./shared/frontend          
     ports:
       - "8000:80"
+    environment:
+      # Backends (name:port as used on the Docker network)
+      AUTH_SERVICE_URL: http://auth-backend:5000
+      ENROLMENT_SERVICE_URL: http://enrolment-backend:5001
+      NOTES_SERVICE_URL: http://notebook-backend:5003
+      CALENDAR_SERVICE_URL: http://calendar-backend:5005
+      ASSESSMENT_SERVICE_URL: http://assessment-backend:5007
+      EXAMS_SERVICE_URL: http://exam-backend:5009
+      # Frontends (port 80 inside their containers, so no port needed)
+      ENROLMENT_FRONTEND_URL: http://enrolment-frontend
+      ASSESSMENT_FRONTEND_URL: http://assessment-frontend
+      CALENDAR_FRONTEND_URL: http://calendar-frontend
+      NOTES_FRONTEND_URL: http://notebook-frontend
+      EXAMS_FRONTEND_URL: http://exam-frontend
     depends_on:
       - auth-backend
+      - enrolment-backend
+      - notebook-backend
+      - calendar-backend
+      - assessment-backend
+      - exam-backend
       - enrolment-frontend
       - assessment-frontend
       - calendar-frontend
       - notebook-frontend
       - exam-frontend
-    restart: unless-stopped
+
 
   # Adrian Voljak - Assessment Tracker
 
@@ -254,6 +271,8 @@ services:
         volumes:
             - exam_data:/app/data
         restart: unless-stopped
+
+
 volumes:
   user_database_data:
   assessment-data:

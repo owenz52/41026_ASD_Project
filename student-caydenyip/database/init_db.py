@@ -149,7 +149,41 @@ cursor.executemany(
 # INITIAL STUDENT EXAMS
 # ==================================================
 
-student_exams = []
+student_exams = [
+    (
+        1,  # exam_id
+        1,  # course_exam_id
+        1,  # course_id
+        1,  # student_id
+        "41026 Final Exam",
+        "2026-11-10",
+        "09:00",
+        "Scheduled",
+        0
+    ),
+    (
+        2,
+        2,
+        2,
+        1,
+        "48024 Final Exam",
+        "2026-11-12",
+        "13:00",
+        "Scheduled",
+        0
+    ),
+    (
+        3,
+        3,
+        3,
+        1,
+        "31271 Final Exam",
+        "2026-11-18",
+        "10:00",
+        "Scheduled",
+        0
+    )
+]
 
 
 cursor.executemany(

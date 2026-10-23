@@ -11,6 +11,9 @@ from services.prompt_loader import load_prompt
 from services.database_api import get_exams
 from datetime import datetime
 
+import logging
+
+logger = logging.getLogger(__name__)
 
 ai_mode_bp = Blueprint(
     "ai_mode",
@@ -237,7 +240,11 @@ def ask_with_context():
             except (
                 KeyError,
                 ValueError,
-            ):
+            )as exc:
+                logger.warning(
+                    "Skipping exam due to invalid date/time data: %s",
+                    exc,
+                )
                 continue
 
         upcoming_exams.sort(

@@ -101,20 +101,7 @@ def sync_exams():
             )
 
             cursor = conn.execute(
-                f"""
-                DELETE FROM student_exams
-
-                WHERE student_id = ?
-
-                  AND course_id NOT IN ({placeholders})
-
-                  AND course_exam_id IS NOT NULL
-                """,
-                (
-                    student_id,
-                    *course_ids
-                )
-            )
+                f""" DELETE FROM student_exams WHERE student_id = ? AND course_id NOT IN ({placeholders}) AND course_exam_id IS NOT NULL """,(student_id, *course_ids)) # noqa: S608
 
             removed = cursor.rowcount
 
@@ -254,6 +241,7 @@ def sync_exams():
     except Exception as exc:
 
         conn.rollback()
+        
 
         return jsonify({
             "error": "Failed to synchronize exams.",

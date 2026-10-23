@@ -56,6 +56,8 @@ docker-compose.override.yml
 #Other
 ai-services/agentic-loop/data/
 ai-services/agentic-loop/reports/*.md
+# Local Azure registry credentials
+acr-credentials.json
 
 # Ruff generated cache
 .ruff_cache/
