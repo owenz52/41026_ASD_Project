@@ -4,7 +4,7 @@ import sqlite3
 from flask import Flask, jsonify, request
 app = Flask(__name__)
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), "data")
+DATA_DIR = os.getenv("DATA_DIR", os.path.join(os.path.dirname(__file__), "data"),)
 DATABASE_NAME = os.path.join(DATA_DIR, "enrolment.db")
 
 def get_db_connection():
@@ -234,4 +234,4 @@ def get_enrolments_by_student(student_id):
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5002, debug=True)
+    app.run(host="0.0.0.0", port=5002, debug=False) # noqa: S104

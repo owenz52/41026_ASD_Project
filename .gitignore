@@ -58,3 +58,12 @@ ai-services/agentic-loop/data/
 ai-services/agentic-loop/reports/*.md
 # Local Azure registry credentials
 acr-credentials.json
+
+# Ruff generated cache
+.ruff_cache/
+
+# Multi-Agent generated workflow logs
+ai-services/multi-agent-server/logs/*.jsonl
+
+# Release 2 generated review reports
+ai-services/agentic-loop/reports/release2/*.md

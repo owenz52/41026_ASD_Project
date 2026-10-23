@@ -1,0 +1,8 @@
+{
+  "user-database": "user-database.example.invalid",
+  "assessment-database": "assessment-database.example.invalid",
+  "calendar-database": "calendar-database.example.invalid",
+  "enrolment-database": "enrolment-database.example.invalid",
+  "notebook-database": "notebook-database.example.invalid",
+  "exam-database": "exam-database.example.invalid"
+}

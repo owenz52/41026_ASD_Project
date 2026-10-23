@@ -1,0 +1,130 @@
+{
+    "services": [
+        {
+            "name": "user-database",
+            "context": "shared/database",
+            "dockerfile": "Dockerfile",
+            "port": 5003,
+            "external": false
+        },
+        {
+            "name": "auth-backend",
+            "context": "shared/backend",
+            "dockerfile": "Dockerfile",
+            "port": 5000,
+            "external": false
+        },
+        {
+            "name": "portal-frontend",
+            "context": ".",
+            "dockerfile": "deploy/azure/portal.Dockerfile",
+            "port": 80,
+            "external": true
+        },
+        {
+            "name": "assessment-database",
+            "context": "student-adrianvoljak/database",
+            "dockerfile": "Dockerfile",
+            "port": 5008,
+            "external": false
+        },
+        {
+            "name": "assessment-backend",
+            "context": "student-adrianvoljak",
+            "dockerfile": "backend/Dockerfile",
+            "port": 5007,
+            "external": false
+        },
+        {
+            "name": "assessment-frontend",
+            "context": "student-adrianvoljak/frontend",
+            "dockerfile": "Dockerfile",
+            "port": 80,
+            "external": false
+        },
+        {
+            "name": "calendar-database",
+            "context": "student-voreaksanith/database",
+            "dockerfile": "Dockerfile",
+            "port": 5006,
+            "external": false
+        },
+        {
+            "name": "calendar-backend",
+            "context": "student-voreaksanith",
+            "dockerfile": "backend/Dockerfile",
+            "port": 5005,
+            "external": false
+        },
+        {
+            "name": "calendar-frontend",
+            "context": "student-voreaksanith/frontend",
+            "dockerfile": "Dockerfile",
+            "port": 80,
+            "external": false
+        },
+        {
+            "name": "enrolment-database",
+            "context": "student-yulinzhu/database",
+            "dockerfile": "Dockerfile",
+            "port": 5002,
+            "external": false
+        },
+        {
+            "name": "enrolment-backend",
+            "context": "student-yulinzhu",
+            "dockerfile": "backend/Dockerfile",
+            "port": 5001,
+            "external": false
+        },
+        {
+            "name": "enrolment-frontend",
+            "context": "student-yulinzhu/frontend",
+            "dockerfile": "Dockerfile",
+            "port": 80,
+            "external": false
+        },
+        {
+            "name": "notebook-database",
+            "context": "student-yunchungchang/database",
+            "dockerfile": "Dockerfile",
+            "port": 5004,
+            "external": false
+        },
+        {
+            "name": "notebook-backend",
+            "context": "student-yunchungchang",
+            "dockerfile": "backend/Dockerfile",
+            "port": 5003,
+            "external": false
+        },
+        {
+            "name": "notebook-frontend",
+            "context": "student-yunchungchang/frontend",
+            "dockerfile": "Dockerfile",
+            "port": 80,
+            "external": false
+        },
+        {
+            "name": "exam-database",
+            "context": "student-caydenyip/database",
+            "dockerfile": "Dockerfile",
+            "port": 5010,
+            "external": false
+        },
+        {
+            "name": "exam-backend",
+            "context": "student-caydenyip",
+            "dockerfile": "backend/Dockerfile",
+            "port": 5009,
+            "external": false
+        },
+        {
+            "name": "exam-frontend",
+            "context": "student-caydenyip/frontend",
+            "dockerfile": "Dockerfile",
+            "port": 80,
+            "external": false
+        }
+    ]
+}

@@ -100,24 +100,6 @@ if "is_deleted" not in column_names:
         """
     )
 
-
-# ==================================================
-# CLEAR EXISTING DATA
-#
-# WARNING:
-# This resets the database every time this script
-# runs.
-# ==================================================
-
-cursor.execute(
-    "DELETE FROM student_exams"
-)
-
-cursor.execute(
-    "DELETE FROM course_exams"
-)
-
-
 # ==================================================
 # COURSE EXAM TEMPLATES
 # ==================================================
@@ -150,7 +132,7 @@ course_exams = [
 
 cursor.executemany(
     """
-    INSERT INTO course_exams (
+    INSERT OR IGNORE INTO course_exams (
         course_exam_id,
         course_id,
         exam_name,

@@ -57,7 +57,7 @@ def seed():
     rows = [(FIRST_ID + i, STUDENT_ID, *event)
             for i, event in enumerate(OCTOBER_EVENTS)]
     conn.executemany(
-        """INSERT OR REPLACE INTO events
+        """INSERT OR IGNORE INTO events
            (event_id, student_id, subject, title, event_type,
             start_time, end_time, location)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",

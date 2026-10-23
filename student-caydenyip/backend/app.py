@@ -5,9 +5,7 @@ from flask import Flask
 from flask_cors import CORS
 
 
-BASE_DIR = Path(__file__).resolve().parent
-if str(BASE_DIR) not in sys.path:
-    sys.path.insert(0, str(BASE_DIR))
+
 
 from routes.ai_mode import ai_mode_bp
 
@@ -24,6 +22,9 @@ from routes.exams import (
     delete_exam_bp,
 )
 
+BASE_DIR = Path(__file__).resolve().parent
+if str(BASE_DIR) not in sys.path:
+    sys.path.insert(0, str(BASE_DIR))
 
 def create_app():
     app = Flask(__name__)

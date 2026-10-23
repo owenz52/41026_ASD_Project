@@ -418,16 +418,13 @@ def init_db():
         )
     """)
 
-    conn.execute("DELETE FROM notes")
-    conn.execute("DELETE FROM notebooks")
-
     conn.executemany(
-        "INSERT INTO notebooks (notebook_id, student_id, course_id, notebook_title, created_date) "
+        "INSERT OR IGNORE INTO notebooks (notebook_id, student_id, course_id, notebook_title, created_date) "
         "VALUES (?, ?, ?, ?, ?)",
         notebooks,
     )
     conn.executemany(
-        "INSERT INTO notes (note_id, notebook_id, note_title, note_content, updated_date) "
+        "INSERT OR IGNORE INTO notes (note_id, notebook_id, note_title, note_content, updated_date) "
         "VALUES (?, ?, ?, ?, ?)",
         notes,
     )
