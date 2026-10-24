@@ -23,6 +23,7 @@ jobs:
       - name: Run post-commit tests
         run: |
           mkdir -p reports
+          pip install pytest requests
           python -m pytest tests/post_commit/ -v > reports/test-results.md
           status=$?
           echo "{\"status\": \"$([ $status -eq 0 ] && echo PASS || echo FAIL)\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> reports/test-audit.jsonl
