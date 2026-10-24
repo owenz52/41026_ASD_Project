@@ -445,12 +445,73 @@ if [[ "$ACR_AUTH" == "identity" ]]; then
 fi
 
 # ------------------------------------------------------------
-# 9. Deploy images and configure ingress
+# 9. Deploy only apps whose desired configuration has changed
 #
-# Ingress is configured BEFORE the image update so the real
-# port is in place when the new revision starts. Otherwise the
-# new revision would probe the placeholder's port 80 and fail.
+# An app is skipped when its image reference, CPU, memory, scale,
+# ingress type, target port, and transport already match. This avoids
+# creating a new revision on every rerun.
+#
+# Note: comparing image references cannot detect that a mutable tag
+# such as :latest was overwritten with different image content. Use
+# immutable tags (for example, a Git commit SHA) to detect image changes.
 # ------------------------------------------------------------
+
+app_matches_desired_config() {
+    local app="$1" image="$2" port="$3" cpu="$4" memory="$5"
+    local minrep="$6" maxrep="$7" ingress="$8"
+    local desired_image current_image current_cpu current_memory
+    local current_min current_max current_external current_port
+    local current_transport current_exposed desired_external desired_transport
+
+    desired_image="${REGISTRY_SERVER}/${image}:${IMAGE_TAG}"
+
+    # Any failed query is treated as a mismatch so deployment can proceed
+    # and Azure's real error is surfaced by the subsequent update command.
+    current_image="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.template.containers[0].image' --output tsv 2>/dev/null || true)"
+    current_cpu="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.template.containers[0].resources.cpu' --output tsv 2>/dev/null || true)"
+    current_memory="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.template.containers[0].resources.memory' --output tsv 2>/dev/null || true)"
+    current_min="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.template.scale.minReplicas' --output tsv 2>/dev/null || true)"
+    current_max="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.template.scale.maxReplicas' --output tsv 2>/dev/null || true)"
+    current_external="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.configuration.ingress.external' --output tsv 2>/dev/null || true)"
+    current_port="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.configuration.ingress.targetPort' --output tsv 2>/dev/null || true)"
+    current_transport="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.configuration.ingress.transport' --output tsv 2>/dev/null || true)"
+    current_exposed="$(az containerapp show --name "$app" --resource-group "$RESOURCE_GROUP" --query 'properties.configuration.ingress.exposedPort' --output tsv 2>/dev/null || true)"
+
+    case "$ingress" in
+        external) desired_external="true" ;;
+        internal) desired_external="false" ;;
+        none)
+            # This app definition requests ingress disabled. Azure's null
+            # ingress properties indicate no ingress configuration.
+            [[ "$current_port" == "None" || "$current_port" == "null" || -z "$current_port" ]] || return 1
+            ;;
+        *) return 1 ;;
+    esac
+
+    if [[ "$ingress" != "none" ]]; then
+        if [[ "$app" == *-db && "$DB_TRANSPORT" == "tcp" ]]; then
+            desired_transport="tcp"
+        else
+            desired_transport="auto"
+        fi
+
+        [[ "$current_external" == "$desired_external" ]] || return 1
+        [[ "$current_port" == "$port" ]] || return 1
+        [[ "$current_transport" == "$desired_transport" ]] || return 1
+
+        if [[ "$desired_transport" == "tcp" ]]; then
+            [[ "$current_exposed" == "$port" ]] || return 1
+        fi
+    fi
+
+    [[ "$current_image" == "$desired_image" ]] || return 1
+    [[ "$current_cpu" == "$cpu" ]] || return 1
+    [[ "$current_memory" == "$memory" ]] || return 1
+    [[ "$current_min" == "$minrep" ]] || return 1
+    [[ "$current_max" == "$maxrep" ]] || return 1
+
+    return 0
+}
 
 configure_ingress() {
     local app="$1" ingress="$2" port="$3"
@@ -510,6 +571,12 @@ for entry in "${APPS[@]}"; do
     IFS='|' read -r app image port cpu memory minrep maxrep ingress \
         <<< "$entry"
 
+    if app_matches_desired_config "$app" "$image" "$port" "$cpu" "$memory" "$minrep" "$maxrep" "$ingress"; then
+        echo "SKIP: $app already matches the desired image and configuration."
+        continue
+    fi
+
+    log "Configuration differs for $app; deploying desired state..."
     log "Configuring ingress for $app ($ingress, port $port)..."
     configure_ingress "$app" "$ingress" "$port"
 

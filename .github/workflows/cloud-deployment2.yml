@@ -1,0 +1,109 @@
+name: cloud-deployment
+
+on:
+  # push:
+  #   branches:
+  #     - main
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  post_commit_tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Start services
+        working-directory: 41026_ASD_Project
+        run: docker compose up -d --build
+
+      - name: Run post-commit tests
+        working-directory: 41026_ASD_Project
+        run: |
+          mkdir -p reports
+          python -m pytest tests/post_commit/ -v > reports/test-results.md
+          status=$?
+          echo "{\"status\": \"$([ $status -eq 0 ] && echo PASS || echo FAIL)\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> reports/test-audit.jsonl
+
+      - name: Stop services
+        if: always()
+        working-directory: 41026_ASD_Project
+        run: docker compose down -v
+
+      - name: Upload test evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-test-evidence
+          path: 41026_ASD_Project/reports
+
+  deploy_azure:
+    runs-on: ubuntu-latest
+    needs: [post_commit_tests]
+    if: github.event_name == 'workflow_dispatch'
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Azure login
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Set up deployment environment
+        working-directory: 41026_ASD_Project
+        run: bash scripts/env-setup.sh
+
+      - name: Create ACR
+        working-directory: 41026_ASD_Project
+        run: bash scripts/create-acr.sh        
+
+      - name: Build and push images
+        working-directory: 41026_ASD_Project
+        run: bash scripts/build-images.sh
+
+      - name: Azure login (refresh)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Create Container Apps environment
+        working-directory: 41026_ASD_Project
+        run: bash scripts/deploy-azure-env.sh
+
+      - name: Azure login (refresh again)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Container Apps
+        working-directory: 41026_ASD_Project
+        run: bash scripts/deploy-azure.sh
+
+      - name: Configure Backend Env
+        working-directory: 41026_ASD_Project
+        run: bash scripts/configure-backend-env.sh      
+
+      - name: Configure Frontend Env
+        working-directory: 41026_ASD_Project
+        run: bash scripts/configure-portal-env.sh
+
+
+      - name: Validate deployment and generate evidence
+        working-directory: 41026_ASD_Project
+        run: bash scripts/deployment-testing.sh
+
+      - name: Upload deployment evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: azure-deployment-evidence
+          path: 41026_ASD_Project/reports/deployment-results.md

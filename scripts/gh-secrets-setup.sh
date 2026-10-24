@@ -1,4 +1,3 @@
-
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -14,7 +13,6 @@ EXPECTED_TENANT_ID="38f98f9c-0f30-4c61-9211-4560f70cb0f4"
 EXPECTED_CLIENT_ID="ecd04639-59cb-49ea-bb1d-816d86f1b2aa"
 FED_CRED_NAME="project-github-actions"
 EXPECTED_REPO="owenz52/41026_ASD_Project"
-EXPECTED_BRANCH="Cayden-pre/post-commit-update"
 
 # Use "legacy" for the traditional GitHub OIDC subject.
 # Use "immutable" only if this repository uses GitHub's immutable
@@ -67,11 +65,7 @@ if [[ "$REPO_SLUG" != "$EXPECTED_REPO" ]]; then
     exit 1
 fi
 
-if [[ "$BRANCH" != "$EXPECTED_BRANCH" ]]; then
-    echo "ERROR: Unexpected branch: $BRANCH"
-    echo "Switch to $EXPECTED_BRANCH and rerun."
-    exit 1
-fi
+
 
 # Confirm GitHub can access the repository.
 REPO_JSON=$(gh api "repos/$REPO_SLUG")

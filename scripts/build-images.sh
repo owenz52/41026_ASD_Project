@@ -2,49 +2,32 @@
 set -Eeuo pipefail
 
 # ============================================================
-# Project: Build and Push All Docker Images to Azure ACR
-# Builds locally with Docker, then pushes to Azure.
+# Project: Build and Push Docker Images to Azure ACR
+#
+# Checks whether each image tag already exists in ACR.
+# Existing images are skipped unless FORCE_REBUILD=true.
+#
 # This script does NOT deploy containers.
 # ============================================================
 
 RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
-REGISTRY_NAME="${REGISTRY_NAME:-$(az group show --name "${RESOURCE_GROUP:-project-rg}" --query "tags.registryName" --output tsv)}"
+REGISTRY_NAME="${REGISTRY_NAME:-}"
 IMAGE_TAG="${IMAGE_TAG:-latest}"
-
-# Locate the project root, even when this script is launched
-# from a different working directory.
-SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
-
-if [[ -f "$SCRIPT_DIR/docker-compose.yml" ]]; then
-    PROJECT_ROOT="$SCRIPT_DIR"
-elif [[ -f "$SCRIPT_DIR/../docker-compose.yml" ]]; then
-    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-else
-    echo "ERROR: Could not locate docker-compose.yml."
-    echo "Expected it in the project root or the parent of scripts/."
-    exit 1
-fi
-
-cd "$PROJECT_ROOT"
+FORCE_REBUILD="${FORCE_REBUILD:-false}"
 
 trap 'echo "ERROR: Script failed near line ${LINENO}. Check the output above." >&2' ERR
 
 echo "=================================================="
 echo " Project Image Build and Push"
 echo "=================================================="
-echo "Project root : $PROJECT_ROOT"
-echo "Resource group: $RESOURCE_GROUP"
-echo "Registry     : $REGISTRY_NAME"
-echo "Image tag    : $IMAGE_TAG"
-echo "=================================================="
 
 # ------------------------------------------------------------
-# 1. Check prerequisites
+# 1. Check prerequisites and Azure access
 # ------------------------------------------------------------
 
 for command in az docker; do
     if ! command -v "$command" >/dev/null 2>&1; then
-        echo "ERROR: Required command '$command' was not found."
+        echo "ERROR: Required command '$command' was not found." >&2
         exit 1
     fi
 done
@@ -52,16 +35,36 @@ done
 echo
 echo "[1/5] Checking Azure login..."
 
-if ! az account show --output none; then
-    echo "ERROR: Not logged into Azure. Run: az login"
+if ! az account show --output none 2>/dev/null; then
+    echo "ERROR: Not logged into Azure. Run: az login" >&2
     exit 1
 fi
 
-az group show \
-    --name "$RESOURCE_GROUP" \
-    --output none
+if ! az group show 
+    --name "$RESOURCE_GROUP" 
+    --output none 2>/dev/null; then
+    echo "ERROR: Resource group '$RESOURCE_GROUP' was not found." >&2
+    exit 1
+fi
 
-echo "Azure login and resource group OK."
+if [[ -z "$REGISTRY_NAME" ]]; then
+    REGISTRY_NAME="$(
+        az group show 
+            --name "$RESOURCE_GROUP" 
+            --query "tags.registryName" 
+            --output tsv
+    )"
+fi
+
+if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" ]]; then
+    echo "ERROR: Registry name is missing from resource group tags." >&2
+    exit 1
+fi
+
+echo "Resource group: $RESOURCE_GROUP"
+echo "Registry:       $REGISTRY_NAME"
+echo "Image tag:      $IMAGE_TAG"
+echo "Force rebuild:  $FORCE_REBUILD"
 
 echo
 echo "[2/5] Checking Docker..."
@@ -70,7 +73,27 @@ docker info >/dev/null
 echo "Docker engine is running."
 
 # ------------------------------------------------------------
-# 2. Define all 18 images
+# 2. Locate project root
+# ------------------------------------------------------------
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+
+if [[ -f "$SCRIPT_DIR/docker-compose.yml" ]]; then
+    PROJECT_ROOT="$SCRIPT_DIR"
+elif [[ -f "$SCRIPT_DIR/../docker-compose.yml" ]]; then
+    PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+else
+    echo "ERROR: Could not locate docker-compose.yml." >&2
+    echo "Expected it in the project root or the parent of scripts/." >&2
+    exit 1
+fi
+
+cd "$PROJECT_ROOT"
+
+echo "Project root: $PROJECT_ROOT"
+
+# ------------------------------------------------------------
+# 3. Define all 18 images
 #
 # Format: image-name|build-context|Dockerfile-relative-to-context
 # An empty Dockerfile field means context/Dockerfile.
@@ -99,14 +122,18 @@ IMAGE_LIST
 )
 
 # Validate every context and Dockerfile before building anything.
+
 echo
 echo "[3/5] Validating all build contexts..."
 
+total=0
+
 while IFS='|' read -r image context dockerfile; do
     [[ -n "$image" ]] || continue
+    total=$((total + 1))
 
     if [[ ! -d "$context" ]]; then
-        echo "ERROR: Missing build context for $image: $context"
+        echo "ERROR: Missing build context for $image: $context" >&2
         exit 1
     fi
 
@@ -117,32 +144,37 @@ while IFS='|' read -r image context dockerfile; do
     fi
 
     if [[ ! -f "$dockerfile_path" ]]; then
-        echo "ERROR: Missing Dockerfile for $image: $dockerfile_path"
+        echo "ERROR: Missing Dockerfile for $image: $dockerfile_path" >&2
         exit 1
     fi
 
     echo "OK: $image"
 done <<< "$IMAGES"
 
-echo "All 18 build contexts and Dockerfiles are present."
+if [[ "$total" -ne 18 ]]; then
+    echo "ERROR: Expected 18 images, but found $total definitions." >&2
+    exit 1
+fi
+
+echo "All $total build contexts and Dockerfiles are present."
 
 # ------------------------------------------------------------
-# 3. Check registry and authenticate
+# 4. Check registry and authenticate
 # ------------------------------------------------------------
 
 echo
 echo "[4/5] Checking Azure Container Registry..."
 
 LOGIN_SERVER="$(
-    az acr show \
-        --name "$REGISTRY_NAME" \
-        --resource-group "$RESOURCE_GROUP" \
-        --query loginServer \
+    az acr show 
+        --name "$REGISTRY_NAME" 
+        --resource-group "$RESOURCE_GROUP" 
+        --query loginServer 
         --output tsv
 )"
 
-if [[ -z "$LOGIN_SERVER" || "$LOGIN_SERVER" == "null" ]]; then
-    echo "ERROR: Could not retrieve the registry login server."
+if [[ -z "$LOGIN_SERVER" || "$LOGIN_SERVER" == "None" ]]; then
+    echo "ERROR: Could not retrieve the registry login server." >&2
     exit 1
 fi
 
@@ -151,15 +183,30 @@ echo "Logging Docker into Azure Container Registry..."
 
 az acr login --name "$REGISTRY_NAME"
 
+# Retrieve repositories once. If this command fails because of
+# authentication or permissions, stop rather than assume images
+# are missing.
+
+echo "Retrieving existing ACR repositories..."
+
+EXISTING_REPOSITORIES="$(
+    az acr repository list 
+        --name "$REGISTRY_NAME" 
+        --output tsv
+)"
+
+echo "ACR repository list retrieved successfully."
+
 # ------------------------------------------------------------
-# 4. Build locally and push each image
+# 5. Skip existing tags, build and push missing tags
 # ------------------------------------------------------------
 
 echo
-echo "[5/5] Building and pushing images..."
+echo "[5/5] Checking, building and pushing images..."
 echo "This may take some time. Keep this terminal open."
 
-total=18
+built=0
+skipped=0
 count=0
 
 while IFS='|' read -r image context dockerfile; do
@@ -167,13 +214,51 @@ while IFS='|' read -r image context dockerfile; do
 
     count=$((count + 1))
     IMAGE_URI="$LOGIN_SERVER/$image:$IMAGE_TAG"
+    IMAGE_EXISTS=false
 
     echo
     echo "=================================================="
-    echo "[$count/$total] Building: $image"
-    echo "Context: $context"
-    echo "Target:  $IMAGE_URI"
+    echo "[$count/$total] Checking: $image:$IMAGE_TAG"
     echo "=================================================="
+
+    if [[ "$FORCE_REBUILD" != "true" ]]; then
+        REPOSITORY_EXISTS=false
+
+        while IFS= read -r existing_repository; do
+            if [[ "$existing_repository" == "$image" ]]; then
+                REPOSITORY_EXISTS=true
+                break
+            fi
+        done <<< "$EXISTING_REPOSITORIES"
+
+        if [[ "$REPOSITORY_EXISTS" == "true" ]]; then
+            # A repository that exists should have its tags queried
+            # successfully. An error here stops the script instead
+            # of incorrectly treating the image as missing.
+            EXISTING_TAGS="$(
+                az acr repository show-tags \
+                    --name "$REGISTRY_NAME" \
+                    --repository "$image" \
+                    --output tsv
+            )"
+
+            while IFS= read -r existing_tag; do
+                if [[ "$existing_tag" == "$IMAGE_TAG" ]]; then
+                    IMAGE_EXISTS=true
+                    break
+                fi
+            done <<< "$EXISTING_TAGS"
+        fi
+    fi
+
+    if [[ "$IMAGE_EXISTS" == "true" ]]; then
+        echo "SKIPPING: Image already exists in ACR."
+        echo "Existing image: $IMAGE_URI"
+        skipped=$((skipped + 1))
+        continue
+    fi
+
+    echo "Image tag not found. Building: $IMAGE_URI"
 
     if [[ -n "$dockerfile" ]]; then
         docker build \
@@ -186,27 +271,32 @@ while IFS='|' read -r image context dockerfile; do
             "$context"
     fi
 
-    echo "[$count/$total] Pushing: $image"
+    echo "Pushing: $IMAGE_URI"
     docker push "$IMAGE_URI"
 
     echo "SUCCESS: $IMAGE_URI"
+    built=$((built + 1))
+
 done <<< "$IMAGES"
 
 # ------------------------------------------------------------
-# 5. Verify repositories in ACR
+# 6. Verify and summarise
 # ------------------------------------------------------------
 
 echo
 echo "=================================================="
-echo "All images built and pushed successfully!"
+echo " Image Build and Push Summary"
 echo "=================================================="
+echo "Images checked: $total"
+echo "Images built and pushed: $built"
+echo "Images skipped: $skipped"
 echo
 echo "Repositories currently in Azure Container Registry:"
 
-az acr repository list \
-    --name "$REGISTRY_NAME" \
+az acr repository list 
+    --name "$REGISTRY_NAME" 
     --output table
 
 echo
-echo "Image build and push completed."
+echo "Image processing completed."
 echo "NOTE: This script does not deploy the services to Azure."

@@ -5,18 +5,20 @@ RESOURCE_GROUP="${RESOURCE_GROUP:-project-rg}"
 URL_SCHEME="${URL_SCHEME:-https}"
 
 command -v az >/dev/null 2>&1 || {
-    echo "ERROR: Azure CLI not found."
+    echo "ERROR: Azure CLI not found." >&2
     exit 1
 }
 
 az account show --output none || {
-    echo "ERROR: Run az login first."
+    echo "ERROR: Run az login first." >&2
     exit 1
 }
 
 # Get the ingress URL of a Container App.
+# Optional second argument overrides URL_SCHEME.
 app_url() {
     local app="$1"
+    local scheme="${2:-$URL_SCHEME}"
     local fqdn
 
     fqdn="$(az containerapp show \
@@ -25,12 +27,12 @@ app_url() {
         --query 'properties.configuration.ingress.fqdn' \
         --output tsv)"
 
-    if [[ -z "$fqdn" || "$fqdn" == "None" ]]; then
+    if [[ -z "$fqdn" || "$fqdn" == "None" || "$fqdn" == "null" ]]; then
         echo "ERROR: No ingress FQDN for $app." >&2
         return 1
     fi
 
-    printf '%s://%s' "$URL_SCHEME" "$fqdn"
+    printf '%s://%s' "$scheme" "$fqdn"
 }
 
 # Backend -> database mapping.
@@ -42,6 +44,18 @@ declare -a MAPPINGS=(
     "project-notebook-api|project-notebook-db"
     "project-exam-api|project-exam-db"
 )
+
+# Expected environment variables per app.
+# Associative arrays store each app's desired variable values.
+declare -A EXPECTED=()
+
+set_expected() {
+    local app="$1"
+    local variable="$2"
+    local value="$3"
+
+    EXPECTED["$app|$variable"]="$value"
+}
 
 # Validate all backend and database apps first.
 for mapping in "${MAPPINGS[@]}"; do
@@ -58,69 +72,94 @@ for mapping in "${MAPPINGS[@]}"; do
 done
 
 echo
-echo "Configuring database URLs..."
+echo "Resolving database service URLs..."
 
+# Main backend -> database variables.
 for mapping in "${MAPPINGS[@]}"; do
     IFS='|' read -r backend database <<< "$mapping"
 
-    DATABASE_SERVICE_URL="$(app_url "$database")"
-
-    echo "Setting DATABASE_SERVICE_URL on $backend..."
-
-    az containerapp update \
-        --name "$backend" \
-        --resource-group "$RESOURCE_GROUP" \
-        --set-env-vars \
-            "DATABASE_SERVICE_URL=$DATABASE_SERVICE_URL" \
-        --output none
+    database_url="$(app_url "$database")"
+    set_expected "$backend" "DATABASE_SERVICE_URL" "$database_url"
 done
 
-# The exam API calls the enrolment API.
-ENROLMENT_DB_URL="$(app_url project-enrolment-db)"
+# The exam API calls the enrolment service.
+# This preserves the original script's database URL mapping.
+# Change to project-enrolment-api if the exam API needs that API.
+enrolment_db_url="$(app_url project-enrolment-db)"
+set_expected "project-exam-api" "ENROLMENT_SERVICE_URL" "$enrolment_db_url"
 
-echo "Setting ENROLMENT_SERVICE_URL on project-exam-api..."
+# Calendar API -> assessment and exam database services.
+assessment_db_url="$(app_url project-assessment-db http)"
+exam_db_url="$(app_url project-exam-db http)"
 
-az containerapp update \
-    --name project-exam-api \
-    --resource-group "$RESOURCE_GROUP" \
-    --set-env-vars \
-        "ENROLMENT_SERVICE_URL=$ENROLMENT_DB_URL" \
-    --output none
+set_expected "project-calendar-api" "ASSESSMENT_SERVICE_URL" "$assessment_db_url"
+set_expected "project-calendar-api" "EXAM_SERVICE_URL" "$exam_db_url"
+
+# Disable AI, MCP and RAG on each backend.
+for backend in \
+    project-auth \
+    project-enrolment-api \
+    project-assessment-api \
+    project-calendar-api \
+    project-notebook-api \
+    project-exam-api
+do
+    set_expected "$backend" "AI_ENABLED" "false"
+    set_expected "$backend" "MCP_ENABLED" "false"
+    set_expected "$backend" "RAG_ENABLED" "false"
+done
+
+# Apply only differences. Each app gets at most one update.
+declare -A APP_CHANGES=()
+
+for key in "${!EXPECTED[@]}"; do
+    app="${key%%|*}"
+    variable="${key#*|}"
+    expected_value="${EXPECTED[$key]}"
+
+    current_value="$(az containerapp show \
+        --name "$app" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query "properties.template.containers[0].env[?name=='${variable}'].value | [0]" \
+        --output tsv)"
+
+    if [[ "$current_value" != "$expected_value" ]]; then
+        echo "CHANGE: $app -> $variable"
+        APP_CHANGES["$app"]+="$variable=$expected_value"$'\n'
+    else
+        echo "UNCHANGED: $app -> $variable"
+    fi
+done
 
 echo
-echo "Backend environment variables configured."
+echo "Applying required environment-variable changes..."
 
+for app in "${!APP_CHANGES[@]}"; do
+    mapfile -t changes < <(
+        printf '%s' "${APP_CHANGES[$app]}" | sed '/^$/d'
+    )
 
-# Calendar API -> assessment and exam database services
+    if ((${#changes[@]} == 0)); then
+        continue
+    fi
 
-ASSESSMENT_DB_URL="$(app_url project-assessment-db http)"
-EXAM_DB_URL="$(app_url project-exam-db http)"
+    echo "Updating $app with ${#changes[@]} changed variable(s)..."
 
-echo "Setting ASSESSMENT_SERVICE_URL on project-calendar-api..."
+    az containerapp update \
+        --name "$app" \
+        --resource-group "$RESOURCE_GROUP" \
+        --set-env-vars "${changes[@]}" \
+        --output none
 
-az containerapp update \
-  --name project-calendar-api \
-  --resource-group "$RESOURCE_GROUP" \
-  --set-env-vars "ASSESSMENT_SERVICE_URL=$ASSESSMENT_DB_URL" \
-  --output none
+    echo "Updated: $app"
+done
 
-echo "Setting EXAM_SERVICE_URL on project-calendar-api..."
-
-az containerapp update \
-  --name project-calendar-api \
-  --resource-group "$RESOURCE_GROUP" \
-  --set-env-vars "EXAM_SERVICE_URL=$EXAM_DB_URL" \
-  --output none
-
-echo "Calendar API service URLs configured."
-
-
-# ============================================================
-# Disable AI, MCP and RAG for all backend services
-# ============================================================
+if ((${#APP_CHANGES[@]} == 0)); then
+    echo "No environment-variable changes were required."
+fi
 
 echo
-echo "Disabling AI, MCP and RAG on all backends..."
+echo "Verifying backend environment variables..."
 
 for backend in \
     project-auth \
@@ -130,19 +169,14 @@ for backend in \
     project-notebook-api \
     project-exam-api
 do
-    echo "Updating $backend..."
-
-    az containerapp update \
+    echo
+    echo "$backend:"
+    az containerapp show \
         --name "$backend" \
         --resource-group "$RESOURCE_GROUP" \
-        --set-env-vars \
-            AI_ENABLED=false \
-            MCP_ENABLED=false \
-            RAG_ENABLED=false \
-        --output none
-
-    echo "$backend: AI, MCP and RAG disabled."
+        --query 'properties.template.containers[0].env[].[name,value]' \
+        --output table
 done
 
 echo
-echo "All backend environment variables configured."
+echo "Backend environment-variable configuration complete."
