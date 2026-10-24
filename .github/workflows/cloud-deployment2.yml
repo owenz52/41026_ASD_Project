@@ -34,11 +34,11 @@ jobs:
         working-directory: 41026_ASD_Project
         run: docker compose down -v
 
-      - name: Upload test evidence
-        uses: actions/upload-artifact@v4
-        with:
-          name: azure-test-evidence
-          path: 41026_ASD_Project/reports
+      #- name: Upload test evidence
+       # uses: actions/upload-artifact@v4
+        #with:
+         # name: azure-test-evidence
+          #path: 41026_ASD_Project/reports
 
   deploy_azure:
     runs-on: ubuntu-latest

@@ -188,7 +188,7 @@ student_exams = [
 
 cursor.executemany(
     """
-    INSERT INTO student_exams (
+    INSERT OR IGNORE INTO student_exams (
         exam_id,
         course_exam_id,
         course_id,
