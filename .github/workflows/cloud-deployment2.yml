@@ -1,4 +1,4 @@
-name: cloud-deployment
+name: cloud-deployment 2
 
 on:
   # push:
@@ -21,13 +21,19 @@ jobs:
         working-directory: 41026_ASD_Project
         run: docker compose up -d --build
 
-      - name: Run post-commit tests
-        working-directory: 41026_ASD_Project
+      - name: Run Exam Backend Tests
         run: |
-          mkdir -p reports
-          python -m pytest tests/post_commit/ -v > reports/test-results.md
-          status=$?
-          echo "{\"status\": \"$([ $status -eq 0 ] && echo PASS || echo FAIL)\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> reports/test-audit.jsonl
+          pip install pytest requests
+          BACKEND_SERVICE_URL=http://localhost:5009 \
+          pytest -v tests/post_commit/test_api.py
+
+
+      - name: Show logs if build or services fail
+        if: failure()
+        run: |
+          docker compose -f docker-compose.yml logs
+          docker logs cayden-exam-backend-ci || true
+
 
       - name: Stop services
         if: always()
