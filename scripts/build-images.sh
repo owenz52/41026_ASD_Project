@@ -1,3 +1,4 @@
+
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
@@ -40,24 +41,26 @@ if ! az account show --output none 2>/dev/null; then
     exit 1
 fi
 
-if ! az group show 
-    --name "$RESOURCE_GROUP" 
+if ! az group show \
+    --name "$RESOURCE_GROUP" \
     --output none 2>/dev/null; then
-    echo "ERROR: Resource group '$RESOURCE_GROUP' was not found." >&2
+    echo "ERROR: Resource group '$RESOURCE_GROUP' was not found or is inaccessible." >&2
     exit 1
 fi
 
+# Read registry name from resource group tags if not provided.
 if [[ -z "$REGISTRY_NAME" ]]; then
     REGISTRY_NAME="$(
-        az group show 
-            --name "$RESOURCE_GROUP" 
-            --query "tags.registryName" 
+        az group show \
+            --name "$RESOURCE_GROUP" \
+            --query "tags.registryName" \
             --output tsv
     )"
 fi
 
 if [[ -z "$REGISTRY_NAME" || "$REGISTRY_NAME" == "None" ]]; then
     echo "ERROR: Registry name is missing from resource group tags." >&2
+    echo "Set REGISTRY_NAME or add the registryName resource group tag." >&2
     exit 1
 fi
 
@@ -166,10 +169,10 @@ echo
 echo "[4/5] Checking Azure Container Registry..."
 
 LOGIN_SERVER="$(
-    az acr show 
-        --name "$REGISTRY_NAME" 
-        --resource-group "$RESOURCE_GROUP" 
-        --query loginServer 
+    az acr show \
+        --name "$REGISTRY_NAME" \
+        --resource-group "$RESOURCE_GROUP" \
+        --query loginServer \
         --output tsv
 )"
 
@@ -183,15 +186,13 @@ echo "Logging Docker into Azure Container Registry..."
 
 az acr login --name "$REGISTRY_NAME"
 
-# Retrieve repositories once. If this command fails because of
-# authentication or permissions, stop rather than assume images
-# are missing.
+# Retrieve repositories once. Stop if authentication or permissions fail.
 
 echo "Retrieving existing ACR repositories..."
 
 EXISTING_REPOSITORIES="$(
-    az acr repository list 
-        --name "$REGISTRY_NAME" 
+    az acr repository list \
+        --name "$REGISTRY_NAME" \
         --output tsv
 )"
 
@@ -232,9 +233,6 @@ while IFS='|' read -r image context dockerfile; do
         done <<< "$EXISTING_REPOSITORIES"
 
         if [[ "$REPOSITORY_EXISTS" == "true" ]]; then
-            # A repository that exists should have its tags queried
-            # successfully. An error here stops the script instead
-            # of incorrectly treating the image as missing.
             EXISTING_TAGS="$(
                 az acr repository show-tags \
                     --name "$REGISTRY_NAME" \
@@ -293,8 +291,8 @@ echo "Images skipped: $skipped"
 echo
 echo "Repositories currently in Azure Container Registry:"
 
-az acr repository list 
-    --name "$REGISTRY_NAME" 
+az acr repository list \
+    --name "$REGISTRY_NAME" \
     --output table
 
 echo
