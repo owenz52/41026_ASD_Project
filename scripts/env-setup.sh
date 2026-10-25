@@ -28,16 +28,32 @@ echo
 echo "Selected Azure subscription:"
 az account show --query '{Subscription:name, SubscriptionId:id, TenantId:tenantId}' --output table
 
-# Register providers if requested
+
+# Check and register providers if requested
 if [[ "${REGISTER_PROVIDERS,,}" == "true" ]]; then
     echo
-    echo "Registering required resource providers..."
-    az provider register --namespace Microsoft.App --wait
-    az provider register --namespace Microsoft.OperationalInsights --wait
+    echo "Checking required resource providers..."
+
+    for PROVIDER in Microsoft.App Microsoft.OperationalInsights; do
+        PROVIDER_STATE="$(az provider show \
+            --namespace "$PROVIDER" \
+            --query registrationState \
+            --output tsv)"
+
+        if [[ "$PROVIDER_STATE" == "Registered" ]]; then
+            echo "$PROVIDER is already registered. Skipping."
+        else
+            echo "$PROVIDER is not registered (state: $PROVIDER_STATE)."
+
+            echo "Attempting registration of $PROVIDER..."
+            az provider register --namespace "$PROVIDER" --wait
+        fi
+    done
 else
     echo
     echo "Skipping resource provider registration."
 fi
+
 
 # Create resource group if it does not exist
 echo

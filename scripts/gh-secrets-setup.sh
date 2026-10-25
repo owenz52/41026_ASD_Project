@@ -17,8 +17,7 @@ EXPECTED_REPO="owenz52/41026_ASD_Project"
 # Use "legacy" for the traditional GitHub OIDC subject.
 # Use "immutable" only if this repository uses GitHub's immutable
 # owner/repository ID subject format.
-OIDC_SUBJECT_MODE="legacy"
-
+OIDC_SUBJECT_MODE="immutable"
 echo "=== GitHub Actions OIDC Setup ==="
 
 # Check required tools.
