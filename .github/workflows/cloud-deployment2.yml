@@ -13,6 +13,12 @@ permissions:
 jobs:
   post_commit_tests:
     runs-on: ubuntu-latest
+    
+    env:
+      AI_ENABLED: "false"
+      MCP_ENABLED: "false"
+      RAG_ENABLED: "false"
+      MULTI_AGENT_ENABLED: "false"
 
     steps:
       - uses: actions/checkout@v4
