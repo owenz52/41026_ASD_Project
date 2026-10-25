@@ -67,3 +67,6 @@ ai-services/multi-agent-server/logs/*.jsonl
 
 # Release 2 generated review reports
 ai-services/agentic-loop/reports/release2/*.md
+
+# Reports
+reports/

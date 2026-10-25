@@ -1,26 +1,86 @@
   repos:
     - repo: local
       hooks:
-        - id: ruff-scan
-          name: Ruff Scan
-          entry: python pre_commit_pytest.py tests/pre_commit/test_ruff_scan.py -v
+
+        - id: shared-ruff-scan
+          name: Shared Ruff Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/shared_test_ruff_scan.py -v
           language: python
           additional_dependencies: ["pytest==9.1.1", "ruff==0.16.8"]
           pass_filenames: false
           stages: [pre-commit]
-          
-        - id: detect-secrets-scan
-          name: detect-secrets Scan
-          entry: python pre_commit_pytest.py tests/pre_commit/test_secrets_scan.py -v
+
+        - id: shared-detect-secrets-scan
+          name: Shared detect-secrets Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/shared_test_secrets_scan.py -v
           language: python
           additional_dependencies: ["pytest==9.1.1", "detect-secrets==1.5.0"]
           pass_filenames: false
           stages: [pre-commit]
 
-        - id: pip-audit-scan
-          name: pip-audit Scan
-          entry: python pre_commit_pytest.py tests/pre_commit/test_dependency_audit.py -v
+        - id: shared-pip-audit-scan
+          name: Shared pip-audit Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/shared_test_dependency_audit.py -v
           language: python
           additional_dependencies: ["pytest==9.1.1", "pip-audit==2.10.1", "certifi>=2026.10.19"]
           pass_filenames: false
           stages: [pre-commit]
+
+
+
+
+
+        - id: cayden-ruff-scan
+          name: Cayden Ruff Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/cayden_test_ruff_scan.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "ruff==0.16.8"]
+          pass_filenames: false
+          stages: [pre-commit]
+
+        - id: cayden-detect-secrets-scan
+          name: Cayden detect-secrets Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/cayden_test_secrets_scan.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "detect-secrets==1.5.0"]
+          pass_filenames: false
+          stages: [pre-commit]
+
+
+        - id: cayden-pip-audit-scan
+          name: Cayden pip-audit Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/cayden_test_dependency_audit.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "pip-audit==2.10.1", "certifi>=2026.10.19"]
+          pass_filenames: false
+          stages: [pre-commit]
+
+
+
+
+
+        - id: yulin-ruff-scan
+          name: Yulin Ruff Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/yulin_test_ruff_scan.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "ruff==0.16.8"]
+          pass_filenames: false
+          stages: [pre-commit]
+
+        - id: yulin-detect-secrets-scan
+          name: Yulin detect-secrets Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/yulin_test_secrets_scan.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "detect-secrets==1.5.0"]
+          pass_filenames: false
+          stages: [pre-commit]
+
+
+        - id: yulin-pip-audit-scan
+          name: Yulin pip-audit Scan
+          entry: python pre_commit_pytest.py tests/pre_commit/yulin_test_dependency_audit.py -v
+          language: python
+          additional_dependencies: ["pytest==9.1.1", "pip-audit==2.10.1", "certifi>=2026.10.19"]
+          pass_filenames: false
+          stages: [pre-commit]
+

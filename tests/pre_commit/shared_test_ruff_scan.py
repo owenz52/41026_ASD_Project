@@ -2,9 +2,9 @@ import subprocess
 import sys
 
 
-def test_pip_audit_passes():
+def test_ruff_scan_passes():
     result = subprocess.run(
-        [sys.executable, "-m", "pip_audit"],
+        [sys.executable, "-m", "ruff", "check", "--output-format=concise", "shared"],
         capture_output=True,
         text=True,
     )
