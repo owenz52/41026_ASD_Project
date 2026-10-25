@@ -55,6 +55,8 @@ jobs:
 
       - name: Set up deployment environment
         run: bash scripts/env-setup.sh
+        env:
+          REGISTER_PROVIDERS: "false"
 
       - name: Create ACR
         run: bash scripts/create-acr.sh        
