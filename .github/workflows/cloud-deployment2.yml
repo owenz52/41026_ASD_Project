@@ -26,16 +26,95 @@ jobs:
       - name: Start services
         run: docker compose up -d --build
 
-      - name: Run post-commit tests
-        working-directory: 41026_ASD_Project
+      - name: Run all student endpoint tests
+        shell: bash
         run: |
-          mkdir -p reports
-          pip install pytest requests
-          set +e
-          python -m pytest tests/post_commit/ -v > reports/test-results.md 2>&1
-          status=$?
-          echo "{\"status\": \"$([ "$status" -eq 0 ] && echo PASS || echo FAIL)\", \"timestamp\": \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}" >> reports/test-audit.jsonl
-          exit "$status"
+          set -uo pipefail
+
+          mkdir -p reports/release2
+          REPORT="reports/release2/test-results.md"
+          AUDIT="reports/release2/test-audit.jsonl"
+
+          echo "# Release 2 Endpoint Testing" > "$REPORT"
+          echo "" >> "$REPORT"
+
+          overall_status=0
+
+          students=(
+            "student-adrianvoljak"
+            "student-yulinzhu"
+            "student-caydenyip"
+            "student-voreaksanith"
+            "student-yunchungchang"
+          )
+
+          for student in "${students[@]}"; do
+            echo "=== Testing $student ==="
+
+            backend="$student/backend"
+            test_file="$backend/tests/test_endpoints.py"
+
+            echo "" >> "$REPORT"
+            echo "## $student" >> "$REPORT"
+            echo '```text' >> "$REPORT"
+
+            if [[ ! -f "$test_file" ]]; then
+              echo "FAIL: Missing $test_file" | tee -a "$REPORT"
+              result="FAIL"
+            else
+              venv="/tmp/release2-tests-$student"
+
+              if ! python -m venv "$venv"; then
+                echo "FAIL: Could not create test environment" \
+                  | tee -a "$REPORT"
+                result="FAIL"
+              elif ! "$venv/bin/python" -m pip install \
+                  pytest -r "$backend/requirements.txt" \
+                  >> "$REPORT" 2>&1; then
+                echo "FAIL: Dependency installation failed" \
+                  | tee -a "$REPORT"
+                result="FAIL"
+              elif PYTHONPATH="$backend" \
+                  "$venv/bin/python" -m pytest \
+                  "$test_file" -v \
+                  >> "$REPORT" 2>&1; then
+                echo "PASS: $student" | tee -a "$REPORT"
+                result="PASS"
+              else
+                echo "FAIL: $student" | tee -a "$REPORT"
+                result="FAIL"
+              fi
+            fi
+
+            echo '```' >> "$REPORT"
+
+            STUDENT="$student" RESULT="$result" \
+              python - <<'PY' >> "$AUDIT"
+          import json
+          import os
+          from datetime import datetime, timezone
+
+          print(json.dumps({
+              "student": os.environ["STUDENT"],
+              "status": os.environ["RESULT"],
+              "timestamp": datetime.now(timezone.utc).isoformat()
+          }))
+          PY
+
+            if [[ "$result" != "PASS" ]]; then
+              overall_status=1
+            fi
+          done
+
+          cat "$REPORT"
+
+          if [[ "$overall_status" -ne 0 ]]; then
+            echo "One or more student test suites failed."
+            exit 1
+          fi
+
+          echo "All five student test suites passed."
+
 
       - name: Stop services
         if: always()

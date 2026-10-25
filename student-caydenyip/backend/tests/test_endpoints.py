@@ -1,36 +1,47 @@
-﻿"""
-TEMPORARY Release 2 smoke tests.
+﻿
+import os
 
-TODO: Replace with feature-specific endpoint tests.
-These tests verify route registration, not complete functionality.
-"""
-
-import pytest
-from flask import Flask
+import requests
 
 
-@pytest.fixture
-def client():
-    app = Flask(__name__)
+BACKEND_SERVICE_URL = os.getenv(
+    "DATABASE_SERVICE_URL",
+    "http://localhost:5009"
+)
 
-    @app.get("/health")
-    def health():
-        return {"status": "ok"}, 200
+# ==================================================
+# TEST HEALTH CHECK
+# ==================================================
 
-    @app.get("/test")
-    def test_route():
-        return {"message": "test"}, 200
+def test_service_health():  
 
-    return app.test_client()
+    response = requests.get(
+        f"{BACKEND_SERVICE_URL}/",
+        timeout=5
+    )
 
-
-def test_health_endpoint(client):
-    response = client.get("/health")
     assert response.status_code == 200
-    assert response.json["status"] == "ok"
+
+    data = response.json()
+
+    assert data["service"] == "exam-backend"
+    assert data["status"] == "running"
 
 
-def test_example_endpoint(client):
-    response = client.get("/test")
+# ==================================================
+# TEST EXAMS EXIST
+# ==================================================
+
+def test_exams_exist():
+
+    response = requests.get(
+        f"{BACKEND_SERVICE_URL}/exams",
+        params={"student_id": 1},
+        timeout=5
+    )
+
     assert response.status_code == 200
-    assert response.json["message"] == "test"
+
+    exams = response.json()
+
+    assert isinstance(exams, list)
