@@ -1,24 +1,18 @@
 name: cloud-deployment
 
 on:
+  # push:
+  #   branches:
+  #     - main
   workflow_dispatch:
-  #push:
-    #branches:
-      #- main
 
 permissions:
   id-token: write
   contents: read
 
-concurrency:
-  group: azure-release2
-  cancel-in-progress: false
-
 jobs:
   post_commit_tests:
-    name: Validate All Student Endpoints
     runs-on: ubuntu-latest
-    timeout-minutes: 35
 
     env:
       AI_ENABLED: "false"
@@ -27,13 +21,10 @@ jobs:
       MULTI_AGENT_ENABLED: "false"
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Start services
+        run: docker compose up -d --build
 
       - name: Run all student endpoint tests
         shell: bash
@@ -124,32 +115,26 @@ jobs:
 
           echo "All five student test suites passed."
 
+
+      - name: Stop services
+        if: always()
+        run: docker compose down -v
+
       - name: Upload test evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cloud-deployment-test-evidence
-          path: |
-            reports/release2/test-results.md
-            reports/release2/test-audit.jsonl
-          if-no-files-found: error
-          retention-days: 30
+          name: azure-test-evidence
+          path: reports/
+          if-no-files-found: warn
 
   deploy_azure:
-    name: Deploy to Azure Container Apps
     runs-on: ubuntu-latest
-    needs: post_commit_tests
-    timeout-minutes: 90
-
-    env:
-      RESOURCE_GROUP: asd-release2-rg
-      LOCATION: australiaeast
-      IMAGE_TAG: ${{ github.sha }}
-      ACR_PULL_IDENTITY_ID: ${{ secrets.ACR_PULL_IDENTITY_ID }}
+    needs: [post_commit_tests]
+    if: github.event_name == 'workflow_dispatch'
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Azure login
         uses: azure/login@v2
@@ -158,37 +143,51 @@ jobs:
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Validate deployment configuration
-        shell: bash
-        run: |
-          set -euo pipefail
+      - name: Set up deployment environment
+        run: bash scripts/env-setup.sh
+        env:
+          REGISTER_PROVIDERS: "false"
 
-          : "${IMAGE_TAG:?Missing IMAGE_TAG}"
-          : "${ACR_PULL_IDENTITY_ID:?Missing ACR_PULL_IDENTITY_ID}"
-
-          echo "Image tag: $IMAGE_TAG"
-          echo "Resource group: $RESOURCE_GROUP"
-
-      - name: Set up cloud infrastructure
-        run: bash scripts/release2-deployment/env-setup.sh
+      - name: Create ACR
+        run: bash scripts/create-acr.sh        
 
       - name: Build and push images
-        run: bash scripts/release2-deployment/build-images.sh
+        run: bash scripts/build-images.sh
+
+      - name: Azure login (refresh)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Create Container Apps environment
-        run: bash scripts/release2-deployment/deploy-azure-env.sh
+        run: bash scripts/deploy-azure-env.sh
 
-      - name: Deploy cloud services
-        run: bash scripts/release2-deployment/deploy-azure.sh
+      - name: Azure login (refresh again)
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
-      - name: Validate cloud deployment
-        run: bash scripts/release2-deployment/deployment-testing.sh
+      - name: Deploy to Azure Container Apps
+        run: bash scripts/deploy-azure.sh
+
+      - name: Configure Backend Env
+        run: bash scripts/configure-backend-env.sh      
+
+      - name: Configure Frontend Env
+        run: bash scripts/configure-portal-env.sh
+
+
+      - name: Validate deployment and generate evidence
+        run: bash scripts/deployment-testing.sh
 
       - name: Upload deployment evidence
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cloud-deployment-evidence
-          path: reports/release2-deployment/deployment-results.md
+          name: azure-deployment-evidence
+          path: reports/deployment-results.md
           if-no-files-found: warn
-          retention-days: 30

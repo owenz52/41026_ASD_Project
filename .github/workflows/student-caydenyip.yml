@@ -79,7 +79,7 @@ jobs:
         run: |
           pip install pytest requests
           BACKEND_SERVICE_URL=http://localhost:5009 \
-          pytest -v tests/post_commit/test_api.py
+          pytest -v student-caydenyip/backend/tests/test_endpoints.py
 
 
       - name: Show logs if build or services fail
