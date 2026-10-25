@@ -27,6 +27,7 @@ jobs:
         run: docker compose up -d --build
 
       - name: Run post-commit tests
+        working-directory: 41026_ASD_Project
         run: |
           mkdir -p reports
           pip install pytest requests
