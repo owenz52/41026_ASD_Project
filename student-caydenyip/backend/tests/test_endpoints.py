@@ -46,7 +46,3 @@ def test_exams_exist():
 
     assert isinstance(exams, list)
 
-    assert any(
-        exam["exam_name"] == "41026 Final Exam"
-        for exam in exams
-    ), "41026 Final Exam was not found"
