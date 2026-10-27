@@ -1,5 +1,4 @@
-﻿
-import os
+﻿import os
 
 import requests
 
@@ -9,11 +8,17 @@ BACKEND_SERVICE_URL = os.getenv(
     "http://localhost:5009"
 )
 
+ENROLMENT_DATABASE_URL = os.getenv(
+    "ENROLMENT_DATABASE_URL",
+    "http://localhost:5002"
+)
+
+
 # ==================================================
 # TEST HEALTH CHECK
 # ==================================================
 
-def test_service_health():  
+def test_service_health():
 
     response = requests.get(
         f"{BACKEND_SERVICE_URL}/",
@@ -28,12 +33,30 @@ def test_service_health():
     assert data["status"] == "running"
 
 
-
 # ==================================================
-# TEST EXAMS EXIST
+# TEST EXAM GET
 # ==================================================
 
 def test_exams_exist():
+
+    # Create an enrolment for student 1 in course 1
+    enrolment_response = requests.post(
+        f"{ENROLMENT_DATABASE_URL}/enrolments",
+        json={
+            "student_id": 1,
+            "course_id": 1,
+            "enrolment_status": "Enrolled",
+            "enrolment_date": "2026-10-27"
+        },
+        timeout=5
+    )
+
+    assert enrolment_response.status_code == 201, (
+        f"Failed to create enrolment: "
+        f"{enrolment_response.text}"
+    )
+
+    # Request exams for the enrolled student
     response = requests.get(
         f"{BACKEND_SERVICE_URL}/exams",
         params={"student_id": 1},
@@ -45,12 +68,8 @@ def test_exams_exist():
     exams = response.json()
 
     assert isinstance(exams, list)
-    assert len(exams) > 0
 
-    # Verify the initialized exam was created
-    exam_names = [
-        exam["exam_name"]
+    assert any(
+        exam["exam_name"] == "41026 Final Exam"
         for exam in exams
-    ]
-
-    assert "41026 Final Exam" in exam_names
+    ), "41026 Final Exam was not returned"
