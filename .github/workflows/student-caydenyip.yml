@@ -74,13 +74,37 @@ jobs:
       - name: Check service status
         run: docker compose -f docker-compose.yml ps
 
+      - name: Install Python test dependencies
+        run: pip install pytest requests
 
       - name: Run Exam Backend Tests
+        id: exam-tests
+        continue-on-error: true
+        env:
+          BACKEND_SERVICE_URL: http://localhost:5009
         run: |
-          pip install pytest requests
-          BACKEND_SERVICE_URL=http://localhost:5009 \
-          pytest -v student-caydenyip/backend/tests/test_endpoints.py
+          mkdir -p reports
+          pytest -v \
+            --junitxml=reports/exam-backend-test-results.xml \
+            student-caydenyip/backend/tests/test_endpoints.py \
+            2>&1 | tee reports/exam-backend-test-results.txt
 
+      - name: Upload Exam Backend Test Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exam-backend-test-results
+          path: |
+            reports/exam-backend-test-results.xml
+            reports/exam-backend-test-results.txt
+          if-no-files-found: warn
+          retention-days: 30
+
+      - name: Fail workflow if Exam Backend Tests failed
+        if: steps.exam-tests.outcome == 'failure'
+        run: |
+          echo "Exam backend tests failed. Check the uploaded test results."
+          exit 1
 
       - name: Show logs if build or services fail
         if: failure()

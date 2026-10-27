@@ -28,12 +28,12 @@ def test_service_health():
     assert data["status"] == "running"
 
 
+
 # ==================================================
 # TEST EXAMS EXIST
 # ==================================================
 
 def test_exams_exist():
-
     response = requests.get(
         f"{BACKEND_SERVICE_URL}/exams",
         params={"student_id": 1},
@@ -45,4 +45,12 @@ def test_exams_exist():
     exams = response.json()
 
     assert isinstance(exams, list)
+    assert len(exams) > 0
 
+    # Verify the initialized exam was created
+    exam_names = [
+        exam["exam_name"]
+        for exam in exams
+    ]
+
+    assert "41026 Final Exam" in exam_names
