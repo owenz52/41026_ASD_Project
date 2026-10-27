@@ -42,38 +42,38 @@ jobs:
           docker build -t yulin-backend-ci \
             -f student-yulinzhu/backend/Dockerfile student-yulinzhu
           docker build -t yulin-frontend-ci student-yulinzhu/frontend
-            - name: Test Enrolment endpoint functions
-          run: |
-            docker run --rm -i \
-              --network none \
-              -e AI_ENABLED=false \
-              -e MCP_ENABLED=false \
-              -e RAG_ENABLED=false \
-              -e PYTHONPATH=/app \
-              yulin-backend-ci \
-              python - <<'PY'
-            import sys
-            import unittest
-            from pathlib import Path
+      - name: Test Enrolment endpoint functions
+        run: |
+          docker run --rm -i \
+            --network none \
+            -e AI_ENABLED=false \
+            -e MCP_ENABLED=false \
+            -e RAG_ENABLED=false \
+            -e PYTHONPATH=/app \
+            yulin-backend-ci \
+            python - <<'PY'
+          import sys
+          import unittest
+          from pathlib import Path
 
-            test_file = Path("/app/tests/test_endpoints.py")
-            if not test_file.is_file():
-                raise SystemExit(f"Missing test file: {test_file}")
+          test_file = Path("/app/tests/test_endpoints.py")
+          if not test_file.is_file():
+              raise SystemExit(f"Missing test file: {test_file}")
 
-            suite = unittest.defaultTestLoader.discover(
-                start_dir="/app/tests",
-                pattern="test_endpoints.py",
-            )
+          suite = unittest.defaultTestLoader.discover(
+              start_dir="/app/tests",
+              pattern="test_endpoints.py",
+          )
 
-            count = suite.countTestCases()
-            print(f"Discovered {count} endpoint tests", flush=True)
+          count = suite.countTestCases()
+          print(f"Discovered {count} endpoint tests", flush=True)
 
-            if count < 6:
-                raise SystemExit("Expected at least 6 endpoint tests")
+          if count < 6:
+              raise SystemExit("Expected at least 6 endpoint tests")
 
-            result = unittest.TextTestRunner(verbosity=2).run(suite)
-            sys.exit(0 if result.wasSuccessful() else 1)
-            PY
+          result = unittest.TextTestRunner(verbosity=2).run(suite)
+          sys.exit(0 if result.wasSuccessful() else 1)
+          PY
       - name: Start isolated CI containers
         run: |
           docker network create yulin-ci
