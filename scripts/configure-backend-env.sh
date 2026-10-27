@@ -95,7 +95,7 @@ exam_db_url="$(app_url project-exam-db http)"
 set_expected "project-calendar-api" "ASSESSMENT_SERVICE_URL" "$assessment_db_url"
 set_expected "project-calendar-api" "EXAM_SERVICE_URL" "$exam_db_url"
 
-# Disable AI, MCP and RAG on each backend.
+# Disable AI, MCP, RAG and multi-agent on each backend.
 for backend in \
     project-auth \
     project-enrolment-api \
@@ -107,6 +107,7 @@ do
     set_expected "$backend" "AI_ENABLED" "false"
     set_expected "$backend" "MCP_ENABLED" "false"
     set_expected "$backend" "RAG_ENABLED" "false"
+    set_expected "$backend" "MULTI_AGENT_ENABLED" "false"
 done
 
 # Apply only differences. Each app gets at most one update.

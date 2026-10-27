@@ -46,25 +46,29 @@ jobs:
             -e AI_ENABLED=false \
             -e MCP_ENABLED=false \
             -e RAG_ENABLED=false \
+            -e MULTI_AGENT_ENABLED=false \
             exam-backend
 
-      - name: Verify AI, MCP and RAG are disabled
+      - name: Verify AI, MCP, RAG and MULTI_AGENT are disabled
         run: |
           echo "Checking backend feature flags..."
 
           AI_ENABLED=$(docker exec cayden-exam-backend-ci printenv AI_ENABLED)
           MCP_ENABLED=$(docker exec cayden-exam-backend-ci printenv MCP_ENABLED)
           RAG_ENABLED=$(docker exec cayden-exam-backend-ci printenv RAG_ENABLED)
+          MULTI_AGENT_ENABLED=$(docker exec cayden-exam-backend-ci printenv MULTI_AGENT_ENABLED)
 
           echo "AI_ENABLED=$AI_ENABLED"
           echo "MCP_ENABLED=$MCP_ENABLED"
           echo "RAG_ENABLED=$RAG_ENABLED"
+          echo "MULTI_AGENT_ENABLED=$MULTI_AGENT_ENABLED"
 
           test "$AI_ENABLED" = "false"
           test "$MCP_ENABLED" = "false"
           test "$RAG_ENABLED" = "false"
+          test "$MULTI_AGENT_ENABLED" = "false"
 
-          echo "AI, MCP and RAG are disabled for CI."
+          echo "AI, MCP, RAG and MULTI_AGENT are disabled for CI."
 
       - name: Start Frontend
         run: |
