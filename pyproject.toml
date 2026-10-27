@@ -1,7 +1,0 @@
-[tool.ruff.lint]
-# Lab 11: static code security scan - only flag flake8-bandit (S) security rules
-select = ["S"]
-
-[tool.ruff.lint.per-file-ignores]
-# pytest requires `assert` - not a real security finding in test files
-"tests/**" = ["S101"]
